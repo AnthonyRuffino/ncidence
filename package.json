@@ -6,8 +6,12 @@
   "repository": "",
   "author": "Anthony Ruffino <aruffino84@gmail.com>",
   "dependencies": {
-    "async": "~0.2.8",
-    "express": "~3.2.4",
-    "socket.io": "~0.9.14"
+    "async": "0.2.10",
+    "fs": "0.0.2",
+    "express": "3.2.6",
+    "mkpath": "1.0.0",
+    "moment-timezone": "0.5.3",
+    "socket.io": "0.9.17",
+    "mysql": "2.10.2"
   }
 }
