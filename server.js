@@ -60,12 +60,140 @@ if(mySqlIp !== null && mySqlIp !== null){
 //  * `port` - The HTTP port to listen on. If `process.env.PORT` is set, _it overrides this value_.
 //
 var router = express();
+router.use(express.bodyParser());
 var server = http.createServer(router);
-var io = socketio.listen(server);
+var secureServer = null;
 
-router.use(express.static(path.resolve(__dirname, 'client')));
+
+var secureServerErr = null;
+
+
+if(useHttps === true && https != null){
+   try{
+       
+       var sslKeyFile = process.env.sslKeyFile || './ssl/domain-key.pem';
+       console.log('sslKeyFile: ' + sslKeyFile);
+       
+       var sslDomainCertFile = process.env.sslDomainCertFile || './ssl/domain.org.crt';
+       console.log('sslDomainCertFile: ' + sslDomainCertFile);
+       
+       var sslCaBundleFile = process.env.ssCaBundleFile || './ssl/bundle.crt';
+       console.log('sslCaBundleFile: ' + sslCaBundleFile);
+       
+       var certFileEncoding = 'utf8';
+       
+       if (fs.existsSync(sslKeyFile) === false) {
+           console.log('sslKeyFile  was not found!');
+       }else if (fs.existsSync(sslDomainCertFile) === false) {
+           console.log('sslDomainCertFile  was not found!');
+       }
+       else{
+           var ssl = {
+                key: fs.readFileSync(sslKeyFile, certFileEncoding),
+                cert: fs.readFileSync(sslDomainCertFile, certFileEncoding)
+            };
+            
+            if (fs.existsSync(sslCaBundleFile)) {
+                console.log('sslCaBundleFile found.');
+                
+                var ca, cert, chain, line, _i, _len;
+            
+                ca = [];
+            
+                chain = fs.readFileSync(sslCaBundleFile, certFileEncoding);
+            
+                chain = chain.split("\n");
+            
+                cert = [];
+            
+                for (_i = 0, _len = chain.length; _i < _len; _i++) {
+                  line = chain[_i];
+                    if (!(line.length !== 0)) {
+                        continue;
+                    }
+                    
+                    cert.push(line);
+                    
+                    if (line.match(/-END CERTIFICATE-/)) {
+                      ca.push(cert.join("\n"));
+                      cert = [];
+                    }
+                }
+            
+                ssl.ca = ca;
+            }
+            
+            secureServer = https.createServer(ssl, router);
+            console.log('secureServer created');
+       }
+       
+
+    }catch(err){
+        secureServerErr = "Err1: " + err;
+        console.log('Error creating https server: ' + err);
+    } 
+}
+
+
+
+
+
+
+//////////////////////////
+//BEGIN MIDDLEWARE///
+//////////////////////////
+function requireHTTPS(req, res, next) {
+    if (!req.secure) {
+        return res.redirect('https://' + req.get('host') + req.url);
+    }
+    next();
+}
+
+if(useHttps === true){
+    router.use(requireHTTPS);
+}
+
+//This allows for navigation to html pages without the .html extension
+if(path === undefined || path === null){
+    router.use(function(req, res, next) {
+        if (req.path.indexOf('.') === -1) {
+            var file = publicdir + req.path + '.html';
+            fs.exists(file, function(exists) {
+              if (exists)
+                req.url += '.html';
+              next();
+            });
+        }
+        else{
+           next(); 
+        }
+    });
+    router.use(express.static(publicdir));
+}else{
+    router.use(express.static(path.resolve(__dirname, 'client')));
+}
+//////////////////////////
+//END MIDDLEWARE///
+//////////////////////////
+
+
+
+//////////////////////////
+//BEGIN SOCKET IO SETUP///
+//////////////////////////
+var io = null;
 var messages = [];
 var sockets = [];
+
+if(useHttps === true && secureServer != null){
+    io = socketio.listen(secureServer);
+}
+else{
+    if(server === undefined || server === null){
+        server = http.createServer(router);
+    }
+    io = socketio.listen(server);
+}
 
 io.on('connection', function (socket) {
     messages.forEach(function (data) {
@@ -120,6 +248,13 @@ function broadcast(event, data) {
     socket.emit(event, data);
   });
 }
+//////////////////////////
+//END SOCKET IO SETUP///
+//////////////////////////
+
+
+
+
 
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
   var addr = server.address();
