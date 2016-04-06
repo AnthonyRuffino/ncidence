@@ -19,11 +19,11 @@ var https = null;
 var useHttps = false;
 
 if(process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null){
-    console.log('useHttps was set to true.');
+    console.log('Using SSL.');
     useHttps = true;
     https = require('https');
 }else{
-    console.log('useHttps was not set to true.');
+    console.log('Not using SSL.');
 }
 //////////////////////
 //END HTTPS CONFIG
@@ -32,22 +32,25 @@ if(process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null){
 //////////////////////
 //BEGIN MYSQL CONFIG
 //////////////////////
-var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || null;
+var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 var mySqlConnection = null;
 
-if(mySqlIp !== null && mySqlIp !== null){
+if(mySqlIp !== null && mySqlIp !== undefined){
+  console.log('LOADING mysql. ');
     try {
          var mysqlClient = require('mysql');
          mySqlConnection = mysqlClient.createConnection({
              host: mySqlIp,
              user: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
-             password: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD,
+             password: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || '@Dev_Secret!',
              database : process.env.MYSQL_ENV_MYSQL_DATABASE_NAME || 'ncidence'
          });
     }catch (e) {
         console.log('FAILED TO LOAD mysql. ');
         console.log(e)
     }
+}else{
+  console.log('mysql not loaded. ');
 }
 //////////////////////
 //END MYSQL CONFIG
@@ -154,24 +157,20 @@ if(useHttps === true){
 }
 
 //This allows for navigation to html pages without the .html extension
-if(path === undefined || path === null){
-    router.use(function(req, res, next) {
-        if (req.path.indexOf('.') === -1) {
-            var file = publicdir + req.path + '.html';
-            fs.exists(file, function(exists) {
-              if (exists)
-                req.url += '.html';
-              next();
-            });
-        }
-        else{
-           next(); 
-        }
-    });
-    router.use(express.static(publicdir));
-}else{
-    router.use(express.static(path.resolve(__dirname, 'client')));
-}
+router.use(function(req, res, next) {
+    if (req.path.indexOf('.') === -1) {
+        var file = publicdir + req.path + '.html';
+        fs.exists(file, function(exists) {
+          if (exists)
+            req.url += '.html';
+          next();
+        });
+    }
+    else{
+       next(); 
+    }
+});
+router.use(express.static(publicdir));
 //////////////////////////
 //END MIDDLEWARE///
 //////////////////////////
@@ -254,6 +253,22 @@ function broadcast(event, data) {
 
 
 
+router.get('/api/db', function(req, res) {
+    mySqlConnection.query('SHOW DATABASES', function(err, rows) {
+      if (err)
+        throw err;
+      res.json(200, { rows: rows });
+    });
+    
+});
+
+router.get('/api/db2', function(req, res) {
+    mySqlConnection.query(req.query.sql, function(err, rows) {
+      if (err)
+        throw err;
+      res.json(200, { rows: rows });
+    });
+});
 
 
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
