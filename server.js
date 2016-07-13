@@ -1,3 +1,4 @@
+var DEFAULT_HOST = 'ncidence_com';
 var publicdir = __dirname + '/client';
 
 var http = require('http');
@@ -10,6 +11,8 @@ var express = require('express');
 var fs = require('fs');
 var mkpath = require('mkpath');
 var moment = require('moment-timezone');
+
+var mysqlClient = require('mysql');
 
 
 //////////////////////
@@ -34,23 +37,63 @@ if(process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null){
 //////////////////////
 var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 var mySqlConnection = null;
+var defaultHost = process.env.DEFAULT_HOST || DEFAULT_HOST;
+
+
+var createConnection = function(database){
+  console.log('############# BEGIN create connection - ' + database + ';');
+  var mySqlConnectionLocal = mysqlClient.createConnection({
+    host: mySqlIp,
+    user: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
+    password: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || null,
+    database : database
+  });
+  return mySqlConnectionLocal;
+}
+
 
 if(mySqlIp !== null && mySqlIp !== undefined){
   console.log('LOADING mysql. ');
     try {
-         var mysqlClient = require('mysql');
-         mySqlConnection = mysqlClient.createConnection({
-             host: mySqlIp,
-             user: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
-             password: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || '@Dev_Secret!',
-             database : process.env.MYSQL_ENV_MYSQL_DATABASE_NAME || 'ncidence'
-         });
+         mySqlConnection = createConnection('mysql');
     }catch (e) {
         console.log('FAILED TO LOAD mysql. ');
         console.log(e)
     }
 }else{
   console.log('mysql not loaded. ');
+}
+
+
+
+
+var createDatabase = function(database) {
+  console.log('############# BEGIN show databases like ' + database + ';');
+  mySqlConnection.query('SHOW DATABASES LIKE \''+database+'\'', function(err, rows) {
+    var hasResults = rows !== undefined && rows !== null && !rows.length !== null && !rows.length !== undefined  && !rows.length < 1;
+    if (err){
+      console.log('!!!!!!!!!!!!! END show databases like ' + database + '; --> ERROR: '+ err);
+    }else{
+      console.log('############# END show databases like ' + database + ';' + ' --> ['+(hasResults ? rows.length : 0)+' results]');
+    }
+    if(hasResults === false){
+      console.log('############# BEGIN create schema ' + database + ': '+ err);
+      mySqlConnection.query('CREATE SCHEMA \''+database+'\'', function(err, rows) {
+        if (err){
+          console.log('!!!!!!!!!!!!! END create schema ' + database + '; --> ERROR: '+ err);
+        }else{
+          console.log('############# END create schema - ' + database + ';');
+        }
+      });
+    }
+    mySqlConnection = createConnection(database);
+  });
+};
+
+
+
+if(mySqlConnection !== null){
+  createDatabase(DEFAULT_HOST);
 }
 //////////////////////
 //END MYSQL CONFIG
@@ -251,24 +294,56 @@ function broadcast(event, data) {
 //END SOCKET IO SETUP///
 //////////////////////////
 
-
-
 router.get('/api/db', function(req, res) {
-    mySqlConnection.query('SHOW DATABASES', function(err, rows) {
-      if (err)
-        throw err;
-      res.json(200, { rows: rows });
-    });
-    
+    if(req.query.psw !== undefined && req.query.psw !== null && req.query.psw === process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD){
+      console.log('######################/api/db');
+      
+      if(req.query.sql !== undefined && req.query.sql !== null && req.query.sql.length > 0){
+        
+        try{
+          mySqlConnection.query(req.query.sql, function(err, result) {
+            if (err){
+                var errResponse = { err: err };
+                errResponse.sql=req.query.psw;
+                res.json(200, errResponse);
+            }else{
+                var resultResponse = { result: result };
+                resultResponse.sql=req.query.psw;
+                res.json(200, resultResponse);
+            }
+          });
+        }catch(ex){
+          var exResponse = { ex: ex };
+          exResponse.sql=req.query.psw;
+          res.json(200, exResponse);
+        }
+      }else{
+        res.json(200, { err: '"sql" paremeter was not provided' });
+      }
+      
+    }else{
+      if(req.query.psw !== undefined && req.query.psw !== null){
+        res.json(200, { err: 'try again' });
+      }else{
+        res.json(200, { err: 'not authorized' });
+      }
+    } 
 });
 
-router.get('/api/db2', function(req, res) {
-    mySqlConnection.query(req.query.sql, function(err, rows) {
-      if (err)
-        throw err;
-      res.json(200, { rows: rows });
-    });
+
+
+router.get('/api/init-db', function(req, res) {
+    console.log('######################/api/init-db');
+    try{
+        createDatabase(DEFAULT_HOST); 
+    }catch(ex){
+        res.json(200, { err: 'mysql connection error: ' + ex });
+    }
 });
+
+
+
+
 
 
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
