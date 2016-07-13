@@ -82,7 +82,7 @@ var createDatabase = function(database) {
     }
     if(hasResults === false){
       console.log('############# BEGIN create schema ' + database + ': '+ err);
-      mySqlConnection.query('CREATE SCHEMA \''+database+'\'', function(err, rows) {
+      mySqlConnection.query('CREATE SCHEMA '+database, function(err, rows) {
         if (err){
           console.log('!!!!!!!!!!!!! END create schema ' + database + '; --> ERROR: '+ err);
         }else{
