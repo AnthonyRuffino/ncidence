@@ -60,12 +60,13 @@ if(mySqlIp !== null && mySqlIp !== undefined){
   console.log('LOADING mysql. ');
     try {
          mySqlConnection = createConnection('mysql');
+         console.log('mysql LOADED. ');
     }catch (e) {
         console.log('FAILED TO LOAD mysql. ');
         console.log(e)
     }
 }else{
-  console.log('mysql not loaded. ');
+  console.log('mysql NOT LOADED. ');
 }
 
 
@@ -81,15 +82,16 @@ var createDatabase = function(database) {
       console.log('############# END show databases like ' + database + ';' + ' --> ['+(hasResults ? rows.length : 0)+' results]');
     }
     if(hasResults === false){
-      console.log('############# BEGIN create schema ' + database + ': '+ err);
+      console.log('############# BEGIN create schema ' + database);
       mySqlConnection.query('CREATE SCHEMA '+database, function(err, rows) {
         if (err){
           console.log('!!!!!!!!!!!!! END create schema ' + database + '; --> ERROR: '+ err);
         }else{
-          console.log('############# END create schema - ' + database + ';');
+          console.log('############# END create schema - ' + database + '; --> ' + rows);
         }
       });
     }
+    console.log('############# SWITCHING DATABASE: ' + database);
     mySqlConnection = createConnection(database);
   });
 };
@@ -97,8 +99,14 @@ var createDatabase = function(database) {
 
 
 if(mySqlConnection !== null){
-  console.log('############# CREATING DATABASE');
-  createDatabase(DEFAULT_HOST);
+  console.log('############# CHECKING DATABASE: ' + DEFAULT_HOST);
+  try{
+    createDatabase(DEFAULT_HOST);
+  }catch(err){
+    console.log('############# ERROR CHECKING DATABASE: ' + err);
+  }
+  
+  console.log('############# CHECKING DATABASE: ' + DEFAULT_HOST);
 }else{
   console.log('!!!!!!!!!!!!! mySqlConnection is null');
 }
