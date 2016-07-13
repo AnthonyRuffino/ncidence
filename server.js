@@ -1,3 +1,7 @@
+console.log('############# WELCOME TO NCIDENCE................................');
+console.log('############# WELCOME TO NCIDENCE................................');
+console.log('############# WELCOME TO NCIDENCE................................');
+
 var DEFAULT_HOST = 'ncidence_com';
 var publicdir = __dirname + '/client';
 
@@ -93,7 +97,10 @@ var createDatabase = function(database) {
 
 
 if(mySqlConnection !== null){
+  console.log('############# CREATING DATABASE');
   createDatabase(DEFAULT_HOST);
+}else{
+  console.log('!!!!!!!!!!!!! mySqlConnection is null');
 }
 //////////////////////
 //END MYSQL CONFIG
