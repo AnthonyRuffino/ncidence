@@ -77,7 +77,7 @@ var createDatabase = function(database) {
   mySqlConnection.query('SHOW DATABASES LIKE \''+database+'\'', function(err, rows) {
     var hasResults = rows !== undefined && rows !== null && !rows.length !== null && !rows.length !== undefined  && !rows.length < 1;
     if (err){
-      console.log('!!!!!!!!!!!!! END show databases like ' + database + '; --> ERROR: '+ err);
+      console.log('!!!!!!!!!!!!! ERROR show databases like ' + database + '; --> ERROR: '+ err);
     }else{
       console.log('############# END show databases like ' + database + ';' + ' --> ['+(hasResults ? rows.length : 0)+' results]');
     }
@@ -93,6 +93,7 @@ var createDatabase = function(database) {
     }
     console.log('############# SWITCHING DATABASE: ' + database);
     mySqlConnection = createConnection(database);
+    console.log('############# DONE SWITCHING DATABASE: ' + database);
   });
 };
 
@@ -106,7 +107,7 @@ if(mySqlConnection !== null){
     console.log('############# ERROR CHECKING DATABASE: ' + err);
   }
   
-  console.log('############# CHECKING DATABASE: ' + DEFAULT_HOST);
+  console.log('############# DONE CHECKING DATABASE: ' + DEFAULT_HOST);
 }else{
   console.log('!!!!!!!!!!!!! mySqlConnection is null');
 }
@@ -120,6 +121,7 @@ if(mySqlConnection !== null){
 // Creates a new instance of SimpleServer with the following options:
 //  * `port` - The HTTP port to listen on. If `process.env.PORT` is set, _it overrides this value_.
 //
+console.log('############# ConfigureRouter');
 var router = express();
 router.use(express.bodyParser());
 var server = http.createServer(router);
@@ -203,6 +205,7 @@ if(useHttps === true && https != null){
 //////////////////////////
 //BEGIN MIDDLEWARE///
 //////////////////////////
+console.log('############# MIDDLEWARE');
 function requireHTTPS(req, res, next) {
     if (!req.secure) {
         return res.redirect('https://' + req.get('host') + req.url);
@@ -238,6 +241,7 @@ router.use(express.static(publicdir));
 //////////////////////////
 //BEGIN SOCKET IO SETUP///
 //////////////////////////
+console.log('############# SOCKET IO');
 var io = null;
 var messages = [];
 var sockets = [];
@@ -309,6 +313,7 @@ function broadcast(event, data) {
 //END SOCKET IO SETUP///
 //////////////////////////
 
+console.log('############# /api/db');
 router.get('/api/db', function(req, res) {
     if(req.query.psw !== undefined && req.query.psw !== null && req.query.psw === process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD){
       console.log('######################/api/db');
@@ -346,7 +351,7 @@ router.get('/api/db', function(req, res) {
 });
 
 
-
+console.log('############# /api/init-db');
 router.get('/api/init-db', function(req, res) {
     console.log('######################/api/init-db');
     try{
@@ -362,6 +367,7 @@ router.get('/api/init-db', function(req, res) {
 
 
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
+  console.log('trying to listen...');
   var addr = server.address();
   console.log("Chat server listening at", addr.address + ":" + addr.port);
 });
