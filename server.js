@@ -46,12 +46,21 @@ var defaultHost = process.env.DEFAULT_HOST || DEFAULT_HOST;
 
 var createConnection = function(database){
   console.log('############# BEGIN create connection - ' + database + ';');
-  var mySqlConnectionLocal = mysqlClient.createConnection({
-    host: mySqlIp,
-    user: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
-    password: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || null,
-    database : database
-  });
+  var mysqlClientTemp = require('mysql');
+  var mySqlConnectionLocal = null;
+  
+  try{
+    mySqlConnectionLocal = mysqlClientTemp.createConnection({
+      host: mySqlIp,
+      user: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
+      password: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || null,
+      database : database
+    });
+    console.log('############# END create connection - ' + database + ';');
+  }catch(ex){
+    console.log('############# EXCEPTION create connection - ' + database + '; Error: ' + ex);
+  }
+  
   return mySqlConnectionLocal;
 }
 
@@ -91,23 +100,24 @@ var createDatabase = function(database) {
         }
       });
     }
-    console.log('############# SWITCHING DATABASE: ' + database);
-    mySqlConnection = createConnection(database);
-    console.log('############# DONE SWITCHING DATABASE: ' + database);
   });
 };
 
 
 
 if(mySqlConnection !== null){
-  console.log('############# CHECKING DATABASE: ' + DEFAULT_HOST);
+  console.log('############# CHECKING DATABASE: ' + defaultHost);
   try{
-    createDatabase(DEFAULT_HOST);
+    createDatabase(defaultHost);
   }catch(err){
     console.log('############# ERROR CHECKING DATABASE: ' + err);
   }
   
-  console.log('############# DONE CHECKING DATABASE: ' + DEFAULT_HOST);
+  console.log('############# SWITCHING DATABASE: ' + defaultHost);
+  mySqlConnection = createConnection(defaultHost);
+  console.log('############# DONE SWITCHING DATABASE: ' + defaultHost);
+  
+  console.log('############# DONE CHECKING DATABASE: ' + defaultHost);
 }else{
   console.log('!!!!!!!!!!!!! mySqlConnection is null');
 }
