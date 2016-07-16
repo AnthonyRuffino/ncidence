@@ -39,6 +39,7 @@ if(process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null){
 //////////////////////
 //BEGIN MYSQL CONFIG
 //////////////////////
+/*
 var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 var mySqlConnection = null;
 var defaultHost = process.env.DEFAULT_HOST || DEFAULT_HOST;
@@ -68,7 +69,7 @@ var createConnection = function(database, callback){
 }
 
 
-var switchToMainDatabase = function(database) {
+var switchToDefaultHostDatabase = function(database) {
   console.log('############# SWITCHING DATABASE: ' + database);
   mySqlConnection = createConnection(database, null);
   console.log('############# DONE SWITCHING DATABASE: ' + database);
@@ -106,11 +107,11 @@ var createDatabase = function(connection, database, callback) {
 };
 
 
-var checkForDatabase = function(sqlConnection, database){
+var checkForDefaultHostDatabase = function(sqlConnection, database){
   if(sqlConnection !== null){
     console.log('############# CHECKING DATABASE: ' + defaultHost);
     try{
-      createDatabase(sqlConnection, database, switchToMainDatabase);
+      createDatabase(sqlConnection, defaultHost, switchToDefaultHostDatabase);
     }catch(err){
       console.log('############# ERROR CHECKING DATABASE: ' + err);
     }
@@ -125,11 +126,11 @@ var checkForDatabase = function(sqlConnection, database){
 
 
 
-//START CONNECTION
+//START To Default Host Database.  COnnect to 'mysql' schema first
 if(mySqlIp !== null && mySqlIp !== undefined){
   console.log('LOADING mysql. ');
     try {
-         createConnection('mysql', checkForDatabase);
+         createConnection('mysql', checkForDefaultHostDatabase);
          console.log('mysql LOADED. ');
     }catch (e) {
         console.log('FAILED TO LOAD mysql. ');
@@ -140,33 +141,6 @@ if(mySqlIp !== null && mySqlIp !== undefined){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-if(mySqlConnection !== null){
-  console.log('############# CHECKING DATABASE: ' + defaultHost);
-  try{
-    createDatabase(defaultHost, loginCallback);
-  }catch(err){
-    console.log('############# ERROR CHECKING DATABASE: ' + err);
-  }
-}else{
-  console.log('!!!!!!!!!!!!! mySqlConnection is null');
-}
 */
 //////////////////////
 //END MYSQL CONFIG
