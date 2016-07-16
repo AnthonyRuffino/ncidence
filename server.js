@@ -44,7 +44,7 @@ var mySqlConnection = null;
 var defaultHost = process.env.DEFAULT_HOST || DEFAULT_HOST;
 
 
-var createConnection = function(database){
+var createConnection = function(database, callback){
   console.log('############# BEGIN create connection - ' + database + ';');
   var mysqlClientTemp = require('mysql');
   var mySqlConnectionLocal = null;
@@ -61,14 +61,75 @@ var createConnection = function(database){
     console.log('############# EXCEPTION create connection - ' + database + '; Error: ' + ex);
   }
   
-  return mySqlConnectionLocal;
+  if(callback !== undefined && callback !== null){
+    callback(mySqlConnectionLocal, database);
+  }
+  
 }
 
 
+var switchToMainDatabase = function(database) {
+  console.log('############# SWITCHING DATABASE: ' + database);
+  mySqlConnection = createConnection(database, null);
+  console.log('############# DONE SWITCHING DATABASE: ' + database);
+}
+
+
+
+var createDatabase = function(connection, database, callback) {
+  console.log('############# BEGIN show databases like ' + database + ';');
+  connection.query('SHOW DATABASES LIKE \''+database+'\'', function(err, rows) {
+    var hasResults = rows !== undefined && rows !== null && !rows.length !== null && !rows.length !== undefined  && !rows.length < 1;
+    if (err){
+      console.log('!!!!!!!!!!!!! ERROR show databases like ' + database + '; --> ERROR: '+ err);
+    }else{
+      console.log('############# END show databases like ' + database + ';' + ' --> ['+(hasResults ? rows.length : 0)+' results]');
+    }
+    if(hasResults === false){
+      console.log('############# BEGIN create schema ' + database);
+      connection.query('CREATE SCHEMA '+database, function(err, rows) {
+        if (err){
+          console.log('!!!!!!!!!!!!! ERROR create schema ' + database + '; --> ERROR: '+ err);
+        }else{
+          console.log('############# END create schema - ' + database + '; --> ' + rows);
+          if(callback !== undefined && callback !== null){
+            callback(database);
+          }
+        }
+      });
+    }else{
+      if(callback !== undefined && callback !== null){
+        callback(database);
+      }
+    }
+  });
+};
+
+
+var checkForDatabase = function(sqlConnection, database){
+  if(sqlConnection !== null){
+    console.log('############# CHECKING DATABASE: ' + defaultHost);
+    try{
+      createDatabase(sqlConnection, database, switchToMainDatabase);
+    }catch(err){
+      console.log('############# ERROR CHECKING DATABASE: ' + err);
+    }
+  }else{
+    console.log('!!!!!!!!!!!!! sqlConnection is null');
+  }
+}
+
+
+
+
+
+
+
+//START CONNECTION
 if(mySqlIp !== null && mySqlIp !== undefined){
   console.log('LOADING mysql. ');
     try {
-         mySqlConnection = createConnection('mysql');
+         createConnection('mysql', checkForDatabase);
          console.log('mysql LOADED. ');
     }catch (e) {
         console.log('FAILED TO LOAD mysql. ');
@@ -81,46 +142,32 @@ if(mySqlIp !== null && mySqlIp !== undefined){
 
 
 
-var createDatabase = function(database) {
-  console.log('############# BEGIN show databases like ' + database + ';');
-  mySqlConnection.query('SHOW DATABASES LIKE \''+database+'\'', function(err, rows) {
-    var hasResults = rows !== undefined && rows !== null && !rows.length !== null && !rows.length !== undefined  && !rows.length < 1;
-    if (err){
-      console.log('!!!!!!!!!!!!! ERROR show databases like ' + database + '; --> ERROR: '+ err);
-    }else{
-      console.log('############# END show databases like ' + database + ';' + ' --> ['+(hasResults ? rows.length : 0)+' results]');
-    }
-    if(hasResults === false){
-      console.log('############# BEGIN create schema ' + database);
-      mySqlConnection.query('CREATE SCHEMA '+database, function(err, rows) {
-        if (err){
-          console.log('!!!!!!!!!!!!! END create schema ' + database + '; --> ERROR: '+ err);
-        }else{
-          console.log('############# END create schema - ' + database + '; --> ' + rows);
-        }
-      });
-    }
-  });
-};
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+/*
 if(mySqlConnection !== null){
   console.log('############# CHECKING DATABASE: ' + defaultHost);
   try{
-    createDatabase(defaultHost);
+    createDatabase(defaultHost, loginCallback);
   }catch(err){
     console.log('############# ERROR CHECKING DATABASE: ' + err);
   }
-  
-  console.log('############# SWITCHING DATABASE: ' + defaultHost);
-  mySqlConnection = createConnection(defaultHost);
-  console.log('############# DONE SWITCHING DATABASE: ' + defaultHost);
-  
-  console.log('############# DONE CHECKING DATABASE: ' + defaultHost);
 }else{
   console.log('!!!!!!!!!!!!! mySqlConnection is null');
 }
+*/
 //////////////////////
 //END MYSQL CONFIG
 //////////////////////
