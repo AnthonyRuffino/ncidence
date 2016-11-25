@@ -1,0 +1,31 @@
+<html>
+
+	<head>
+		<title>Mystic Square</title>
+	</head>
+	
+	
+	<body>
+	
+	</body>
+	
+	<script>
+		var DEFAULT_TILES_PER_SIDE = 4;
+		var BOARD_SIZE_PERCENTAGE = .50;
+		var DEBUG = true;
+	</script>
+	
+	<script src="js/renderer.js"></script>
+	<script src="js/entities.js"></script>
+	<script src="js/gameDriver.js"></script>
+	<script src="js/gameEngine.js"></script>
+	
+	<script>
+		renderer = new Renderer(window, document, 'body', BOARD_SIZE_PERCENTAGE);
+		renderer.init();
+		driver = new GameDriver(renderer, document, DEFAULT_TILES_PER_SIDE, window.console.log, function(txt){alert.call(window, txt);}, DEBUG);
+		driver.init();
+		new GameEngine(renderer, driver, window).start();
+	</script>
+	
+</html>
