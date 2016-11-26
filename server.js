@@ -18,23 +18,10 @@ var moment = require('moment-timezone');
 
 var mysqlClient = require('mysql');
 
+var guid = require('./utils/guid.js');
 
-//////////////////////
-//BEGIN HTTPS CONFIG
-//////////////////////
-var https = null;
-var useHttps = false;
 
-if(process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null){
-    console.log('Using SSL.');
-    useHttps = true;
-    https = require('https');
-}else{
-    console.log('Not using SSL.');
-}
-//////////////////////
-//END HTTPS CONFIG
-//////////////////////
+
 
 //////////////////////
 //BEGIN MYSQL CONFIG
@@ -161,74 +148,31 @@ var server = http.createServer(router);
 var secureServer = null;
 
 
+
+//////////////////////
+//BEGIN HTTPS CONFIG
+//////////////////////
+var useHttps = false;
 var secureServerErr = null;
 
-
-if(useHttps === true && https != null){
-   try{
-       
-       var sslKeyFile = process.env.sslKeyFile || './ssl/domain-key.pem';
-       console.log('sslKeyFile: ' + sslKeyFile);
-       
-       var sslDomainCertFile = process.env.sslDomainCertFile || './ssl/domain.org.crt';
-       console.log('sslDomainCertFile: ' + sslDomainCertFile);
-       
-       var sslCaBundleFile = process.env.ssCaBundleFile || './ssl/bundle.crt';
-       console.log('sslCaBundleFile: ' + sslCaBundleFile);
-       
-       var certFileEncoding = 'utf8';
-       
-       if (fs.existsSync(sslKeyFile) === false) {
-           console.log('sslKeyFile  was not found!');
-       }else if (fs.existsSync(sslDomainCertFile) === false) {
-           console.log('sslDomainCertFile  was not found!');
-       }
-       else{
-           var ssl = {
-                key: fs.readFileSync(sslKeyFile, certFileEncoding),
-                cert: fs.readFileSync(sslDomainCertFile, certFileEncoding)
-            };
-            
-            if (fs.existsSync(sslCaBundleFile)) {
-                console.log('sslCaBundleFile found.');
-                
-                var ca, cert, chain, line, _i, _len;
-            
-                ca = [];
-            
-                chain = fs.readFileSync(sslCaBundleFile, certFileEncoding);
-            
-                chain = chain.split("\n");
-            
-                cert = [];
-            
-                for (_i = 0, _len = chain.length; _i < _len; _i++) {
-                  line = chain[_i];
-                    if (!(line.length !== 0)) {
-                        continue;
-                    }
-                    
-                    cert.push(line);
-                    
-                    if (line.match(/-END CERTIFICATE-/)) {
-                      ca.push(cert.join("\n"));
-                      cert = [];
-                    }
-                }
-            
-                ssl.ca = ca;
-            }
-            
-            secureServer = https.createServer(ssl, router);
-            console.log('secureServer created');
-       }
-       
-
-    }catch(err){
-        secureServerErr = "Err1: " + err;
-        console.log('Error creating https server: ' + err);
-    } 
+if(process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null){
+  console.log('Using SSL.');  
+  var sslHelper = new (require('./utils/sslHelper.js')).SSLHelper(fs);
+  try{
+  	secureServer = sslHelper.configure(require('https'));
+   }catch(err){
+	   secureServer = null;
+       secureServerErr = "Err1: " + err;
+       console.log('Error creating https server: ' + err);
+   }
+   useHttps = secureServer !== null;
+}else{
+  console.log('Not using SSL.');
 }
+//////////////////////
+//END HTTPS CONFIG
+//////////////////////
+
 
 
 
@@ -239,51 +183,18 @@ if(useHttps === true && https != null){
 //BEGIN MIDDLEWARE///
 //////////////////////////
 console.log('############# MIDDLEWARE');
-function requireHTTPS(req, res, next) {
-    if (!req.secure) {
-        return res.redirect('https://' + req.get('host') + req.url);
-    }
-    next();
-}
-
 if(useHttps === true){
-    router.use(requireHTTPS);
+    router.use(function requireHTTPS(req, res, next) {
+        if (!req.secure) {
+            return res.redirect('https://' + req.get('host') + req.url);
+        }
+        next();
+    });
 }
 
-//This allows for navigation to html pages without the .html extension
-//It also redirects to version of the page without the .html ending
-//It also will allow users to navigate to a url like '/test when' there is no '/test/index.html' page as long as '/test/test.html'
-router.use(function(req, res, next) {
-    if (req.path.indexOf('.') === -1) {
-    	var dir = publicdir + req.path;
-    	fs.exists(dir, function(dirExists) {
-    		if(dirExists){
-        	    var indexTypeFile = dir.substring(dir.substring(0,dir.length-1).lastIndexOf("/")+1,dir.substring(0,dir.length).lastIndexOf("/")) + '.html';
-        	    fs.exists(dir + indexTypeFile, function(dirHtmlFileExists) {
-        	    	if(dirHtmlFileExists)
-            	    	req.url += indexTypeFile;
-        	    	next();
-        	    });
-    		}else{
-    	        var file = publicdir + req.path + '.html';
-    	        fs.exists(file, function(htmlFileExists) {
-    	          if (htmlFileExists)
-    	            req.url += '.html';
-    	          next();
-    	        });
-    		}
-    		
-    	});
-    }
-    else{
-    	if(req.path.endsWith('.html')){
-    		var newPath = req.path.substring(0, req.path.lastIndexOf('.html'));
-    		res.redirect(newPath);
-    	}else{
-    		next(); 
-    	}
-    }
-});
+var fauxIndexHtmlObj = new (require('./utils/middleware/fauxIndexHtml.js')).FauxIndexHtml(publicdir, fs);
+router.use(function(req, res, next) {fauxIndexHtmlObj.process(req,res,next)});
+
 router.use(express.static(publicdir));
 //////////////////////////
 //END MIDDLEWARE///
@@ -413,6 +324,10 @@ router.get('/api/init-db', function(req, res) {
     }catch(ex){
         res.json(200, { err: 'mysql connection error: ' + ex });
     }
+});
+
+router.get('/api/guid', function(req, res) {
+    res.json(200, {guid:guid.generate(req.query.useDashes)});
 });
 
 
