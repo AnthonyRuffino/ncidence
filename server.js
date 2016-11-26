@@ -39,7 +39,7 @@ if(process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null){
 //////////////////////
 //BEGIN MYSQL CONFIG
 //////////////////////
-/*
+
 var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 var mySqlConnection = null;
 var defaultHost = process.env.DEFAULT_HOST || DEFAULT_HOST;
@@ -64,6 +64,8 @@ var createConnection = function(database, callback){
   
   if(callback !== undefined && callback !== null){
     callback(mySqlConnectionLocal, database);
+  }else{
+	  return mySqlConnectionLocal;
   }
   
 }
@@ -141,7 +143,7 @@ if(mySqlIp !== null && mySqlIp !== undefined){
 }
 
 
-*/
+
 //////////////////////
 //END MYSQL CONFIG
 //////////////////////
@@ -249,17 +251,37 @@ if(useHttps === true){
 }
 
 //This allows for navigation to html pages without the .html extension
+//It also redirects to version of the page without the .html ending
+//It also will allow users to navigate to a url like '/test when' there is no '/test/index.html' page as long as '/test/test.html'
 router.use(function(req, res, next) {
     if (req.path.indexOf('.') === -1) {
-        var file = publicdir + req.path + '.html';
-        fs.exists(file, function(exists) {
-          if (exists)
-            req.url += '.html';
-          next();
-        });
+    	var dir = publicdir + req.path;
+    	fs.exists(dir, function(dirExists) {
+    		if(dirExists){
+        	    var indexTypeFile = dir.substring(dir.substring(0,dir.length-1).lastIndexOf("/")+1,dir.substring(0,dir.length).lastIndexOf("/")) + '.html';
+        	    fs.exists(dir + indexTypeFile, function(dirHtmlFileExists) {
+        	    	if(dirHtmlFileExists)
+            	    	req.url += indexTypeFile;
+        	    	next();
+        	    });
+    		}else{
+    	        var file = publicdir + req.path + '.html';
+    	        fs.exists(file, function(htmlFileExists) {
+    	          if (htmlFileExists)
+    	            req.url += '.html';
+    	          next();
+    	        });
+    		}
+    		
+    	});
     }
     else{
-       next(); 
+    	if(req.path.endsWith('.html')){
+    		var newPath = req.path.substring(0, req.path.lastIndexOf('.html'));
+    		res.redirect(newPath);
+    	}else{
+    		next(); 
+    	}
     }
 });
 router.use(express.static(publicdir));
@@ -355,17 +377,18 @@ router.get('/api/db', function(req, res) {
           mySqlConnection.query(req.query.sql, function(err, result) {
             if (err){
                 var errResponse = { err: err };
-                errResponse.sql=req.query.psw;
+                errResponse.sql=req.query.sql;
                 res.json(200, errResponse);
             }else{
                 var resultResponse = { result: result };
-                resultResponse.sql=req.query.psw;
+                resultResponse.sql=req.query.sql;
                 res.json(200, resultResponse);
             }
           });
         }catch(ex){
           var exResponse = { ex: ex };
-          exResponse.sql=req.query.psw;
+          exResponse.sql=req.query.sql;
+          exResponse.mySqlConnectionIsNull=mySqlConnection === undefined || mySqlConnection === null;
           res.json(200, exResponse);
         }
       }else{
