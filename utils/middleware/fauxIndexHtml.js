@@ -2,9 +2,9 @@
 "use strict";
 
 class FauxIndexHtml {
-  constructor(publicdir, fs) {
+  constructor(publicdir) {
 	  this.publicdir = publicdir;
-	  this.fs = fs;
+	  this.fs = require('fs');
   }
   
   process(req, res, next) {
