@@ -18,7 +18,7 @@ class MySqlHelper {
 	  });
   }
   
-  createDatabase(database) {
+  createDatabase(database, callback) {
 	    this.pool.getConnection(function(err,connection){
 	        if (err) {
 	        	console.log("Error in connection to database");
@@ -38,10 +38,12 @@ class MySqlHelper {
 	                      console.log('!!!!!!!!!!!!! ERROR create schema ' + database + '; --> ERROR: '+ err);
 	                    }else{
 	                      console.log('############# END create schema - ' + database + '; --> ' + rows);
+	                      callback();
 	                    }
 	                  });
 	                }else{
 	                	console.log('schema already exists: ' + database );
+	                	callback();
 	                }
 	            }else{
 	            	connection.release();
