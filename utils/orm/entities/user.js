@@ -9,7 +9,6 @@ var definition = {
         unique: true,
         required: true
     }
-    /*
     ,
     password: {
         type: "text",
@@ -57,8 +56,8 @@ var definition = {
         time: true,
         required: false
     }
-    */
 }
+
 
 /////////////////////
 //ENTITY HELPERS/////
@@ -128,16 +127,6 @@ extendsTo.push({
 //DEFAULT DATA////////
 //////////////////////
 var defaultData = [];
-defaultData.push({
-    id: 1,
-    username: 'user1',
-    role_id: 1
-});
-defaultData.push({
-    id: 2,
-    username: 'user2',
-    role_id: 1
-});
 
 
 /////////////

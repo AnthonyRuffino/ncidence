@@ -77,7 +77,7 @@ else {
 // Creates a new instance of SimpleServer with the following options:
 //  * `port` - The HTTP port to listen on. If `process.env.PORT` is set, _it overrides this value_.
 //
-console.log('############# ConfigureRouter');
+console.log('Configure Router');
 var router = express();
 router.use(express.bodyParser());
 var server = http.createServer(router);
@@ -120,7 +120,7 @@ else {
 //////////////////////////
 //BEGIN MIDDLEWARE///
 //////////////////////////
-console.log('############# MIDDLEWARE');
+console.log('Enable Middleware');
 if (useHttps === true) {
   router.use(function requireHTTPS(req, res, next) {
     if (!req.secure) {
@@ -145,17 +145,16 @@ router.use(express.static(publicdir));
 //////////////////////////
 //BEGIN SOCKET IO SETUP///
 //////////////////////////
-console.log('############# SOCKET IO');
+console.log('Socket IO');
 var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server);
 socketIOHelper.init();
 //////////////////////////
 //END SOCKET IO SETUP///
 //////////////////////////
 
-console.log('############# /api/db');
+console.log('Define /api/db');
 router.get('/api/db', function(req, res) {
   if (req.query.psw !== undefined && req.query.psw !== null && req.query.psw === process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD) {
-    console.log('######################/api/db');
 
     mySqlHelper.query(req.query.sql, function(success, error) {
       if (error) {
@@ -181,9 +180,8 @@ router.get('/api/db', function(req, res) {
 });
 
 
-console.log('############# /api/init-db');
+console.log('Define /api/init-db');
 router.get('/api/init-db', function(req, res) {
-  console.log('######################/api/init-db');
   try {
     mySqlHelper.createDatabase(DEFAULT_HOST);
   }

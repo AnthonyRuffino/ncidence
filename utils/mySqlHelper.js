@@ -31,29 +31,29 @@ class MySqlHelper {
 	            if(!err) {
 	            	var hasResults = rows !== undefined && rows !== null && !rows.length !== null && !rows.length !== undefined  && !rows.length < 1;
 	                if(hasResults === false){
-	                  console.log('############# BEGIN create schema ' + database);
+	                  console.log('Begin create schema ' + database);
 	                  connection.query('CREATE SCHEMA '+database, function(err, rows) {
 	                	connection.release();
 	                    if (err){
-	                      console.log('!!!!!!!!!!!!! ERROR create schema ' + database + '; --> ERROR: '+ err);
+	                      console.log('Error create schema ' + database + '; --> ERROR: '+ err);
 	                    }else{
-	                      console.log('############# END create schema - ' + database + '; --> ' + rows);
+	                      console.log('Done creating schema - ' + database);
 	                      callback();
 	                    }
 	                  });
 	                }else{
-	                	console.log('schema already exists: ' + database );
+	                	console.log('Schema already exists: ' + database );
 	                	callback();
 	                }
 	            }else{
 	            	connection.release();
-	            	console.log('!!!!!!!!!!!!! ERROR creating checking for schema: ' + database + '; --> ERROR: '+ err);
+	            	console.log('Error creating checking for schema: ' + database + '; --> ERROR: '+ err);
 	            }
 	            
 	        });
 
 	        connection.on('error', function(err) {     
-	        	console.log("Error in connection database: " + err);
+	        	console.log("Error during while connecting to database: " + err);
 	             return;
 	        });
 	  });

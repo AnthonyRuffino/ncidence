@@ -9,6 +9,7 @@ var definition = {
     },
 }
 
+
 /////////////////////
 //ENTITY HELPERS/////
 /////////////////////
@@ -46,7 +47,7 @@ var extendsTo = null;
 var defaultData = [];
 defaultData.push({
     id: 1,
-    name: 'admin3'
+    name: 'admin'
 });
 defaultData.push({
     id: 2,
@@ -56,6 +57,7 @@ defaultData.push({
     id: 3,
     name: 'client'
 });
+
 
 /////////////
 //EXPORTS////

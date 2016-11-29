@@ -23,7 +23,7 @@ class OrmHelper {
 		return this.modelDefinitions;
 	}
 
-	sync(callback) {
+	sync() {
 
 		var entities = this.entities;
 		var database = this.database;
@@ -44,7 +44,7 @@ class OrmHelper {
 						if (models[owner.name] !== undefined && models[owner.name] !== null) {
 							model.hasOne(owner.name, models[owner.name], owner.options);
 						}else{
-							console.log('OWNER NOT FOUND: ' + owner.name);
+							console.log('Database owner not found: ' + owner.name);
 						}
 					});
 				}
@@ -67,14 +67,9 @@ class OrmHelper {
 				modelDefinitions[entity.name] = entity.definition;
 			});
 
-			console.log('............................');
-			console.log('Begin sync... ');
-			console.log('............................');
 			db.sync(function(err) {
 				if (err) {
-					console.log('............................');
 					console.log('Sync err: ' + err);
-					console.log('............................');
 				}
 				
 				entities.forEach(function(entity) {
@@ -121,6 +116,7 @@ class OrmHelper {
 						});
 					}
 				});
+				
 			});
 		});
 	}
