@@ -5,7 +5,7 @@ class UserService {
         
         var sesAccessKeyId = process.env.SES_ACCESS_KEY_ID || null;
         var sesSecretAccessKey = process.env.SES_SECRET_ACCESS_KEY || null;
-        var sesRegion = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'us-east-1';
+        var sesRegion = process.env.SES_REGION || 'us-east-1';
         
         
         this.ormHelper = ormHelper;
