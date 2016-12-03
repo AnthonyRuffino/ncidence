@@ -8,6 +8,7 @@
   "dependencies": {
     "async": "0.2.10",
     "bcrypt-nodejs": "0.0.3",
+    "captchapng": "0.0.1",
     "express": "3.2.6",
     "fs": "0.0.2",
     "mkpath": "1.0.0",
