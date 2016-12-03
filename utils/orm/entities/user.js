@@ -3,30 +3,23 @@
 /////////////////////
 var orm = require("orm");
 var definition = {
-    username: {
-        type: "text",
-        size: 20,
-        unique: true,
-        required: true
-    }
-    ,
-    password: {
-        type: "text",
-        size: 254,
-        required: true
-    },
-    salt: {
-        type: "text",
-        size: 254,
-        required: true
-    },
     email: {
         type: "text",
         size: 254,
         unique: true,
         required: true
     },
+    password: {
+        type: "text",
+        size: 254,
+        required: true
+    },
     is_locked: {
+        type: "boolean",
+        defaultValue: false,
+        required: true
+    },
+    is_confirmed: {
         type: "boolean",
         defaultValue: false,
         required: true
@@ -81,8 +74,9 @@ var hasOne = [];
 hasOne.push({
     name: 'role',
     options: {
-        required: true,
-        reverse: 'users'
+        required: false,
+        reverse: 'users',
+        autoFetch : true
     }
 });
 
@@ -115,7 +109,7 @@ hasMany.push({
 ////////////////////////////
 var extendsTo = [];
 extendsTo.push({
-    name: 'address',
+    name: 'verification',
     data: {
         street: String,
         number: Number
@@ -144,5 +138,5 @@ try {
     };
 }
 catch (err) {
-    console.log('Error exporting entity [role]. Error: ' + err);
+    console.log('Error exporting entity [user]. Error: ' + err);
 }

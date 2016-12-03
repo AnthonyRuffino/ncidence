@@ -11,16 +11,12 @@ class OrmHelper {
 		this.entities = [];
 		this.entities.push((require('./orm/entities/role.js')).Entity);
 		this.entities.push((require('./orm/entities/user.js')).Entity);
-		this.models = {};
-		this.modelDefinitions = {};
+		this.entities.push((require('./orm/entities/token.js')).Entity);
+		this.map = {};
 	}
 	
-	getModels(){
-		return this.models;
-	}
-	
-	getModelDefinitions(){
-		return this.modelDefinitions;
+	getMap(){
+		return this.map;
 	}
 
 	sync() {
@@ -29,8 +25,7 @@ class OrmHelper {
 		var database = this.database;
 		var ip = this.ip;
 		var user = this.user;
-		var models = this.models;
-		var modelDefinitions = this.modelDefinitions;
+		var map = this.map;
 
 		this.orm.connect("mysql://" + user + ":" + this.password + "@" + ip + "/" + database, function(err, db) {
 			if (err) throw err;
@@ -41,8 +36,8 @@ class OrmHelper {
 
 				if (entity.hasOne !== undefined && entity.hasOne !== null && entity.hasOne.length > 0) {
 					entity.hasOne.forEach(function(owner) {
-						if (models[owner.name] !== undefined && models[owner.name] !== null) {
-							model.hasOne(owner.name, models[owner.name], owner.options);
+						if (map[owner.name] !== undefined && map[owner.name] !== null && map[owner.name].undefined !== null && map[owner.name].model !== null) {
+							model.hasOne(owner.name, map[owner.name].model, owner.options);
 						}else{
 							console.log('Database owner not found: ' + owner.name);
 						}
@@ -51,8 +46,8 @@ class OrmHelper {
 
 				if (entity.hasMany !== undefined && entity.hasMany !== null && entity.hasMany.length > 0) {
 					entity.hasMany.forEach(function(other) {
-						if (models[other.name] !== undefined && models[other.name] !== null) {
-							model.hasMany(other.desc, models[other.name], other.meta, other.options);
+						if (map[other.name] !== undefined && map[other.name] !== null && map[other.name].undefined !== null && map[other.name].model !== null) {
+							model.hasMany(other.desc, map[other.name].model, other.meta, other.options);
 						}
 					});
 				}
@@ -63,8 +58,7 @@ class OrmHelper {
 					});
 				}
 
-				models[entity.name] = model;
-				modelDefinitions[entity.name] = entity.definition;
+				map[entity.name] = { entity: entity, model: model };
 			});
 
 			db.sync(function(err) {
@@ -75,7 +69,7 @@ class OrmHelper {
 				entities.forEach(function(entity) {
 					if (entity.defaultData !== undefined && entity.defaultData !== null && entity.defaultData.length > 0) {
 						entity.defaultData.forEach(function(defaultDatum) {
-							models[entity.name].find({
+							map[entity.name].model.find({
 					          id: defaultDatum.id
 					        }, function(err, rows) {
 					          if (err) throw err;
@@ -108,7 +102,7 @@ class OrmHelper {
 					            
 					          }else{
 					          	console.log('Creating ['+entity.name+']: ' + defaultDatum.id);
-					            models[entity.name].create(defaultDatum, function(err){
+					            map[entity.name].model.create(defaultDatum, function(err){
 					            	if (err) throw err;
 					            });
 					          }

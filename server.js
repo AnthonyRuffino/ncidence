@@ -19,6 +19,7 @@ console.log('..............................');
 console.log('............................');
 
 var DEFAULT_HOST = process.env.DEFAULT_HOST || 'test';
+global.__base = __dirname + '/';
 var publicdir = __dirname + '/client';
 
 var http = require('http');
@@ -33,8 +34,13 @@ var mkpath = require('mkpath');
 var moment = require('moment-timezone');
 
 var guid = require('./utils/guid.js');
+var bcrypt = require('bcrypt-nodejs');
+
+
 
 var QUERY_ROWS_LIMIT = 10000;
+
+
 
 
 
@@ -45,14 +51,13 @@ var mySqlHelper = new(require('./utils/mySqlHelper.js')).MySqlHelper();
 var ormHelper = null;
 var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 var mySqlUser = process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
-var mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || null;
+var mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
 
-//host, user, password, database
-mySqlHelper.init(mySqlIp, mySqlUser, mySqlPassword, 'mysql');
 
 
 //START To Default Host Database.  Connect to 'mysql' schema first
 if (mySqlIp !== null && mySqlIp !== undefined) {
+  mySqlHelper.init(mySqlIp, mySqlUser, mySqlPassword, 'mysql');
   ormHelper = new(require('./utils/ormHelper.js')).OrmHelper(mySqlIp, mySqlUser, mySqlPassword, DEFAULT_HOST);
   console.log('LOADING mysql. ');
   mySqlHelper.createDatabase(DEFAULT_HOST, function() {
@@ -67,6 +72,7 @@ else {
 
 
 
+var userService = new(require('./utils/orm/services/userService.js')).UserService(ormHelper);
 //////////////////////
 //END MYSQL CONFIG
 //////////////////////
@@ -206,7 +212,10 @@ router.get('/api/roles', function(req, res) {
   var order = [];
   var isIdSearch = false;
 
-  var definition = ormHelper.getModelDefinitions()['role'];
+  var role = ormHelper.getMap()['role'];
+  var entity = role.entity;
+  var definition = entity.definition;
+  var model = role.model;
 
   Object.keys(req.query).forEach(function(key) {
     if (key === '_limit') {
@@ -229,9 +238,20 @@ router.get('/api/roles', function(req, res) {
         options.offset = offset;
     }
     else if (definition.hasOwnProperty(key)) {
-      if(key === 'id')
+      if (key === 'id')
         isIdSearch = true;
       query[key] = req.query[key];
+    }
+    else if (key.startsWith("__") && key.length > 2 && key !== '__proto__') {
+      /*
+      var fieldName = key.substr(2);
+      
+      if (entity.hasOne !== undefined && entity.hasOne !== null && entity.hasOne.length > 0) {
+				entity.hasOne.forEach(function(owner) {
+					
+				});
+			}
+			*/
     }
   });
 
@@ -239,29 +259,33 @@ router.get('/api/roles', function(req, res) {
     limit = QUERY_ROWS_LIMIT;
   }
 
-  ormHelper.getModels()['role'].find(query, options, limit, order,
+  model.find(query, options, limit, order,
     function(err, rows) {
       if (err) {
         res.json(500, {
           err: err
         });
       }
-      else if(rows !== undefined && rows !== undefined && rows.length > 0){
-        if(isIdSearch){
-          rows[0].getUsers(function(err, users){
-              rows[0].users = users;
-              var resObj = {data:rows};
-              if(err) resObj.errorGettingUsers = err;
-              res.json(200, resObj);
+      else if (rows !== undefined && rows !== undefined && rows.length > 0) {
+        if (isIdSearch) {
+          rows[0].getUsers(function(err, users) {
+            rows[0].users = users;
+            var resObj = {
+              data: rows
+            };
+            if (err) resObj.errorGettingUsers = err;
+            res.json(200, resObj);
           });
-        }else{
+        }
+        else {
           res.json(200, {
             data: rows
           });
         }
-        
-        
-      }else{
+
+
+      }
+      else {
         res.json(200, {
           data: []
         });
@@ -270,6 +294,16 @@ router.get('/api/roles', function(req, res) {
 });
 
 
+
+
+
+router.get('/api/login', function(req,res){
+  userService.createUser(req,res);
+});
+
+router.get('/api/addUser', function(req, res) {
+  userService.createUser(req,res);
+});
 
 
 
