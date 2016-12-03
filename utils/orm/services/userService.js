@@ -24,7 +24,7 @@ class UserService {
             text: template.text,
             html: template.html
         }, {
-            from: 'noreply@signup.ncidence.org',
+            from: 'noreply@ncidence.org',
         });
         
         
@@ -53,8 +53,6 @@ class UserService {
 
 
     createUser(req, res) {
-        
-        console.log("createUser. Host: " +  Object.keys(req.headers.host).length);
 
         var ormHelper = this.ormHelper;
 
