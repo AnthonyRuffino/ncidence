@@ -26,6 +26,27 @@ class UserService {
         }, {
             from: 'noreply@signup.ncidence.org',
         });
+        
+        
+    }
+    
+    validateEmail(email) {
+        var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(email);
+    }
+    
+    getInvalidInpuitMessage(email, password, password2) {
+        var invalidInputMessage = null;
+        if(email === undefined || email == null || email.length < 1){
+            invalidInputMessage = 'email required';
+        } else if(!this.validateEmail(email)){
+            invalidInputMessage = 'invalid email';
+        }else if(password === undefined || password === null || password .length < 1){
+            invalidInputMessage = 'password required';
+        }else if(password !== password2){
+            invalidInputMessage = 'passwords do not match';
+        }
+        return invalidInputMessage;
     }
     
     
@@ -38,8 +59,9 @@ class UserService {
         var ormHelper = this.ormHelper;
 
         var userModel = ormHelper.getMap()['user'].model;
-        var email = req.query.email;
-        var password = req.query.email;
+        var email = req.query.email !== undefined && req.query.email !== null ? req.query.email.toLowerCase() : null;
+        var password = req.query.password;
+        var password2 = req.query.password2;
         var bcrypt = this.bcrypt;
         var guid = this.guid;
         var transport = this.transport;
@@ -158,12 +180,19 @@ class UserService {
                 });
             }
         }
-
-        ormHelper.getMap()['role'].model.find({
-            id: 1
-        }, function(err, roles) {
-            findRoleCallback(err, roles);
-        });
+        
+        var invlaidInputMessage = this.getInvalidInpuitMessage(email, password, password2);
+        if(invlaidInputMessage !== undefined && invlaidInputMessage !== null){
+            res.json(500, {
+                err: invlaidInputMessage
+            });
+        }else{
+            ormHelper.getMap()['role'].model.find({
+                id: 1
+            }, function(err, roles) {
+                findRoleCallback(err, roles);
+            });
+        }
     }
 
 
