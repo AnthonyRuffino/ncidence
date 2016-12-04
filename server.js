@@ -345,7 +345,7 @@ router.get('/u/:name/:file', function(req,res){
 
 
 router.get('/api/login', function(req,res){
-  userService.createUser(req,res);
+  userService.login(req,res);
 });
 
 router.get('/api/addUser', function(req, res) {

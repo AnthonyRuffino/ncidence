@@ -251,39 +251,51 @@ class UserService {
 
 
     login(req, res) {
-
-        var ormHelper = ormHelper;
+        
         var email = req.query.email;
         var password = req.query.password;
-        var bcrypt = this.bcrypt;
-
-        var invalidMessage = 'username or password not valid';
-
-        var userModel = ormHelper.getMap()['user'].model;
-        userModel.find({
-            email: email
-        }, function(err, users) {
-            if (err) throw err;
-
-            if (users.length < 1 || users[0] === undefined || users[0] === null) {
-                res.json(500, {
-                    err: invalidMessage
-                });
-            }
-            else {
-                var authenticated = bcrypt.compareSync(password, users[0].password);
-                if (authenticated) {
-                    res.json(200, {
-                        id: users[0].id
+        
+        if(email === undefined || email === null || email.length < 1){
+            res.json(200, {
+                err: 'email is required'
+            });
+        }else if(password === undefined || password === null || password.length < 1){
+            res.json(200, {
+                err: 'password is required'
+            });
+        }else{
+            var ormHelper = this.ormHelper;
+            var bcrypt = this.bcrypt;
+            var invalidMessage = 'username or password not valid';
+            var userModel = ormHelper.getMap()['user'].model;
+            
+            userModel.find({
+                email: email
+            }, function(err, users) {
+                if (err) throw err;
+    
+                if (users.length < 1 || users[0] === undefined || users[0] === null) {
+                    res.json(500, {
+                        err: invalidMessage + '!'
                     });
                 }
                 else {
-                    res.json(200, {
-                        err: invalidMessage
-                    });
+                    var authenticated = bcrypt.compareSync(password, users[0].password);
+                    if (authenticated) {
+                        res.json(200, {
+                            id: users[0].id
+                        });
+                    }
+                    else {
+                        res.json(200, {
+                            err: invalidMessage + '?'
+                        });
+                    }
                 }
-            }
-        });
+            });
+        }
+
+        
     }
 }
 
