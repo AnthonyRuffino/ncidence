@@ -1,7 +1,6 @@
 /////////////////////
 //ENTITY DEFINITION//
 /////////////////////
-var orm = require("orm");
 var definition = {
     val: {
         type: "text",

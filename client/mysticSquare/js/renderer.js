@@ -16,8 +16,8 @@ class Renderer {
 	  this._viewPortScaler = null;
 	  this.centerX = null;
 	  this.centerY = null;
-	  this._horizontalOffset = null
-	  this._verticalOffset = null
+	  this._horizontalOffset = null;
+	  this._verticalOffset = null;
 	  this._ctx = null;
   }
   
@@ -61,14 +61,14 @@ class Renderer {
   init(){
 		this.setDimentions();
 		
-		var myCanvas = this.document.createElement('canvas');
-		myCanvas.id = 'gameCanvas';
+		var myCanvas = this.document.createElement("canvas");
+		myCanvas.id = "gameCanvas";
 		myCanvas.width = this._width;
 		myCanvas.height = this._height;
 		this.document.body.appendChild(myCanvas);
 		
-		this._horizontalOffset = document.getElementById('gameCanvas').getBoundingClientRect().left;
-		this._verticalOffset = document.getElementById('gameCanvas').getBoundingClientRect().top;
+		this._horizontalOffset = document.getElementById("gameCanvas").getBoundingClientRect().left;
+		this._verticalOffset = document.getElementById("gameCanvas").getBoundingClientRect().top;
 		
 		this._ctx = this.document.getElementById("gameCanvas").getContext("2d");
 		
@@ -155,7 +155,7 @@ class Renderer {
 		  this._ctx.beginPath();
   	  }
 		
-	  this._ctx.font =  (textSize*this._viewPortScaler) + 'pt Calibri';
+	  this._ctx.font =  (textSize*this._viewPortScaler) + "pt Calibri";
 		
 	  if(fillStyle !== undefined && fillStyle !== null){
 		  this._ctx.fillStyle = fillStyle;
@@ -170,7 +170,7 @@ class Renderer {
   
   //BINDER
   static addEvent(object, type, callback) {
-		if (object == null || typeof(object) == 'undefined') return;
+		if (object == null || typeof(object) == "undefined") return;
 		if (object.addEventListener) {
 			object.addEventListener(type, callback, false);
 		} else if (object.attachEvent) {

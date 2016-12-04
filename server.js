@@ -59,7 +59,7 @@ var mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
 //START To Default Host Database.  Connect to 'mysql' schema first
 if (mySqlIp !== null && mySqlIp !== undefined) {
   mySqlHelper.init(mySqlIp, mySqlUser, mySqlPassword, 'mysql');
-  ormHelper = new(require('./utils/ormHelper.js')).OrmHelper(mySqlIp, mySqlUser, mySqlPassword, DEFAULT_HOST);
+  ormHelper = new(require('./utils/ormHelper.js')).OrmHelper(mySqlIp, mySqlUser, mySqlPassword, DEFAULT_HOST, mySqlHelper);
   console.log('LOADING mysql. ');
   mySqlHelper.createDatabase(DEFAULT_HOST, function() {
     ormHelper.sync();
@@ -295,7 +295,35 @@ router.get('/api/roles', function(req, res) {
 });
 
 
-
+router.get('/u/:name/:file', function(req,res){
+  var name = req.params.name;
+  var file = req.params.file;
+  
+  ormHelper.getMap()['user'].model.find({email:name}, function(err, users){
+    var content = null;
+    if(err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null){
+      res.writeHead(200, {
+          'Content-Type': 'text/html'
+      });
+      res.end('<h1>Error finding content for user: '+name+'</h1><br/><h2>Err:'+(err || 'no such user')+'</h2>');
+    }else{
+      ormHelper.getMap()['file'].model.find({user_id: users[0].id, name: file}, function(err, files){
+        if(err || files === undefined || files == null || files.length < 1 || files[0] === undefined || files[0] === null){
+          res.writeHead(200, {
+              'Content-Type': 'text/html'
+          });
+          res.end('<h1>Error finding file for user: '+name+'. ile: '+file+'</h1><br/><h2>Err :'+(err || 'no such file')+'</h2>');
+        }else{
+          res.writeHead(200, {
+              'Content-Type': files[0].content_type
+          });
+          res.end(files[0].content);
+        }
+      });
+    }
+  });
+  
+});
 
 
 router.get('/api/login', function(req,res){

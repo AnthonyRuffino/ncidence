@@ -52,14 +52,14 @@ class GameDriver {
 				var width = (this.renderer.boardSizePercentage*smallerDimention)/this.tilesPerSide;
 				
 				if(tileNumber !== this.numberOfSlots){
-					var gameTile = new GameTile(j, i, tileNumber, width, null, 'red', 'black', 'yellow', this.textSize);
+					var gameTile = new GameTile(j, i, tileNumber, width, null, "red", "black", "yellow", this.textSize);
 					this.gameTiles["#" + tileNumber] = gameTile;
 				}else{
 					this.columnOfMissingSlot = j;
 					this.rowOfMissingSlot = i;
 
-					this.debug('columnOfMissingSlot', this.columnOfMissingSlot);
-					this.debug('rowOfMissingSlot', this.rowOfMissingSlot);
+					this.debug("columnOfMissingSlot", this.columnOfMissingSlot);
+					this.debug("rowOfMissingSlot", this.rowOfMissingSlot);
 				}
 			}
 		}
@@ -77,13 +77,13 @@ class GameDriver {
 			if(tile !== undefined && tile !== null){
 				var properNumber = ((this.tilesPerSide*tile.getGameY())+tile.getGameX())+1;
 				if(properNumber !== tile.getTileNumber()){
-					this.debug('order loss');
+					this.debug("order loss");
 					win = false;
 					break;
 				}
 			}else if(i !== this.numberOfSlots){
 				win = false;
-				this.debug('blank loss');
+				this.debug("blank loss");
 				break;
 			}
 		}
@@ -105,20 +105,20 @@ class GameDriver {
 
   		renderer.ctx.save();
   		var textSize = 35;
-  		renderer.ctx.font =  (textSize*this.renderer.viewPortScaler) + 'pt Calibri';
-  		renderer.ctx.fillStyle = 'white';
-  		renderer.ctx.fillText('Mystic Square',0,(textSize*1)*this.renderer.viewPortScaler);
-  		renderer.ctx.font =  (20*this.renderer.viewPortScaler) + 'pt Calibri';
-  		renderer.ctx.fillText('(Press space to reset)',0,(textSize*2)*this.renderer.viewPortScaler);
-  		renderer.ctx.fillText('(+ will increase Square count)',0,(textSize*3)*this.renderer.viewPortScaler);
-  		renderer.ctx.fillText('(- will decrease Square count)',0,(textSize*4)*this.renderer.viewPortScaler);
-  		renderer.ctx.fillText('(q will check for win)',0,(textSize*5)*this.renderer.viewPortScaler);
-  		renderer.ctx.fillText('(w will set up a wining board)',0,(textSize*6)*this.renderer.viewPortScaler);
-  		renderer.ctx.fillText('(< will decrease the size of the board)',0,(textSize*7)*this.renderer.viewPortScaler);
-  		renderer.ctx.fillText('(> will increase the size of the board)',0,(textSize*8)*this.renderer.viewPortScaler);
-  		renderer.ctx.fillText('Size: ' + this.round(this.renderer.boardSizePercentage * 100, 2) + "%",0,(textSize*9)*this.renderer.viewPortScaler);
+  		renderer.ctx.font =  (textSize*this.renderer.viewPortScaler) + "pt Calibri";
+  		renderer.ctx.fillStyle = "white";
+  		renderer.ctx.fillText("Mystic Square",0,(textSize*1)*this.renderer.viewPortScaler);
+  		renderer.ctx.font =  (20*this.renderer.viewPortScaler) + "pt Calibri";
+  		renderer.ctx.fillText("(Press space to reset)",0,(textSize*2)*this.renderer.viewPortScaler);
+  		renderer.ctx.fillText("(+ will increase Square count)",0,(textSize*3)*this.renderer.viewPortScaler);
+  		renderer.ctx.fillText("(- will decrease Square count)",0,(textSize*4)*this.renderer.viewPortScaler);
+  		renderer.ctx.fillText("(q will check for win)",0,(textSize*5)*this.renderer.viewPortScaler);
+  		renderer.ctx.fillText("(w will set up a wining board)",0,(textSize*6)*this.renderer.viewPortScaler);
+  		renderer.ctx.fillText("(< will decrease the size of the board)",0,(textSize*7)*this.renderer.viewPortScaler);
+  		renderer.ctx.fillText("(> will increase the size of the board)",0,(textSize*8)*this.renderer.viewPortScaler);
+  		renderer.ctx.fillText("Size: " + this.round(this.renderer.boardSizePercentage * 100, 2) + "%",0,(textSize*9)*this.renderer.viewPortScaler);
   		
-  		renderer.ctx.fillText('Moves: ' + this.moves,0,(textSize*11)*this.renderer.viewPortScaler);
+  		renderer.ctx.fillText("Moves: " + this.moves,0,(textSize*11)*this.renderer.viewPortScaler);
   		
   		renderer.ctx.restore();
   	}
@@ -211,7 +211,7 @@ class GameDriver {
   			var tile = this.gameTiles["#" + i];
   			if(tile !== undefined && tile !== null){
   				if(tile.clicked(mouseX,mounseY, this.renderer)){
-  					this.debug('tile#' + i + " was clicked.");
+  					this.debug("tile#" + i + " was clicked.");
   					this.debug(tile.getGameY(), tile.getGameX());
   					
   					var move = false;

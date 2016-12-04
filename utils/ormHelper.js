@@ -2,15 +2,17 @@
 "use strict";
 
 class OrmHelper {
-	constructor(ip, user, password, database) {
+	constructor(ip, user, password, database, mySqlHelper) {
 		this.orm = require('orm');
 		this.password = password;
 		this.ip = ip;
 		this.user = user;
 		this.database = database;
+		this.mySqlHelper = mySqlHelper;
 		this.entities = [];
 		this.entities.push((require('./orm/entities/role.js')).Entity);
 		this.entities.push((require('./orm/entities/user.js')).Entity);
+		this.entities.push((require('./orm/entities/file.js')).Entity);
 		this.entities.push((require('./orm/entities/token.js')).Entity);
 		this.entities.push((require('./orm/entities/captcha.js')).Entity);
 		this.map = {};
@@ -24,6 +26,7 @@ class OrmHelper {
 
 		var entities = this.entities;
 		var database = this.database;
+		var mySqlHelper = this.mySqlHelper;
 		var ip = this.ip;
 		var user = this.user;
 		var map = this.map;
@@ -108,6 +111,19 @@ class OrmHelper {
 					            });
 					          }
 					        });
+						});
+					}
+					
+					//compound unique constraints
+					if (entity.uniqueConstraints !== undefined && entity.uniqueConstraints !== null && entity.uniqueConstraints.length > 0) {
+						entity.uniqueConstraints.forEach(function(uniqueConstraint) {
+							if(uniqueConstraint.columns !== undefined && uniqueConstraint.columns !== null && uniqueConstraint.columns.length > 0){
+								var statement = 'alter table '+database + '.' + entity.name+' add constraint uk_'+entity.name+'_'+uniqueConstraint.columns.join('_')+' UNIQUE ('+uniqueConstraint.columns.join(',')+')';
+								mySqlHelper.query(statement, function(results, err){
+									if(err)
+										console.log('Error creating unique constraint: ' + JSON.stringify(err));
+								});
+							}
 						});
 					}
 				});
