@@ -102,7 +102,7 @@ if (process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null) {
   console.log('Using SSL.');
   var sslHelper = new(require('./utils/sslHelper.js')).SSLHelper(fs);
   try {
-    secureServer = sslHelper.configure(require('https'));
+    secureServer = sslHelper.configure(router);
   }
   catch (err) {
     secureServer = null;

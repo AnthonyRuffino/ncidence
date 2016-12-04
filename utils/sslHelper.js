@@ -4,9 +4,11 @@
 class SSLHelper {
   constructor(fs) {
 	  this.fs = fs;
+	  this.https = require('https');
   }
   
-  configure(https) {
+  configure(router) {
+  	  var https = this.https;
 	  console.log("Begin HTTPS server setup.");
 	  if(https != undefined && https != null){
 		  var sslKeyFile = process.env.sslKeyFile || './ssl/domain-key.pem';
