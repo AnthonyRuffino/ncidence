@@ -163,12 +163,12 @@ console.log('Define /api/db');
 router.get('/api/db', function(req, res) {
   if (req.query.psw !== undefined && req.query.psw !== null && req.query.psw === process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD) {
 
-    mySqlHelper.query(req.query.sql, function(success, error) {
-      if (error) {
-        res.json(200, error);
+    mySqlHelper.query(req.query.sql, function(err, results) {
+      if (err) {
+        res.json(200, err);
       }
       else {
-        res.json(200, success);
+        res.json(200, results);
       }
     });
   }
@@ -203,6 +203,21 @@ router.get('/api/guid', function(req, res) {
   res.json(200, {
     guid: guid.generate(req.query.useDashes)
   });
+});
+
+router.get('/api/schemaSizeInMb', function(req, res) {
+  mySqlHelper.getSchemaSizeInMb(req.query.schema, function(err, results){
+    if(err){
+      res.json(200, {
+        err: err
+      });
+    }else{
+      res.json(200, {
+        sizeInMb: results
+      });
+    }
+  });
+  
 });
 
 router.get('/api/roles', function(req, res) {
@@ -298,6 +313,9 @@ router.get('/api/roles', function(req, res) {
 router.get('/u/:name/:file', function(req,res){
   var name = req.params.name;
   var file = req.params.file;
+  
+  res.cookie('httponly', 'val1', { maxAge: 900000, httpOnly: true });
+  res.cookie('browsable', 'val2', { maxAge: 900000, httpOnly: false });
   
   ormHelper.getMap()['user'].model.find({email:name}, function(err, users){
     var content = null;
