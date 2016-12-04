@@ -342,6 +342,29 @@ router.get('/api/captcha', function(req, res) {
 
 
 
+//////////////////////////
+//START UP SERVER(S)//////
+//////////////////////////
+
+//HTTPS
+if(secureServer != null){
+    try{
+        secureServer.listen(process.env.SECURE_PORT || 443, process.env.SECURE_IP || "0.0.0.0", function(){
+            var addr = secureServer.address();
+            console.log("Secure server listening at", addr.address + ":" + addr.port);
+        });
+    }
+    catch(err2){
+        console.log("Err: " + err2);
+        secureServerErr = "Err: " + err2;
+    }
+}
+
+
+if(server === undefined || server === null){
+    server = http.createServer(router);
+}
+
 
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function() {
   console.log('trying to listen...');
