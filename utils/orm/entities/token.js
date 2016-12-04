@@ -88,7 +88,7 @@ try {
         hasOne: hasOne,
         hasMany: null,
         extendsTo: null,
-        defaultData
+        defaultData: null
     };
 }
 catch (err) {

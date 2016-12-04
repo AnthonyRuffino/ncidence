@@ -12,6 +12,7 @@ class OrmHelper {
 		this.entities.push((require('./orm/entities/role.js')).Entity);
 		this.entities.push((require('./orm/entities/user.js')).Entity);
 		this.entities.push((require('./orm/entities/token.js')).Entity);
+		this.entities.push((require('./orm/entities/captcha.js')).Entity);
 		this.map = {};
 	}
 	

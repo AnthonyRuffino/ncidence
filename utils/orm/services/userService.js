@@ -35,16 +35,20 @@ class UserService {
         return re.test(email);
     }
     
-    getInvalidInpuitMessage(email, password, password2) {
+    getInvalidInputMessage(email, password, password2, captchaAnswer, captchaId) {
         var invalidInputMessage = null;
         if(email === undefined || email == null || email.length < 1){
             invalidInputMessage = 'email required';
-        } else if(!this.validateEmail(email)){
+        }else if(!this.validateEmail(email)){
             invalidInputMessage = 'invalid email';
-        }else if(password === undefined || password === null || password .length < 1){
+        }else if(password === undefined || password === null || password.length < 1){
             invalidInputMessage = 'password required';
         }else if(password !== password2){
             invalidInputMessage = 'passwords do not match';
+        }else if(captchaAnswer === undefined || captchaAnswer === null || captchaAnswer.length < 1){
+            invalidInputMessage = 'captcha answer required';
+        }else if(captchaId === undefined || captchaId === null || captchaId.length < 1){
+            invalidInputMessage = 'captchaId required';
         }
         return invalidInputMessage;
     }
@@ -60,9 +64,10 @@ class UserService {
         var email = req.query.email !== undefined && req.query.email !== null ? req.query.email.toLowerCase() : null;
         var password = req.query.password;
         var password2 = req.query.password2;
+        var captchaAnswer = req.query.captchaAnswer;
+        var captchaId = req.query.captchaId;
         var bcrypt = this.bcrypt;
         var guid = this.guid;
-        var transport = this.transport;
         var templateTranport = this.templateTranport;
 
 
@@ -179,16 +184,67 @@ class UserService {
             }
         }
         
-        var invlaidInputMessage = this.getInvalidInpuitMessage(email, password, password2);
+        var findCaptchaCallback = function(err, captchas) {
+            if (err) throw err;
+
+            if (captchas.length < 1 || captchas[0] === null) {
+                res.json(500, {
+                    err: 'unable to locate captchaId:' + captchaId
+                });
+            }
+            else {
+                
+                var captchaIsInvalidValidMessage = null;
+                var captchaNeedsUpdate = true;
+                if(captchas[0].is_used === true){
+                    captchaIsInvalidValidMessage = 'captcha has already been used';
+                    captchaNeedsUpdate = false;
+                }else if(captchas[0].answer !== captchaAnswer){
+                    captchaIsInvalidValidMessage = 'captcha incorrect';
+                }else if((new Date()) > captchas[0].expiration_date){
+                    captchaIsInvalidValidMessage = 'captcha expired';
+                }
+                
+                captchas[0].is_used = true;
+                
+                if(captchaIsInvalidValidMessage !== null){
+                    if(captchaNeedsUpdate){
+                        captchas[0].save(function(err){
+                            if(err)
+                                console.log('error marking captcha as used: ' + err);
+                            
+                            res.json(500, {
+                                err: captchaIsInvalidValidMessage
+                            });
+                        });
+                    }else{
+                        res.json(500, {
+                            err: captchaIsInvalidValidMessage
+                        });
+                    }
+                }else{
+                    captchas[0].save(function(err){
+                        if(err)
+                            console.log('error marking captcha as used: ' + err);
+                        
+                        ormHelper.getMap()['role'].model.find({
+                            id: 1
+                        }, function(err, roles) {
+                            findRoleCallback(err, roles);
+                        });
+                    });
+                }
+            }
+        }
+        
+        var invlaidInputMessage = this.getInvalidInputMessage(email, password, password2, captchaAnswer, captchaId);
         if(invlaidInputMessage !== undefined && invlaidInputMessage !== null){
             res.json(500, {
                 err: invlaidInputMessage
             });
         }else{
-            ormHelper.getMap()['role'].model.find({
-                id: 1
-            }, function(err, roles) {
-                findRoleCallback(err, roles);
+            ormHelper.getMap()['captcha'].model.find({ guid: captchaId }, function(err, captchas) {
+                findCaptchaCallback(err, captchas);
             });
         }
     }

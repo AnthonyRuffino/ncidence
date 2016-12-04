@@ -39,6 +39,7 @@ var bcrypt = require('bcrypt-nodejs');
 
 
 var QUERY_ROWS_LIMIT = 10000;
+var CAPTCHA_EXP_IN_MINUTES = 5;
 
 
 
@@ -308,16 +309,34 @@ router.get('/api/addUser', function(req, res) {
 
 var captchapng = require('captchapng');
 router.get('/api/captcha', function(req, res) {
-  var p = new captchapng(80,30,parseInt(Math.random()*9000+1000)); // width,height,numeric captcha 
-  p.color(0, 0, 0, 0);  // First color: background (red, green, blue, alpha) 
-  p.color(80, 80, 80, 255); // Second color: paint (red, green, blue, alpha) 
-
-  var img = p.getBase64();
-  var imgbase64 = new Buffer(img,'base64');
-  res.writeHead(200, {
-      'Content-Type': 'image/png'
+  
+  var number = parseInt(Math.random()*900000+100000);
+  var captchaId = guid.generate(true, 4);
+  var expDate = new Date((new Date()).getTime() + CAPTCHA_EXP_IN_MINUTES*60000);
+  
+  var captchaModel = ormHelper.getMap()['captcha'].model;
+  
+  captchaModel.create({guid:captchaId, answer: number+'', expiration_date: expDate}, function(err){
+    if(err){
+      res.json(500, {
+        err: 'Error creating CAPTCHA: ' + err
+      });
+    }else{
+      var p = new captchapng(80,30,number); // width,height,numeric captcha 
+      p.color(0, 0, 0, 0);  // First color: background (red, green, blue, alpha) 
+      p.color(80, 80, 80, 255); // Second color: paint (red, green, blue, alpha)
+      
+      var img = p.getBase64();
+      var imgbase64 = new Buffer(img,'base64');
+      res.writeHead(200, {
+          'Content-Type': 'image/png',
+          'captcha-id': captchaId
+      });
+      res.end(imgbase64);
+    }
+    
   });
-  res.end(imgbase64);
+  
 });
 
 

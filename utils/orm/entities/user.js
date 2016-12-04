@@ -134,7 +134,7 @@ try {
         hasOne: hasOne,
         hasMany: null,
         extendsTo: extendsTo,
-        defaultData
+        defaultData: null
     };
 }
 catch (err) {
