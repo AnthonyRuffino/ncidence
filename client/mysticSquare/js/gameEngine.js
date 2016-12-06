@@ -21,8 +21,8 @@ class GameEngine {
   }
   
   frame() {
-	  this.renderer.ctx.clearRect(0,0,renderer.width,renderer.height);
-	  this.renderer.drawRectangle(true, 0, 0, renderer.width, renderer.height, "black");
+	  this.renderer.ctx.clearRect(0,0,this.renderer.width,this.renderer.height);
+	  this.renderer.drawRectangle(true, 0, 0, this.renderer.width, this.renderer.height, "black");
 	  this.update();
 	  this.render();
 	  

@@ -10,20 +10,27 @@
 	</body>
 	
 	<script>
+		
+	</script>
+	
+	<script src="js/renderer.js"></script>
+	<script src="js/entities.js"></script>
+	<script src="js/gameDriver.js"></script>
+	<script src="js/gameEngine.js"></script>
+	
+	<script>
+		/*global Renderer*/
+		/*global GameDriver*/
+		/*global GameEngine*/
+		/*global GameTile*/
+		
 		var DEFAULT_TILES_PER_SIDE = 4;
 		var BOARD_SIZE_PERCENTAGE = .50;
 		var DEBUG = true;
-	</script>
 	
-	<script src="renderer.js"></script>
-	<script src="entities.js"></script>
-	<script src="gameDriver.js"></script>
-	<script src="gameEngine.js"></script>
-	
-	<script>
-		renderer = new Renderer(window, document, "body", BOARD_SIZE_PERCENTAGE);
+		var renderer = new Renderer(window, document, "body", BOARD_SIZE_PERCENTAGE);
 		renderer.init();
-		driver = new GameDriver(renderer, document, DEFAULT_TILES_PER_SIDE, window.console.log, function(txt){alert.call(window, txt);}, DEBUG);
+		var driver = new GameDriver(renderer, document, DEFAULT_TILES_PER_SIDE, window.console.log, function(txt){alert.call(window, txt);}, DEBUG, GameTile);
 		driver.init();
 		new GameEngine(renderer, driver, window).start();
 	</script>

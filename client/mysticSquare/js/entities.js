@@ -63,10 +63,6 @@ class GameTile extends Square {
 		this.textSize = textSize;
 	}
 	
-	setTextSize(newTextSize){
-		this.textSize = new newTxtSize;
-	}
-	
 	getSideLength(newSideLength){
 		return this.sideLength;
 	}
@@ -106,7 +102,7 @@ class GameTile extends Square {
 		this.y = newGameY*this.sideLength;
 	}
 	
-	draw(){
+	draw(renderer){
 	  super.draw(renderer);
 	  
 	  renderer.drawCenteredText(true,

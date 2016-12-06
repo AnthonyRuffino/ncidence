@@ -78,14 +78,14 @@ class Renderer {
         	_this.setDimentions();
         	_this.document.getElementById("gameCanvas").width = _this._width;
         	_this.document.getElementById("gameCanvas").height = _this._height;
-        }
+        };
         
         Renderer.addEvent(this.window, "resize", onResize);
   }
   
   setDimentions(){
-		this.screenWidth = window.innerWidth || documentElement.clientWidth || targetElement.clientWidth;
-		this.screenHeight = window.innerHeight|| documentElement.clientHeight|| targetElement.clientHeight;
+		this.screenWidth = window.innerWidth || this.documentElement.clientWidth || this.targetElement.clientWidth;
+		this.screenHeight = window.innerHeight|| this.documentElement.clientHeight|| this.targetElement.clientHeight;
 		this.aspectRatio = this.screenHeight/this.screenWidth;//9/16;
 		this._width = this.screenWidth - (this.screenWidth*.05);
 		this._height = (this._width * this.aspectRatio);
