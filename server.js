@@ -25,7 +25,7 @@ var publicdir = __dirname + '/client';
 var http = require('http');
 var path = require('path');
 
-var async = require('async');
+//var async = require('async');
 
 var express = require('express');
 
@@ -339,6 +339,30 @@ router.get('/u/:name/:file', function(req,res){
         }
       });
     }
+  });
+  
+});
+
+
+
+
+
+router.get('/api/promise', async function(req,res){
+  
+  var delay = req.query.delay || 1000;
+  
+ var prom = function (inVal){
+    return new Promise(function(resolve, reject) {
+      setTimeout(function(){ resolve(inVal); }, parseInt(delay));
+      
+    });
+  }
+
+  var promiseData = await prom(req.query.text || 'example');
+  
+  res.json(200, {
+      val: promiseData,
+      delay: delay
   });
   
 });

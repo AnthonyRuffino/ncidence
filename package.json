@@ -14,9 +14,9 @@
     "mkpath": "1.0.0",
     "moment-timezone": "0.5.3",
     "mysql": "2.10.2",
-    "nodemailer": "^2.6.4",
-    "nodemailer-ses-transport": "^1.5.0",
-    "orm": "^3.1.0",
-    "socket.io": "0.9.17"
+    "nodemailer": "^2.7.2",
+    "nodemailer-ses-transport": "^1.5.1",
+    "orm": "^3.2.4",
+    "socket.io": "^2.0.3"
   }
 }
