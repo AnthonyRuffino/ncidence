@@ -206,18 +206,19 @@ router.get('/api/guid', function(req, res) {
 });
 
 router.get('/api/schemaSizeInMb', function(req, res) {
-  mySqlHelper.getSchemaSizeInMb(req.query.schema, function(err, results){
-    if(err){
+  mySqlHelper.getSchemaSizeInMb(req.query.schema, function(err, results) {
+    if (err) {
       res.json(200, {
         err: err
       });
-    }else{
+    }
+    else {
       res.json(200, {
         sizeInMb: results
       });
     }
   });
-  
+
 });
 
 router.get('/api/roles', function(req, res) {
@@ -310,103 +311,118 @@ router.get('/api/roles', function(req, res) {
 });
 
 
-router.get('/u/:name/:file', function(req,res){
+router.get('/u/:name/:file', function(req, res) {
   var name = req.params.name;
   var file = req.params.file;
-  
+
   res.cookie('httponly', 'val1', { maxAge: 900000, httpOnly: true });
   res.cookie('browsable', 'val2', { maxAge: 900000, httpOnly: false });
-  
-  ormHelper.getMap()['user'].model.find({email:name}, function(err, users){
+
+  ormHelper.getMap()['user'].model.find({ email: name }, function(err, users) {
     var content = null;
-    if(err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null){
+    if (err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null) {
       res.writeHead(200, {
-          'Content-Type': 'text/html'
+        'Content-Type': 'text/html'
       });
-      res.end('<h1>Error finding content for user: '+name+'</h1><br/><h2>Err:'+(err || 'no such user')+'</h2>');
-    }else{
-      ormHelper.getMap()['file'].model.find({user_id: users[0].id, name: file}, function(err, files){
-        if(err || files === undefined || files == null || files.length < 1 || files[0] === undefined || files[0] === null){
+      res.end('<h1>Error finding content for user: ' + name + '</h1><br/><h2>Err:' + (err || 'no such user') + '</h2>');
+    }
+    else {
+      ormHelper.getMap()['file'].model.find({ user_id: users[0].id, name: file }, function(err, files) {
+        if (err || files === undefined || files == null || files.length < 1 || files[0] === undefined || files[0] === null) {
           res.writeHead(200, {
-              'Content-Type': 'text/html'
+            'Content-Type': 'text/html'
           });
-          res.end('<h1>Error finding file for user: '+name+'. ile: '+file+'</h1><br/><h2>Err :'+(err || 'no such file')+'</h2>');
-        }else{
+          res.end('<h1>Error finding file for user: ' + name + '. ile: ' + file + '</h1><br/><h2>Err :' + (err || 'no such file') + '</h2>');
+        }
+        else {
           res.writeHead(200, {
-              'Content-Type': files[0].content_type
+            'Content-Type': files[0].content_type
           });
           res.end(files[0].content);
         }
       });
     }
   });
-  
+
 });
 
 
 
 
 
-router.get('/api/promise', async function(req,res){
-  
-  var delay = req.query.delay || 1000;
-  
- var prom = function (inVal){
+router.get('/api/promise', async function(req, res) {
+
+  var delay = req.query.delay || 500;
+
+  var prom = function(inVal) {
     return new Promise(function(resolve, reject) {
-      setTimeout(function(){ resolve(inVal); }, parseInt(delay));
-      
+      setTimeout(function(){
+        if(req.query.error){
+          reject(req.query.error);
+        }else{
+          resolve(inVal);
+        }
+      }, parseInt(delay));
     });
   }
 
-  var promiseData = await prom(req.query.text || 'example');
-  
-  res.json(200, {
+  try {
+    var promiseData = await prom(req.query.text || 'example');
+
+    res.json(200, {
       val: promiseData,
       delay: delay
-  });
-  
+    });
+  }
+  catch (error) {
+    res.json(400, {
+      error: error,
+      delay: delay
+    });
+  }
 });
 
 
-router.get('/api/login', function(req,res){
-  userService.login(req,res);
+router.get('/api/login', function(req, res) {
+  userService.login(req, res);
 });
 
 router.get('/api/addUser', function(req, res) {
-  userService.createUser(req,res);
+  userService.createUser(req, res);
 });
 
 
 var captchapng = require('captchapng');
 router.get('/api/captcha', function(req, res) {
-  
-  var number = parseInt(Math.random()*900000+100000);
+
+  var number = parseInt(Math.random() * 900000 + 100000);
   var captchaId = guid.generate(true, 4);
-  var expDate = new Date((new Date()).getTime() + CAPTCHA_EXP_IN_MINUTES*60000);
-  
+  var expDate = new Date((new Date()).getTime() + CAPTCHA_EXP_IN_MINUTES * 60000);
+
   var captchaModel = ormHelper.getMap()['captcha'].model;
-  
-  captchaModel.create({guid:captchaId, answer: number+'', expiration_date: expDate}, function(err){
-    if(err){
+
+  captchaModel.create({ guid: captchaId, answer: number + '', expiration_date: expDate }, function(err) {
+    if (err) {
       res.json(500, {
         err: 'Error creating CAPTCHA: ' + err
       });
-    }else{
-      var p = new captchapng(80,30,number); // width,height,numeric captcha 
-      p.color(0, 0, 0, 0);  // First color: background (red, green, blue, alpha) 
+    }
+    else {
+      var p = new captchapng(80, 30, number); // width,height,numeric captcha 
+      p.color(0, 0, 0, 0); // First color: background (red, green, blue, alpha) 
       p.color(80, 80, 80, 255); // Second color: paint (red, green, blue, alpha)
-      
+
       var img = p.getBase64();
-      var imgbase64 = new Buffer(img,'base64');
+      var imgbase64 = new Buffer(img, 'base64');
       res.writeHead(200, {
-          'Content-Type': 'image/png',
-          'captcha-id': captchaId
+        'Content-Type': 'image/png',
+        'captcha-id': captchaId
       });
       res.end(imgbase64);
     }
-    
+
   });
-  
+
 });
 
 
@@ -417,22 +433,22 @@ router.get('/api/captcha', function(req, res) {
 //////////////////////////
 
 //HTTPS
-if(secureServer != null){
-    try{
-        secureServer.listen(process.env.SECURE_PORT || 443, process.env.SECURE_IP || "0.0.0.0", function(){
-            var addr = secureServer.address();
-            console.log("Secure server listening at", addr.address + ":" + addr.port);
-        });
-    }
-    catch(err2){
-        console.log("Err: " + err2);
-        secureServerErr = "Err: " + err2;
-    }
+if (secureServer != null) {
+  try {
+    secureServer.listen(process.env.SECURE_PORT || 443, process.env.SECURE_IP || "0.0.0.0", function() {
+      var addr = secureServer.address();
+      console.log("Secure server listening at", addr.address + ":" + addr.port);
+    });
+  }
+  catch (err2) {
+    console.log("Err: " + err2);
+    secureServerErr = "Err: " + err2;
+  }
 }
 
 
-if(server === undefined || server === null){
-    server = http.createServer(router);
+if (server === undefined || server === null) {
+  server = http.createServer(router);
 }
 
 
