@@ -35,7 +35,7 @@ var definition = {
     },
     status: {
         type: "enum",
-        values: ["User", "Rep", "Admin"],
+        values: ["Client", "User", "Rep", "Admin"],
         required: true
     },
     signup_time: {
@@ -69,7 +69,9 @@ var helpers = {
 ////////////////////////////
 //HAS ONE ASSOCIATIONS//////
 ////////////////////////////
-var hasOne = [];
+var hasOne = null;
+/*
+hasOne = [];
 hasOne.push({
     name: 'role',
     options: {
@@ -78,6 +80,7 @@ hasOne.push({
         autoFetch : true
     }
 });
+*/
 
 
 ////////////////////////////
@@ -102,6 +105,9 @@ hasMany.push({
     }
 });
 
+//var uniqueConstraints = [];
+//uniqueConstraints.push({columns: ['role_id','user_id']});
+
 
 ////////////////////////////
 //EXTENDS TO  ASSOCIATIONS//
@@ -120,6 +126,117 @@ extendsTo.push({
 //DEFAULT DATA////////
 //////////////////////
 var defaultData = [];
+((defaultData) => {
+    const bcrypt = require('bcrypt-nodejs');
+    defaultData.push({
+        values:{
+            id: 1,
+            email: 'admin',
+            password: bcrypt.hashSync('admin', bcrypt.genSaltSync(8), null),
+            is_locked: false,
+            is_confirmed: true,
+            login_attempts_since_last_success: 0,
+            last_login_time: new Date(),
+            status: 'Admin',
+            signup_time: new Date(),
+            lock_date: null
+        },
+        hasMany: {
+            role: [
+                {
+                    id: 1,
+                    meta: {
+                        why: 'I made this',
+                        num: 1
+                    }
+                },
+                {
+                    id: 2,
+                    meta: {
+                        why: 'I earned this',
+                        num: 2
+                    }
+                }
+            ]
+        }
+    });
+    defaultData.push({
+        values:{
+            id: 2,
+            email: 'rep',
+            password: bcrypt.hashSync('rep', bcrypt.genSaltSync(8), null),
+            is_locked: false,
+            is_confirmed: true,
+            login_attempts_since_last_success: 0,
+            last_login_time: new Date(),
+            status: 'Rep',
+            signup_time: new Date(),
+            lock_date: null
+        },
+        hasMany: {
+            role: [
+                {
+                    id: 2,
+                    meta: {
+                        why: 'Admin likes me',
+                        num: 3
+                    }
+                }
+            ]
+        }
+    });
+    defaultData.push({
+        values:{
+            id: 3,
+            email: 'user',
+            password: bcrypt.hashSync('user', bcrypt.genSaltSync(8), null),
+            is_locked: false,
+            is_confirmed: true,
+            login_attempts_since_last_success: 0,
+            last_login_time: new Date(),
+            status: 'User',
+            signup_time: new Date(),
+            lock_date: null
+        },
+        hasMany: {
+            role: [
+                {
+                    id: 3,
+                    meta: {
+                        why: 'I singed up',
+                        num: 66
+                    }
+                }
+            ]
+        }
+    });
+    defaultData.push({
+        values:{
+            id: 4,
+            email: 'client',
+            password: bcrypt.hashSync('client', bcrypt.genSaltSync(8), null),
+            is_locked: false,
+            is_confirmed: true,
+            login_attempts_since_last_success: 0,
+            last_login_time: new Date(),
+            status: 'Client',
+            signup_time: new Date(),
+            lock_date: null
+        },
+        hasMany: {
+            role: [
+                {
+                    id: 4,
+                    meta: {
+                        why: 'I paid with bit coin',
+                        num: 999
+                    }
+                }
+            ]
+        }
+    });
+})(defaultData)
+
 
 
 /////////////
@@ -131,9 +248,9 @@ try {
         definition: definition,
         helpers: helpers,
         hasOne: hasOne,
-        hasMany: null,
+        hasMany: hasMany,
         extendsTo: extendsTo,
-        defaultData: null
+        defaultData: defaultData
     };
 }
 catch (err) {

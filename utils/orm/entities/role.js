@@ -45,18 +45,22 @@ var extendsTo = null;
 //DEFAULT DATA////////
 //////////////////////
 var defaultData = [];
-defaultData.push({
+defaultData.push({values: {
     id: 1,
     name: 'admin'
-});
-defaultData.push({
+}});
+defaultData.push({values: {
     id: 2,
     name: 'moderator'
-});
-defaultData.push({
+}});
+defaultData.push({values: {
     id: 3,
+    name: 'user'
+}})
+defaultData.push({values: {
+    id: 4,
     name: 'client'
-});
+}});
 
 
 /////////////

@@ -6,7 +6,8 @@ class MySqlHelper {
 		this.mysql = require('mysql');
 		this.pool = null;
 	}
-
+	
+	
 	init(host, user, password, database) {
 		this.pool = this.mysql.createPool({
 			connectionLimit: 100, //important
@@ -17,9 +18,15 @@ class MySqlHelper {
 			debug: false
 		});
 	}
-
+	
+	
+	hasResults(rows) {
+		return rows !== undefined && rows !== null && rows.length !== null && rows.length !== undefined && rows.length > 0;
+	}
+	
+	
 	createDatabase(database, callback) {
-		this.pool.getConnection(function(err, connection) {
+		this.pool.getConnection((err, connection) => {
 			if (err) {
 				console.log("Error in connection to database");
 				return;
@@ -27,10 +34,9 @@ class MySqlHelper {
 
 			console.log('connected as id ' + connection.threadId);
 
-			connection.query('SHOW DATABASES LIKE \'' + database + '\'', function(err, rows) {
+			connection.query(`SHOW DATABASES LIKE '${database}'`, (err, rows) => {
 				if (!err) {
-					var hasResults = rows !== undefined && rows !== null && !rows.length !== null && !rows.length !== undefined && !rows.length < 1;
-					if (hasResults === false) {
+					if (!this.hasResults(rows)) {
 						console.log('Begin create schema ' + database);
 						connection.query('CREATE SCHEMA ' + database, function(err, rows) {
 							connection.release();
@@ -62,6 +68,7 @@ class MySqlHelper {
 		});
 	}
 	
+	
 	getSchemaSizeInMb(schema, callback){
 		var sizeQuery = "SELECT Round(Sum(data_length + index_length) / 1024 / 1024, 1) 'mb' FROM information_schema.tables WHERE table_schema = '" + schema + "'";
 		this.query(sizeQuery, function(err,results){
@@ -77,7 +84,28 @@ class MySqlHelper {
 			}
 		})
 	}
-
+	
+	
+	createUniqueConstraint(schema, tableName, columns, callback) {
+		const indexName = `uk_${tableName}_${columns.join('_')}`;
+		const uniqueConstraintStatement = `alter table ${schema}.${tableName} add constraint ${indexName} UNIQUE (${columns.join(',')})`;
+		
+		const doesIndexExistQuery = `select distinct index_name from information_schema.statistics 
+			        where table_schema = '${schema}' 
+			        and table_name = '${tableName}' and index_name = '${indexName}'`;
+		
+		this.query(doesIndexExistQuery, (err, rows) => {
+			if(err) {
+				console.log('error checking if uniqueConstraint exists: ' + indexName + '. err: ' + err);
+			} else if(rows !== undefined && rows !== null && this.hasResults(rows.results)) {
+				console.log(indexName + ' already exists');
+			} else {
+				this.query(uniqueConstraintStatement, callback);
+			}
+		});
+	}
+	
+	
 	query(sql, callback) {
 		if (sql !== undefined && sql !== null && sql.length > 0) {
 			try {
@@ -111,7 +139,7 @@ class MySqlHelper {
 				});
 			}
 			catch (ex) {
-				callback(null, {
+				callback({
 					err: ex,
 					sql: sql,
 					msg: 'Exception during connection to database'
@@ -119,7 +147,7 @@ class MySqlHelper {
 			}
 		}
 		else {
-			callback(null, {
+			callback({
 				err: '"sql" paremeter was not provided'
 			});
 		}

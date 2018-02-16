@@ -6,7 +6,7 @@ class Renderer {
 	  this.document = document;
 	  this.documentElement = this.document.documentElement;
 	  this.targetElementName = targetElementName;
-	  this.targetElement = this.document.getElementsByTagName(this.targetElementName)[0];
+	  this.targetElement = this.document.getElementById(this.targetElementName);
 	  this._boardSizePercentage = boardSizePercentage;
 	  this.screenWidth = null;
 	  this.screenHeight = null;

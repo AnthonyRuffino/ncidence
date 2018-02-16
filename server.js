@@ -59,7 +59,23 @@ var mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
 //START To Default Host Database.  Connect to 'mysql' schema first
 if (mySqlIp !== null && mySqlIp !== undefined) {
   mySqlHelper.init(mySqlIp, mySqlUser, mySqlPassword, 'mysql');
-  ormHelper = new(require('./utils/ormHelper.js')).OrmHelper(mySqlIp, mySqlUser, mySqlPassword, DEFAULT_HOST, mySqlHelper);
+  
+  const entities = [];
+	entities.push((require('./utils/orm/entities/role.js')).Entity);
+	entities.push((require('./utils/orm/entities/user.js')).Entity);
+	entities.push((require('./utils/orm/entities/file.js')).Entity);
+	entities.push((require('./utils/orm/entities/token.js')).Entity);
+	entities.push((require('./utils/orm/entities/captcha.js')).Entity);
+	
+  ormHelper = new(require('./utils/ormHelper.js')).OrmHelper({
+    ip: mySqlIp, 
+    user: mySqlUser, 
+    password: mySqlPassword, 
+    database: DEFAULT_HOST, 
+    mySqlHelper,
+    entities
+  });
+  
   console.log('LOADING mysql. ');
   mySqlHelper.createDatabase(DEFAULT_HOST, function() {
     ormHelper.sync();
@@ -86,7 +102,7 @@ var userService = new(require('./utils/orm/services/userService.js')).UserServic
 //
 console.log('Configure Router');
 var router = express();
-router.use(express.bodyParser());
+//router.use(express.bodyParser());
 var server = http.createServer(router);
 var secureServer = null;
 
@@ -321,10 +337,28 @@ router.get('/u/:name/:file', function(req, res) {
   ormHelper.getMap()['user'].model.find({ email: name }, function(err, users) {
     var content = null;
     if (err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null) {
-      res.writeHead(200, {
-        'Content-Type': 'text/html'
-      });
-      res.end('<h1>Error finding content for user: ' + name + '</h1><br/><h2>Err:' + (err || 'no such user') + '</h2>');
+      
+      console.log('test param: ', req.query.ex !== undefined);
+          if(req.query.ex !== undefined) {
+            var code = '((ctx) => { console.log("testValue: ", ctx.testValue); ctx.res.writeHead(200, {"Content-Type": "text/html"}); ctx.res.end("<h1>LOLZ - "+ctx.testValue+"</h1>"); })(ctx);';
+            var your_code = new Function(['ctx'].join(','), code);
+            
+            try{
+              your_code({req, res, testValue: 'trster'});
+            } catch(executionException) {
+              res.writeHead(200, {
+                'Content-Type': 'text/html'
+              });
+              res.end('<h1>Error executing lambda expression: ' + executionException + '</h2>');
+            }
+            
+          } else {
+            res.writeHead(200, {
+              'Content-Type': 'text/html'
+            });
+            res.end('<h1>Error finding content for user: ' + name + '</h1><br/><h2>Err:' + (err || 'no such user') + '</h2>');
+          }
+      
     }
     else {
       ormHelper.getMap()['file'].model.find({ user_id: users[0].id, name: file }, function(err, files) {
@@ -335,10 +369,16 @@ router.get('/u/:name/:file', function(req, res) {
           res.end('<h1>Error finding file for user: ' + name + '. ile: ' + file + '</h1><br/><h2>Err :' + (err || 'no such file') + '</h2>');
         }
         else {
-          res.writeHead(200, {
-            'Content-Type': files[0].content_type
-          });
-          res.end(files[0].content);
+          if(files[0].content_type === 'lambda') {
+            var code = '((req, res) => { ' + files[0].content + ' })(req, res);';
+            var your_code = new Function(['req', 'res'].join(','), code);
+            your_code(req, res);
+          } else {
+            res.writeHead(200, {
+              'Content-Type': files[0].content_type
+            });
+            res.end(files[0].content);
+          }
         }
       });
     }
@@ -425,8 +465,40 @@ router.get('/api/captcha', function(req, res) {
 
 });
 
+ var fileService = new(require('./utils/orm/services/fileService.js')).FileService(ormHelper);
+ 
+ var formidable = require('formidable')
+router.post('/fileupload', function(req, res) {
+  var form = new formidable.IncomingForm();
+    form.parse(req, function (err, fields, files) {
+      var filePath = files.filetoupload.path;
+      console.log('filePath: ', filePath, files.filetoupload.name);
+      
+      //var text = fs.readFileSync(files.filetoupload.path,'utf8')
+      //fileService
 
 
+      fs.readFile(files.filetoupload.path, function (err, data) {
+        if(err) {
+          console.log('err loading file: ', err);
+          res.redirect('/');
+          return;
+        }
+        fileService.createFile({ name: files.filetoupload.name, content: data, content_type: 'text/html' }, function(err) {
+          if(err) {
+            console.log('err persisting file: ', err);
+          } else {
+            console.log('file persisted');
+          }
+          res.redirect('/');
+        });
+        
+      });
+      
+      
+      
+ });
+});
 
 //////////////////////////
 //START UP SERVER(S)//////

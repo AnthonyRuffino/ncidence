@@ -6,7 +6,8 @@
 	
 	
 	<body>
-	
+		<h1>Hurray!</h1>
+		<div id="gameDiv"></div>
 	</body>
 	
 	<script>
@@ -28,7 +29,7 @@
 		var BOARD_SIZE_PERCENTAGE = .50;
 		var DEBUG = true;
 	
-		var renderer = new Renderer(window, document, "body", BOARD_SIZE_PERCENTAGE);
+		var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
 		renderer.init();
 		var driver = new GameDriver(renderer, document, DEFAULT_TILES_PER_SIDE, window.console.log, function(txt){alert.call(window, txt);}, DEBUG, GameTile);
 		driver.init();
