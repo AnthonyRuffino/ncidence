@@ -294,8 +294,60 @@ class UserService {
                 }
             });
         }
+    }
+    
+    getUserForToken(user) {
+        return {id: user.id};
+    }
+    
+    getUserById(id, callback) {
+        var ormHelper = this.ormHelper;
+        var userModel = ormHelper.getMap()['user'].model;
+            
+        userModel.find({
+            id: id
+        }, (err, users) => {
+            if (err) throw err;
 
-        
+            if (users.length < 1 || users[0] === undefined || users[0] === null) {
+                callback(null);
+            }
+            else {
+                callback(this.getUserForToken(users[0]));
+            }
+        });
+    }
+    
+    login2(email, password, callback) {
+        if(email === undefined || email === null || email.length < 1){
+            callback('email is required');
+        }else if(password === undefined || password === null || password.length < 1){
+            callback('password is required');
+        }else{
+            var ormHelper = this.ormHelper;
+            var bcrypt = this.bcrypt;
+            var invalidMessage = 'username or password not valid';
+            var userModel = ormHelper.getMap()['user'].model;
+            
+            userModel.find({
+                email: email
+            }, (err, users) => {
+                if (err) throw err;
+    
+                if (users.length < 1 || users[0] === undefined || users[0] === null) {
+                    callback(invalidMessage + '!');
+                }
+                else {
+                    var authenticated = bcrypt.compareSync(password, users[0].password);
+                    if (authenticated) {
+                        callback(null, this.getUserForToken(users[0]) );
+                    }
+                    else {
+                        callback(invalidMessage );
+                    }
+                }
+            });
+        }
     }
 }
 

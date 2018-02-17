@@ -23,18 +23,14 @@ global.__base = __dirname + '/';
 var publicdir = __dirname + '/client';
 
 var http = require('http');
-var path = require('path');
-
-//var async = require('async');
-
 var express = require('express');
 
 var fs = require('fs');
-var mkpath = require('mkpath');
-var moment = require('moment-timezone');
+
+
+
 
 var guid = require('./utils/guid.js');
-var bcrypt = require('bcrypt-nodejs');
 
 
 
@@ -42,6 +38,9 @@ var QUERY_ROWS_LIMIT = 10000;
 var CAPTCHA_EXP_IN_MINUTES = 5;
 
 
+var SESSION_EXP_SEC = 60 * 60 * 24 * 7;
+var JWT_SECRET = process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp';
+var JWT_TOKEN_KEY = 'jwt-token';
 
 
 
@@ -94,6 +93,8 @@ var userService = new(require('./utils/orm/services/userService.js')).UserServic
 //END MYSQL CONFIG
 //////////////////////
 
+
+
 //
 // ## SimpleServer `SimpleServer(obj)`
 //
@@ -102,9 +103,121 @@ var userService = new(require('./utils/orm/services/userService.js')).UserServic
 //
 console.log('Configure Router');
 var router = express();
-//router.use(express.bodyParser());
 var server = http.createServer(router);
 var secureServer = null;
+
+
+
+
+//COOKIE PARSER
+var cookieParser = require('cookie-parser');
+router.use(cookieParser());
+
+//BODY PARSER
+var bodyParser   = require('body-parser');
+var urlencodedParser = bodyParser.urlencoded({ extended: false });
+router.use(bodyParser.json());
+
+
+
+
+//PASSPORT - JWT
+var passport = require('passport');
+var jwt = require('jsonwebtoken');
+var passportJWT = require("passport-jwt");
+var ExtractJwt = passportJWT.ExtractJwt;
+var JwtStrategy = passportJWT.Strategy;
+
+var jwtOptions = {}
+jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderWithScheme("jwt");
+jwtOptions.secretOrKey = JWT_SECRET;
+jwtOptions.expiresIn = SESSION_EXP_SEC;
+jwtOptions.passReqToCallback = true;
+
+
+const setJwtCookie = (res, token) => {
+  res.cookie(JWT_TOKEN_KEY, token, { maxAge: SESSION_EXP_SEC, httpOnly: true });
+}
+
+const clearJwtCookie = (res) => {
+  res.clearCookie(JWT_TOKEN_KEY);
+}
+
+
+var jwtHeaderFromCookie = function requireHTTPS(req, res, next) {
+  var token = req.cookies[JWT_TOKEN_KEY];
+  if(token !== undefined && token !== null) {
+    var payload = jwt.verify(token, JWT_SECRET);
+    const newToken = jwt.sign({ id: payload.id }, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
+    setJwtCookie(res, newToken);
+    req.headers['authorization'] = 'JWT ' + newToken;
+  }
+  next();
+};
+router.use(jwtHeaderFromCookie);
+router.use(passport.initialize());
+
+
+var strategy = new JwtStrategy(jwtOptions, function(req, jwt_payload, next) {
+  userService.getUserById(jwt_payload.id, (user) => {
+    if (user) {
+      next(null, user);
+    } else {
+      next(null, false);
+    }
+  });
+});
+passport.use(strategy);
+
+
+
+
+
+
+
+router.get("/logout", function(req, res) {
+  clearJwtCookie(res);
+  res.redirect('/');
+});
+
+router.post("/auth", urlencodedParser, function(req, res) {
+  userService.login2(req.body.username, req.body.password, function (err, user) {
+    if (err) {
+      res.status(401).json({message:"passwords did not match"});
+      return;
+    }
+    if (!user) {
+      res.status(401).json({message:"passwords did not match"});
+      return;
+    }
+    
+    var token = jwt.sign(user, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
+    setJwtCookie(res, token);
+    res.redirect('/');
+  });
+});
+
+
+
+
+router.get("/secret", passport.authenticate('jwt', { session: false }), function(req, res){
+  res.json({message: "Success!", user: req.user});
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -423,6 +536,57 @@ router.get('/api/promise', async function(req, res) {
 });
 
 
+
+
+
+
+
+// var cookieParser = require('cookie-parser');
+
+// passport.serializeUser(function(user, done) {
+//   console.log('Serialize user called.');
+//   done(null, { id: user.id });
+// });
+
+// passport.deserializeUser(function(id, done) {
+//   console.log('Deserialize user called.');
+//   return done(null, { id: id });
+// });
+
+// var LocalStrategy   = require('passport-local').Strategy;
+
+// passport.use(new LocalStrategy(function(username, password, done) {
+//     console.log('AAA');
+//     userService.login2(username, password, function (err, user) {
+//       console.log('BBB');
+//       if (err) { 
+//         console.log('CCC');
+//         return done(err); 
+//       }
+//       if (!user) {
+//         console.log('DDD');
+//         return done(null, false);
+//       }
+//       return done(null, user);
+//     });
+//   }
+// ));
+
+
+// //router.use(passport.session());
+// //router.use(cookieParser()); // read cookies (needed for auth)
+// //router.use(bodyParser.urlencoded({ extended: false }))
+// //router.use(bodyParser.json()); // get information from html forms
+// //router.use(express.bodyParser());
+
+
+
+// router.post('/auth', urlencodedParser, passport.authenticate('local', {
+//     successRedirect : '/u/client/success',
+//     failureRedirect : '/u/client/fail',
+// }));
+    
+
 router.get('/api/login', function(req, res) {
   userService.login(req, res);
 });
@@ -499,6 +663,10 @@ router.post('/fileupload', function(req, res) {
       
  });
 });
+
+
+
+
 
 //////////////////////////
 //START UP SERVER(S)//////
