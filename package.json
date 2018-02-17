@@ -10,6 +10,7 @@
     "bcrypt-nodejs": "0.0.3",
     "body-parser": "^1.18.2",
     "captchapng": "0.0.1",
+    "cookie": "^0.3.1",
     "cookie-parser": "^1.4.3",
     "express": "3.2.6",
     "formidable": "^1.1.1",

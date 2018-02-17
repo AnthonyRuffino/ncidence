@@ -297,7 +297,7 @@ class UserService {
     }
     
     getUserForToken(user) {
-        return {id: user.id};
+        return {id: user.id, username: user.email };
     }
     
     getUserById(id, callback) {

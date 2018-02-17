@@ -144,17 +144,28 @@ const clearJwtCookie = (res) => {
   res.clearCookie(JWT_TOKEN_KEY);
 }
 
+var getTokenFromCookies = (cookies) => {
+  return cookies[JWT_TOKEN_KEY];
+}
 
-var jwtHeaderFromCookie = function requireHTTPS(req, res, next) {
-  var token = req.cookies[JWT_TOKEN_KEY];
-  if(token !== undefined && token !== null) {
-    try{
-      let payload = jwt.verify(token, JWT_SECRET);
-      const newToken = jwt.sign({ id: payload.id }, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
-      setJwtCookie(res, newToken);
-      req.headers['authorization'] = 'JWT ' + newToken;
+var verifyToken = (token) => {
+  try{
+      return jwt.verify(token, JWT_SECRET);
     } catch(err) {
       console.log('JWT verify exception: ' + err.message);
+    }
+} 
+
+
+var jwtHeaderFromCookie = function requireHTTPS(req, res, next) {
+  var token = getTokenFromCookies(req.cookies);
+  if(token !== undefined && token !== null) {
+    let payload = verifyToken(token);
+    if(payload) {
+      const newToken = jwt.sign({ id: payload.id, username: payload.username }, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
+      setJwtCookie(res, newToken);
+      req.headers['authorization'] = 'JWT ' + newToken;
+    } else {
       clearJwtCookie(res);
     }
   }
@@ -174,52 +185,6 @@ var strategy = new JwtStrategy(jwtOptions, function(req, jwt_payload, next) {
   });
 });
 passport.use(strategy);
-
-
-
-
-
-
-
-router.get("/logout", function(req, res) {
-  clearJwtCookie(res);
-  res.redirect('/');
-});
-
-router.post("/auth", urlencodedParser, function(req, res) {
-  userService.login2(req.body.username, req.body.password, function (err, user) {
-    if (err) {
-      res.status(401).json({message:"passwords did not match"});
-      return;
-    }
-    if (!user) {
-      res.status(401).json({message:"passwords did not match"});
-      return;
-    }
-    
-    var token = jwt.sign(user, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
-    setJwtCookie(res, token);
-    res.redirect('/');
-  });
-});
-
-
-
-
-router.get("/secret", passport.authenticate('jwt', { session: false }), function(req, res){
-  res.json({message: "Success!", user: req.user});
-});
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -288,7 +253,7 @@ router.use(express.static(publicdir));
 //BEGIN SOCKET IO SETUP///
 //////////////////////////
 console.log('Socket IO');
-var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server);
+var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, {getTokenFromCookies, verifyToken});
 socketIOHelper.init();
 //////////////////////////
 //END SOCKET IO SETUP///
@@ -542,66 +507,6 @@ router.get('/api/promise', async function(req, res) {
 });
 
 
-
-
-
-
-
-// var cookieParser = require('cookie-parser');
-
-// passport.serializeUser(function(user, done) {
-//   console.log('Serialize user called.');
-//   done(null, { id: user.id });
-// });
-
-// passport.deserializeUser(function(id, done) {
-//   console.log('Deserialize user called.');
-//   return done(null, { id: id });
-// });
-
-// var LocalStrategy   = require('passport-local').Strategy;
-
-// passport.use(new LocalStrategy(function(username, password, done) {
-//     console.log('AAA');
-//     userService.login2(username, password, function (err, user) {
-//       console.log('BBB');
-//       if (err) { 
-//         console.log('CCC');
-//         return done(err); 
-//       }
-//       if (!user) {
-//         console.log('DDD');
-//         return done(null, false);
-//       }
-//       return done(null, user);
-//     });
-//   }
-// ));
-
-
-// //router.use(passport.session());
-// //router.use(cookieParser()); // read cookies (needed for auth)
-// //router.use(bodyParser.urlencoded({ extended: false }))
-// //router.use(bodyParser.json()); // get information from html forms
-// //router.use(express.bodyParser());
-
-
-
-// router.post('/auth', urlencodedParser, passport.authenticate('local', {
-//     successRedirect : '/u/client/success',
-//     failureRedirect : '/u/client/fail',
-// }));
-    
-
-router.get('/api/login', function(req, res) {
-  userService.login(req, res);
-});
-
-router.get('/api/addUser', function(req, res) {
-  userService.createUser(req, res);
-});
-
-
 var captchapng = require('captchapng');
 router.get('/api/captcha', function(req, res) {
 
@@ -664,11 +569,71 @@ router.post('/fileupload', function(req, res) {
         });
         
       });
-      
-      
-      
  });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+router.get('/api/login', function(req, res) {
+  userService.login(req, res);
+});
+
+router.get('/api/addUser', function(req, res) {
+  userService.createUser(req, res);
+});
+
+
+router.get("/logout", function(req, res) {
+  
+  var token = getTokenFromCookies(req.cookies);
+  var user = verifyToken(token);
+  
+  if(user) {
+    //socketIOHelper.logoutUser(user.username);
+    socketIOHelper.logoutUser(req.cookies.io);
+  }
+  
+  clearJwtCookie(res);
+  res.redirect('/');
+});
+
+router.post("/auth", urlencodedParser, function(req, res) {
+  userService.login2(req.body.username, req.body.password, function (err, user) {
+    if (err) {
+      res.status(401).json({message:"passwords did not match"});
+      return;
+    }
+    if (!user) {
+      res.status(401).json({message:"passwords did not match"});
+      return;
+    }
+    
+    var token = jwt.sign(user, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
+    socketIOHelper.loginUser(req.cookies.io, user, token);
+    setJwtCookie(res, token);
+    res.redirect('/');
+  });
+});
+
+
+router.get("/secret", passport.authenticate('jwt', { session: false }), function(req, res){
+  res.json({message: "Success!", user: req.user});
+});
+
+
+
+
 
 
 
