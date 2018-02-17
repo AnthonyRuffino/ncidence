@@ -38,7 +38,7 @@ var QUERY_ROWS_LIMIT = 10000;
 var CAPTCHA_EXP_IN_MINUTES = 5;
 
 
-var SESSION_EXP_SEC = 60 * 60 * 24 * 7;
+var SESSION_EXP_SEC = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
 var JWT_SECRET = process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp';
 var JWT_TOKEN_KEY = 'jwt-token';
 
@@ -135,8 +135,9 @@ jwtOptions.expiresIn = SESSION_EXP_SEC;
 jwtOptions.passReqToCallback = true;
 
 
+const COOKIE_EXP_SEC = (SESSION_EXP_SEC * 1000) * 10;
 const setJwtCookie = (res, token) => {
-  res.cookie(JWT_TOKEN_KEY, token, { maxAge: SESSION_EXP_SEC, httpOnly: true });
+  res.cookie(JWT_TOKEN_KEY, token, { maxAge: COOKIE_EXP_SEC, httpOnly: true });
 }
 
 const clearJwtCookie = (res) => {
@@ -147,10 +148,15 @@ const clearJwtCookie = (res) => {
 var jwtHeaderFromCookie = function requireHTTPS(req, res, next) {
   var token = req.cookies[JWT_TOKEN_KEY];
   if(token !== undefined && token !== null) {
-    var payload = jwt.verify(token, JWT_SECRET);
-    const newToken = jwt.sign({ id: payload.id }, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
-    setJwtCookie(res, newToken);
-    req.headers['authorization'] = 'JWT ' + newToken;
+    try{
+      let payload = jwt.verify(token, JWT_SECRET);
+      const newToken = jwt.sign({ id: payload.id }, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
+      setJwtCookie(res, newToken);
+      req.headers['authorization'] = 'JWT ' + newToken;
+    } catch(err) {
+      console.log('JWT verify exception: ' + err.message);
+      clearJwtCookie(res);
+    }
   }
   next();
 };
