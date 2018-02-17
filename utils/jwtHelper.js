@@ -53,9 +53,11 @@ class JwtHelper {
 			if (token !== undefined && token !== null) {
 				let payload = this.verifyToken(token);
 				if (payload) {
-					const newToken = this.jwt.sign({ id: payload.id, username: payload.username }, this.jwtOptions.secretOrKey, { expiresIn: this.jwtOptions.expiresIn });
+					const user = { id: payload.id, username: payload.username };
+					const newToken = this.jwt.sign(user, this.jwtOptions.secretOrKey, { expiresIn: this.jwtOptions.expiresIn });
 					this.setJwtCookie(res, newToken);
 					req.headers['authorization'] = 'JWT ' + newToken;
+					req.user = user
 				}
 				else {
 					this.clearJwtCookie(res);

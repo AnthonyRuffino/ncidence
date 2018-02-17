@@ -8,7 +8,7 @@ class FileService {
     
 
 
-    createFile(file, callback) {
+    createFile(userId, file, callback) {
 
         var ormHelper = this.ormHelper;
 
@@ -20,7 +20,7 @@ class FileService {
             content_type: file.content_type,
             content: file.content,
             last_modified: new Date(),
-            user_id: 1
+            user_id: userId
         }
     
         userModel.create(fileData, function(err) {
