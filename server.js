@@ -27,12 +27,7 @@ var express = require('express');
 
 var fs = require('fs');
 
-
-
-
 var guid = require('./utils/guid.js');
-
-
 
 var QUERY_ROWS_LIMIT = 10000;
 var CAPTCHA_EXP_IN_MINUTES = 5;
@@ -40,8 +35,6 @@ var CAPTCHA_EXP_IN_MINUTES = 5;
 
 var SESSION_EXP_SEC = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
 var JWT_SECRET = process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp';
-var JWT_TOKEN_KEY = 'jwt-token';
-
 
 
 //////////////////////
@@ -121,76 +114,6 @@ router.use(bodyParser.json());
 
 
 
-//PASSPORT - JWT
-var passport = require('passport');
-var jwt = require('jsonwebtoken');
-var passportJWT = require("passport-jwt");
-var ExtractJwt = passportJWT.ExtractJwt;
-var JwtStrategy = passportJWT.Strategy;
-
-var jwtOptions = {}
-jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderWithScheme("jwt");
-jwtOptions.secretOrKey = JWT_SECRET;
-jwtOptions.expiresIn = SESSION_EXP_SEC;
-jwtOptions.passReqToCallback = true;
-
-
-const COOKIE_EXP_SEC = (SESSION_EXP_SEC * 1000) * 10;
-const setJwtCookie = (res, token) => {
-  res.cookie(JWT_TOKEN_KEY, token, { maxAge: COOKIE_EXP_SEC, httpOnly: true });
-}
-
-const clearJwtCookie = (res) => {
-  res.clearCookie(JWT_TOKEN_KEY);
-}
-
-var getTokenFromCookies = (cookies) => {
-  return cookies[JWT_TOKEN_KEY];
-}
-
-var verifyToken = (token) => {
-  try{
-      return jwt.verify(token, JWT_SECRET);
-    } catch(err) {
-      console.log('JWT verify exception: ' + err.message);
-    }
-} 
-
-
-var jwtHeaderFromCookie = function requireHTTPS(req, res, next) {
-  var token = getTokenFromCookies(req.cookies);
-  if(token !== undefined && token !== null) {
-    let payload = verifyToken(token);
-    if(payload) {
-      const newToken = jwt.sign({ id: payload.id, username: payload.username }, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
-      setJwtCookie(res, newToken);
-      req.headers['authorization'] = 'JWT ' + newToken;
-    } else {
-      clearJwtCookie(res);
-    }
-  }
-  next();
-};
-router.use(jwtHeaderFromCookie);
-router.use(passport.initialize());
-
-
-var strategy = new JwtStrategy(jwtOptions, function(req, jwt_payload, next) {
-  userService.getUserById(jwt_payload.id, (user) => {
-    if (user) {
-      next(null, user);
-    } else {
-      next(null, false);
-    }
-  });
-});
-passport.use(strategy);
-
-
-
-
-
-
 
 //////////////////////
 //BEGIN HTTPS CONFIG
@@ -219,11 +142,6 @@ else {
 //////////////////////
 
 
-
-
-
-
-
 //////////////////////////
 //BEGIN MIDDLEWARE///
 //////////////////////////
@@ -249,15 +167,25 @@ router.use(express.static(publicdir));
 
 
 
-//////////////////////////
-//BEGIN SOCKET IO SETUP///
-//////////////////////////
-console.log('Socket IO');
-var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, {getTokenFromCookies, verifyToken});
+
+
+///////////////////////////////////////////
+//BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
+////////////////////////////////////////////
+console.log('---Socket IO');
+var jwtHelper = new(require('./utils/jwtHelper.js')).JwtHelper(JWT_SECRET, SESSION_EXP_SEC);
+var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtHelper);
 socketIOHelper.init();
-//////////////////////////
-//END SOCKET IO SETUP///
-//////////////////////////
+
+console.log('---JWT');
+jwtHelper.init(router, userService, socketIOHelper, urlencodedParser);
+/////////////////////////////////////////
+//END SOCKET IO SETUP & JWT AUTH SETUP///
+/////////////////////////////////////////
+
+
+
+
 
 console.log('Define /api/db');
 router.get('/api/db', function(req, res) {
@@ -594,40 +522,7 @@ router.get('/api/addUser', function(req, res) {
 });
 
 
-router.get("/logout", function(req, res) {
-  
-  var token = getTokenFromCookies(req.cookies);
-  var user = verifyToken(token);
-  
-  if(user) {
-    //socketIOHelper.logoutUser(user.username);
-    socketIOHelper.logoutUser(req.cookies.io);
-  }
-  
-  clearJwtCookie(res);
-  res.redirect('/');
-});
-
-router.post("/auth", urlencodedParser, function(req, res) {
-  userService.login2(req.body.username, req.body.password, function (err, user) {
-    if (err) {
-      res.status(401).json({message:"passwords did not match"});
-      return;
-    }
-    if (!user) {
-      res.status(401).json({message:"passwords did not match"});
-      return;
-    }
-    
-    var token = jwt.sign(user, jwtOptions.secretOrKey, {expiresIn: jwtOptions.expiresIn});
-    socketIOHelper.loginUser(req.cookies.io, user, token);
-    setJwtCookie(res, token);
-    res.redirect('/');
-  });
-});
-
-
-router.get("/secret", passport.authenticate('jwt', { session: false }), function(req, res){
+router.get("/secret", jwtHelper.authRequired(), function(req, res){
   res.json({message: "Success!", user: req.user});
 });
 
