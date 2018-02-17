@@ -46,13 +46,15 @@ class OrmHelper {
 			if (err) throw err;
 
 			let hasManyMap = {};
+			let hasOneMap = {};
 			entities.forEach(function(entity) {
 				console.log('Defing table: ' + database + "." + entity.name);
 				var model = db.define(entity.name, entity.definition, entity.helpers);
 
 				iterate(entity.hasOne, (owner) => {
 					if (exists(map[owner.name]) && exists(map[owner.name].model)) {
-						model.hasOne(owner.name, map[owner.name].model, owner.options);
+						hasOneMap[owner.altName || owner.name] = map[owner.name].model;
+						model.hasOne(owner.altName || owner.name, map[owner.name].model, owner.options);
 					}
 					else {
 						console.log('Database owner not found: ' + owner.name);
@@ -117,40 +119,80 @@ class OrmHelper {
 						else {
 							console.log('Creating [' + entity.name + ']: ' + values.id);
 							let hasMany = defaultDatum.hasMany;
-							map[entity.name].model.create(values, function(err, createdEntity) {
-								if (err) {
-									console.log('Error: ' + err);
-									throw err;
-								}
-								if (exists(hasMany)) {
-									var hasManyKeys = Object.keys(hasMany);
-									if (exists(hasManyKeys)) {
-										for (var i = 0; i < hasManyKeys.length; i++) {
-											let hasManyKey = hasManyKeys[i];
-											hasMany[hasManyKey].forEach(hasManyValue => {
-												map[hasManyKey].model.find({
-													id: hasManyValue.id
-												}, function(err, rows) {
-													if (err) throw err;
 
-													if (rows.length > 0) {
-														const accessor = hasManyMap[hasManyKey].options.accessor;
-														const meta = hasManyMap[hasManyKey].meta && hasManyValue.meta ? hasManyValue.meta : {};
-														const addMethodName = 'add' + (accessor ? accessor : (hasManyKey.charAt(0).toUpperCase() + hasManyKey.slice(1)));
-														console.log(entity.name + '[' + createdEntity.id + '].' + addMethodName + '(' + rows[0].id + ')');
+							var createEntity = (modelValues) => {
+								map[entity.name].model.create(modelValues, function(err, createdEntity) {
+									if (err) {
+										console.log('Error: ' + err);
+										throw err;
+									}
+									if (exists(hasMany)) {
+										var hasManyKeys = Object.keys(hasMany);
+										if (exists(hasManyKeys)) {
+											for (var i = 0; i < hasManyKeys.length; i++) {
+												let hasManyKey = hasManyKeys[i];
+												hasMany[hasManyKey].forEach(hasManyValue => {
+													map[hasManyKey].model.find({
+														id: hasManyValue.id
+													}, function(err, rows) {
+														if (err) throw err;
 
-														createdEntity[addMethodName](rows[0], meta, function(err) {
-															if (err) {
-																console.log('Error adding role: ' + err);
-															}
-														});
-													}
+														if (rows.length > 0) {
+															const accessor = hasManyMap[hasManyKey].options.accessor;
+															const meta = hasManyMap[hasManyKey].meta && hasManyValue.meta ? hasManyValue.meta : {};
+															const addMethodName = 'add' + (accessor ? accessor : (hasManyKey.charAt(0).toUpperCase() + hasManyKey.slice(1)));
+															console.log(entity.name + '[' + createdEntity.id + '].' + addMethodName + '(' + rows[0].id + ')');
+
+															createdEntity[addMethodName](rows[0], meta, function(err) {
+																if (err) {
+																	console.log('Error adding role: ' + err);
+																}
+															});
+														}
+													});
 												});
-											});
+											}
+										}
+									}
+								});
+							}
+							
+							
+							let hasOne = defaultDatum.hasOne;
+							
+							var processHasOnes = async function(getHasOneData) {
+								var hasOneKeys = Object.keys(hasOne);
+								if (exists(hasOneKeys)) {
+									for (var i = 0; i < hasOneKeys.length; i++) {
+										
+										let hasOneKey = hasOneKeys[i];
+										try {
+											var promiseData = await getHasOneData(hasOne[hasOneKey].id, hasOneMap[hasOneKey]);
+											values[hasOneKey] = promiseData;
+										}
+										catch (error) {
+											console.log('Error adding hasOne default data: ', error);
 										}
 									}
 								}
+								createEntity(values);
+							}
+							
+							if (exists(hasOne)) {
+								processHasOnes((id, model) => {
+								return new Promise(function(resolve, reject) {
+									model.find( { id }, function(err, rows) {
+										if(err) {
+											reject(err);
+										}
+										resolve(rows[0]);
+									});
+								});
 							});
+							} else {
+								createEntity(values);
+							}
+
 						}
 					});
 				}
@@ -159,7 +201,7 @@ class OrmHelper {
 					iterate(entity.defaultData, (defaultDatum) => {
 						processDatum(entity, defaultDatum);
 					});
-					
+
 					iterate(entity.uniqueConstraints, (uniqueConstraint) => {
 						if (isListy(uniqueConstraint.columns)) {
 

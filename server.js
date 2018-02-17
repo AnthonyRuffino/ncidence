@@ -58,6 +58,7 @@ if (mySqlIp !== null && mySqlIp !== undefined) {
   entities.push((require('./utils/orm/entities/file.js')).Entity);
   entities.push((require('./utils/orm/entities/token.js')).Entity);
   entities.push((require('./utils/orm/entities/captcha.js')).Entity);
+  entities.push((require('./utils/orm/entities/game.js')).Entity);
 
   ormHelper = new(require('./utils/ormHelper.js')).OrmHelper({
     ip: mySqlIp,
