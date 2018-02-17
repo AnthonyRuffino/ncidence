@@ -36,12 +36,11 @@ hasOne.push({
     name: 'user',
     altName: 'owner',
     options: {
-        required: false,
-        reverse: 'owners',
+        required: true,
+        reverse: 'games',
         autoFetch : true
     }
 });
-
 
 
 ////////////////////////////
@@ -60,7 +59,7 @@ var extendsTo = [];
 extendsTo.push({
     name: 'definition',
     data: {
-        driver: String
+        driver: { type: 'binary' }
     }
 });
 

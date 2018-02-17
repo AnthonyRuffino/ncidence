@@ -40,6 +40,16 @@ class OrmHelper {
 				});
 			}
 		}
+		var iterateKeys = (obj, action) => {
+			if (exists(obj)) {
+				var keys = Object.keys(obj);
+				iterate(keys, action);
+			}
+		}
+		
+		var capFirstLetter = (word) => {
+			return word.charAt(0).toUpperCase() + word.slice(1);
+		}
 
 
 		this.orm.connect("mysql://" + user + ":" + this.password + "@" + ip + "/" + database, function(err, db) {
@@ -68,12 +78,13 @@ class OrmHelper {
 						model.hasMany(other.desc, map[other.name].model, other.meta || {}, other.options);
 					}
 				});
-
+				
+				const extendsToModels = {};
 				iterate(entity.extendsTo, (extension) => {
-					model.extendsTo(extension.name, extension.data);
+					extendsToModels[extension.name] = model.extendsTo(extension.name, extension.data);
 				});
 
-				map[entity.name] = { entity: entity, model: model };
+				map[entity.name] = { entity: entity, model: model, extendsToModels: extendsToModels };
 			});
 
 			db.sync(function(err) {
@@ -119,47 +130,49 @@ class OrmHelper {
 						else {
 							console.log('Creating [' + entity.name + ']: ' + values.id);
 							let hasMany = defaultDatum.hasMany;
-
+							let extendsTo = defaultDatum.extendsTo;
 							var createEntity = (modelValues) => {
 								map[entity.name].model.create(modelValues, function(err, createdEntity) {
 									if (err) {
 										console.log('Error: ' + err);
 										throw err;
 									}
-									if (exists(hasMany)) {
-										var hasManyKeys = Object.keys(hasMany);
-										if (exists(hasManyKeys)) {
-											for (var i = 0; i < hasManyKeys.length; i++) {
-												let hasManyKey = hasManyKeys[i];
-												hasMany[hasManyKey].forEach(hasManyValue => {
-													map[hasManyKey].model.find({
-														id: hasManyValue.id
-													}, function(err, rows) {
-														if (err) throw err;
+									iterateKeys(hasMany, (hasManyKey) => {
+										hasMany[hasManyKey].forEach(hasManyValue => {
+											map[hasManyKey].model.find({
+												id: hasManyValue.id
+											}, function(err, rows) {
+												if (err) throw err;
 
-														if (rows.length > 0) {
-															const accessor = hasManyMap[hasManyKey].options.accessor;
-															const meta = hasManyMap[hasManyKey].meta && hasManyValue.meta ? hasManyValue.meta : {};
-															const addMethodName = 'add' + (accessor ? accessor : (hasManyKey.charAt(0).toUpperCase() + hasManyKey.slice(1)));
-															console.log(entity.name + '[' + createdEntity.id + '].' + addMethodName + '(' + rows[0].id + ')');
+												if (rows.length > 0) {
+													const accessor = hasManyMap[hasManyKey].options.accessor;
+													const meta = hasManyMap[hasManyKey].meta && hasManyValue.meta ? hasManyValue.meta : {};
+													const addMethodName = 'add' + (accessor ? accessor : capFirstLetter(hasManyKey));
+													console.log(entity.name + '[' + createdEntity.id + '].' + addMethodName + '(' + rows[0].id + ')');
 
-															createdEntity[addMethodName](rows[0], meta, function(err) {
-																if (err) {
-																	console.log('Error adding role: ' + err);
-																}
-															});
+													createdEntity[addMethodName](rows[0], meta, function(err) {
+														if (err) {
+															console.log('Error adding role: ' + err);
 														}
 													});
-												});
-											}
-										}
-									}
+												}
+											});
+										});
+									});
+									
+									
+									iterateKeys(extendsTo, (extendsToKey) => {
+										extendsTo[extendsToKey][entity.name] = createdEntity;
+										map[entity.name].extendsToModels[extendsToKey].create(extendsTo[extendsToKey], function(err, createdExtension) {
+											if (err) throw err;
+											console.log('set extension: ', extendsToKey);
+										});
+									});
 								});
 							}
 							
 							
 							let hasOne = defaultDatum.hasOne;
-							
 							var processHasOnes = async function(getHasOneData) {
 								var hasOneKeys = Object.keys(hasOne);
 								if (exists(hasOneKeys)) {
@@ -169,6 +182,7 @@ class OrmHelper {
 										try {
 											var promiseData = await getHasOneData(hasOne[hasOneKey].id, hasOneMap[hasOneKey]);
 											values[hasOneKey] = promiseData;
+											values[hasOneKey + '_id'] = promiseData.id;
 										}
 										catch (error) {
 											console.log('Error adding hasOne default data: ', error);
@@ -180,15 +194,15 @@ class OrmHelper {
 							
 							if (exists(hasOne)) {
 								processHasOnes((id, model) => {
-								return new Promise(function(resolve, reject) {
-									model.find( { id }, function(err, rows) {
-										if(err) {
-											reject(err);
-										}
-										resolve(rows[0]);
+									return new Promise(function(resolve, reject) {
+										model.find( { id }, function(err, rows) {
+											if(err) {
+												reject(err);
+											}
+											resolve(rows[0]);
+										});
 									});
 								});
-							});
 							} else {
 								createEntity(values);
 							}
