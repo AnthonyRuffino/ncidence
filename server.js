@@ -18,7 +18,7 @@ console.log('................................');
 console.log('..............................');
 console.log('............................');
 
-var DEFAULT_HOST = process.env.DEFAULT_HOST || 'test';
+var DEFAULT_SCHEMA = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
 global.__base = __dirname + '/';
 var publicdir = __dirname + '/client';
 
@@ -64,13 +64,14 @@ if (mySqlIp !== null && mySqlIp !== undefined) {
     ip: mySqlIp,
     user: mySqlUser,
     password: mySqlPassword,
-    database: DEFAULT_HOST,
+    database: DEFAULT_SCHEMA,
     mySqlHelper,
-    entities
+    entities,
+    loadDefaultData: process.env.LOAD_DEFAULT_DATA || false
   });
 
   console.log('LOADING mysql. ');
-  mySqlHelper.createDatabase(DEFAULT_HOST, function() {
+  mySqlHelper.createDatabase(DEFAULT_SCHEMA, function() {
     ormHelper.sync();
   });
 
@@ -143,6 +144,67 @@ else {
 //////////////////////
 
 
+String.prototype.replaceAll = function(search, replacement) {
+  var target = this;
+  return target.split(search).join(replacement);
+};
+var DEFAULT_HOST = DEFAULT_SCHEMA.replaceAll('__', '-').replaceAll('_', '.');
+
+var getDomainInfo = (req) => {
+  const host = req.get('host');
+  let subdomain;
+  if (DEFAULT_HOST !== host && host.endsWith("." + DEFAULT_HOST)) {
+    subdomain = host.substring(0, host.indexOf("." + DEFAULT_HOST));
+  }
+  return { host, subdomain };
+}
+
+
+var getGame = (subdomain) => {
+  return new Promise((resolve, reject) => {
+    ormHelper.getMap()['game'].model.find({ name: subdomain }, (err, games) => {
+      if(err){
+        reject(err);
+        return;
+      }
+      if(!games[0]){
+        resolve({ })
+        return;
+      };
+      games[0].getDefinition((err, data) => {
+        if(err){
+          reject(err);
+          return;
+        }
+        resolve({ game: games[0], definition: data });
+      });
+    });
+  });
+}
+
+
+router.use('/', async (req, res, next) => {
+  const domainInfo = getDomainInfo(req);
+  if (req.url === '/driver' && domainInfo.subdomain !== undefined) {
+    var game = await getGame(domainInfo.subdomain);
+    
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript'
+    });
+    
+    if(game !== undefined && game.game !== undefined && game.definition.driver !== undefined) {
+      res.end(game.definition.driver);
+    }else {
+      res.end('window.location.replace("/");');
+    }
+    
+  }
+  else {
+    next();
+  }
+
+});
+
 //////////////////////////
 //BEGIN MIDDLEWARE///
 //////////////////////////
@@ -168,13 +230,11 @@ router.use(express.static(publicdir));
 
 
 
-
-
 ///////////////////////////////////////////
 //BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
 ////////////////////////////////////////////
 console.log('---Socket IO');
-var jwtHelper = new(require('./utils/jwtHelper.js')).JwtHelper(JWT_SECRET, SESSION_EXP_SEC);
+var jwtHelper = new(require('./utils/jwtHelper.js')).JwtHelper(DEFAULT_HOST, JWT_SECRET, SESSION_EXP_SEC);
 var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtHelper);
 socketIOHelper.init();
 
@@ -219,7 +279,7 @@ router.get('/api/db', function(req, res) {
 console.log('Define /api/init-db');
 router.get('/api/init-db', function(req, res) {
   try {
-    mySqlHelper.createDatabase(DEFAULT_HOST);
+    mySqlHelper.createDatabase(DEFAULT_SCHEMA);
   }
   catch (ex) {
     res.json(200, {
@@ -476,7 +536,7 @@ router.get('/api/captcha', function(req, res) {
 var fileService = new(require('./utils/orm/services/fileService.js')).FileService(ormHelper);
 
 var formidable = require('formidable')
-router.post('/fileupload', jwtHelper.authRequired(), function(req, res) {
+router.post('/fileupload', jwtHelper.authRequired(), (req, res) => {
   var form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
     var filePath = files.filetoupload.path;
@@ -486,21 +546,42 @@ router.post('/fileupload', jwtHelper.authRequired(), function(req, res) {
     //fileService
 
 
-    fs.readFile(files.filetoupload.path, function(err, data) {
+    fs.readFile(files.filetoupload.path, async (err, data) => {
       if (err) {
         console.log('err loading file: ', err);
         res.redirect('/');
         return;
       }
-      fileService.createFile( req.user.id, { name: files.filetoupload.name, content: data, content_type: 'text/html' }, function(err) {
-        if (err) {
-          console.log('err persisting file: ', err);
-        }
-        else {
-          console.log('file persisted');
-        }
-        res.redirect('/');
-      });
+      
+      let game;
+      const domainInfo = getDomainInfo(req);
+      if (domainInfo.subdomain !== undefined) {
+        game = await getGame(domainInfo.subdomain);
+        
+        fileService.createGameDriver(req.user.id, { name: domainInfo.subdomain, data, game }, function(err) {
+          if (err) {
+            console.log('err persisting game driver: ', err);
+            res.redirect('/');
+          }
+          else {
+            console.log('game driver persisted');
+            res.redirect('/game');
+          }
+        });
+      } else {
+        fileService.createFile(req.user.id, { name: files.filetoupload.name, content: data, content_type: 'text/html', game }, function(err) {
+          if (err) {
+            console.log('err persisting file: ', err);
+          }
+          else {
+            console.log('file persisted');
+          }
+          res.redirect('/');
+        });
+      }
+      
+      
+      
 
     });
   });

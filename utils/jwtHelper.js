@@ -2,7 +2,8 @@
 "use strict";
 
 class JwtHelper {
-	constructor(secretOrKey, expiresIn) {
+	constructor(domain, secretOrKey, expiresIn) {
+		this.domain = domain;
 		this.passport = require('passport');
 		this.jwt = require('jsonwebtoken');
 		this.passportJWT = require("passport-jwt");
@@ -23,7 +24,7 @@ class JwtHelper {
 
 
 	setJwtCookie(res, token) {
-		res.cookie(this.jwtTokenKey, token, { maxAge: this.cookieMaxAge, httpOnly: true });
+		res.cookie(this.jwtTokenKey, token, { maxAge: this.cookieMaxAge, httpOnly: true, domain: "." + this.domain });
 	}
 
 	clearJwtCookie(res) {

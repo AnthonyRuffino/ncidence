@@ -1,7 +1,7 @@
 <html>
 
 	<head>
-		<title>Mystic Square</title>
+		<title>Game</title>
 	</head>
 	
 	
@@ -15,14 +15,17 @@
 	</script>
 	
 	<script src="js/renderer.js"></script>
-	<script src="js/driver.js"></script>
+	<script src="/driver"></script>
 	<script src="js/gameEngine.js"></script>
 	
 	<script>
 		/*global Renderer*/
 		/*global GameDriver*/
 		/*global GameEngine*/
-		/*global GameTile*/
+		
+		if(GameDriver === undefined) {
+			window.location.replace("//");
+		}
 		
 		var DEFAULT_TILES_PER_SIDE = 4;
 		var BOARD_SIZE_PERCENTAGE = .50;

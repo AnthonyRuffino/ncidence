@@ -2,7 +2,7 @@
 "use strict";
 
 class OrmHelper {
-	constructor({ ip, user, password, database, mySqlHelper, entities }) {
+	constructor({ ip, user, password, database, mySqlHelper, entities, loadDefaultData }) {
 		this.orm = require('orm');
 		this.password = password;
 		this.ip = ip;
@@ -11,6 +11,7 @@ class OrmHelper {
 		this.mySqlHelper = mySqlHelper;
 		this.entities = entities;
 		this.map = {};
+		this.loadDefaultData = loadDefaultData;
 	}
 
 	getMap() {
@@ -52,7 +53,7 @@ class OrmHelper {
 		}
 
 
-		this.orm.connect("mysql://" + user + ":" + this.password + "@" + ip + "/" + database, function(err, db) {
+		this.orm.connect("mysql://" + user + ":" + this.password + "@" + ip + "/" + database, (err, db) => {
 			if (err) throw err;
 
 			let hasManyMap = {};
@@ -79,15 +80,19 @@ class OrmHelper {
 					}
 				});
 				
-				const extendsToModels = {};
+				const extensions = {};
 				iterate(entity.extendsTo, (extension) => {
-					extendsToModels[extension.name] = model.extendsTo(extension.name, extension.data);
+					extensions[extension.name] = model.extendsTo(extension.name, extension.data);
 				});
 
-				map[entity.name] = { entity: entity, model: model, extendsToModels: extendsToModels };
+				map[entity.name] = { entity: entity, model: model, extensions: extensions };
 			});
 
-			db.sync(function(err) {
+			if(this.loadDefaultData) {
+				console.log('Loading default data...')
+			}
+			
+			!this.loadDefaultData ? console.log('Skipping default data loading...') : db.sync(function(err) {
 				if (err) {
 					console.log('Sync err: ' + err);
 				}
@@ -163,7 +168,7 @@ class OrmHelper {
 									
 									iterateKeys(extendsTo, (extendsToKey) => {
 										extendsTo[extendsToKey][entity.name] = createdEntity;
-										map[entity.name].extendsToModels[extendsToKey].create(extendsTo[extendsToKey], function(err, createdExtension) {
+										map[entity.name].extensions[extendsToKey].create(extendsTo[extendsToKey], function(err, createdExtension) {
 											if (err) throw err;
 											console.log('set extension: ', extendsToKey);
 										});
