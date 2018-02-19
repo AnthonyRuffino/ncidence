@@ -81,7 +81,7 @@ if (mySqlIp !== null && mySqlIp !== undefined) {
 
 }
 else {
-  console.log('mysql NOT LOADED. ');
+  console.log('mysql NOT LOADED.');
 }
 
 
@@ -225,16 +225,10 @@ router.use('/', async (req, res, next) => {
 //////////////////////////
 console.log('Enable Middleware');
 if (useHttps === true) {
-  router.use(function requireHTTPS(req, res, next) {
-    if (!req.secure) {
-      return res.redirect('https://' + req.get('host') + req.url);
-    }
-    next();
-  });
+  router.use('redirect-secure');
 }
 
 router.use(require('no-extension')(publicdir));
-
 router.use(express.static(publicdir));
 //////////////////////////
 //END MIDDLEWARE///
