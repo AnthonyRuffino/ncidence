@@ -6,7 +6,6 @@ class GameEngine {
 		this.driver = driver;
 		this.window = window;
 		this.window.requestAnimationFrame = window.requestAnimationFrame || function(update) { window.setTimeout(this.update, 16) };
-
 		this.frameCount = 0;
 		this.frimScaler = null;
 		this.fps = null;
@@ -45,16 +44,10 @@ class GameEngine {
 		this.renderer.drawRectangle(true, 0, 0, this.renderer.width, this.renderer.height, "black");
 		this.update();
 		this.render();
-
-		var _this = this;
-		this.window.requestAnimationFrame(function() { _this.frame(); });
+		this.window.requestAnimationFrame(() => { this.frame(); });
 	}
 
-
-
-
 	update() {
-
 		var now = Date.now();
 		this.tickDelta = (now - (this.lastTickTime == null ? now : this.lastTickTime)); // ms since last frame
 		this.frimScaler = this.tickDelta / this.targetTickDelta;
@@ -66,10 +59,8 @@ class GameEngine {
 			this.lastX = this.getPlayerX();
 			this.lastY = this.getPlayerX();
 			this.lastDistanceTimeSnapshot = now;
-
 		}
 		this.lastTickTime = now;
-
 		this.driver.update();
 	}
 
@@ -78,11 +69,8 @@ class GameEngine {
 		this.renderer.drawRectangle(true, 0, 0, this.renderer.width, this.renderer.height, "black");
 		this.update();
 		this.render();
-
-		var _this = this;
-
 		this.frameCount++;
-		this.window.requestAnimationFrame(function() { _this.frame(); });
+		this.window.requestAnimationFrame(() => { this.frame(); });
 	}
 
 }

@@ -18,6 +18,9 @@ console.log('................................');
 console.log('..............................');
 console.log('............................');
 
+const tools = {};
+
+
 var DEFAULT_SCHEMA = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
 global.__base = __dirname + '/';
 var publicdir = __dirname + '/client';
@@ -67,7 +70,7 @@ if (mySqlIp !== null && mySqlIp !== undefined) {
     database: DEFAULT_SCHEMA,
     mySqlHelper,
     entities,
-    loadDefaultData: process.env.LOAD_DEFAULT_DATA || false
+    loadDefaultData: process.env.LOAD_DEFAULT_DATA || true
   });
 
   console.log('LOADING mysql. ');
@@ -114,6 +117,19 @@ var urlencodedParser = bodyParser.urlencoded({ extended: false });
 router.use(bodyParser.json());
 
 
+const ONE_YEAR_IN_MS = 1000 * 60 * 60 * 24 * 365;
+var setSiteCookie = (req, res, next) => {
+			let cookieValue = req.cookies['ncidence'];
+			if(cookieValue === undefined || cookieValue === null) {
+			  cookieValue = guid.generate(true);
+			}
+			
+			res.cookie('ncidence', cookieValue, { maxAge: ONE_YEAR_IN_MS, httpOnly: true, domain: '.' + tools.DEFAULT_HOST });
+			next();
+};
+router.use(setSiteCookie);
+
+
 
 
 
@@ -148,19 +164,18 @@ String.prototype.replaceAll = function(search, replacement) {
   var target = this;
   return target.split(search).join(replacement);
 };
-var DEFAULT_HOST = DEFAULT_SCHEMA.replaceAll('__', '-').replaceAll('_', '.');
 
-var getDomainInfo = (req) => {
-  const host = req.get('host');
+tools.DEFAULT_HOST = DEFAULT_SCHEMA.replaceAll('__', '-').replaceAll('_', '.');
+tools.getSubdomain = (host) => {
   let subdomain;
-  if (DEFAULT_HOST !== host && host.endsWith("." + DEFAULT_HOST)) {
-    subdomain = host.substring(0, host.indexOf("." + DEFAULT_HOST));
+  if (tools.DEFAULT_HOST !== host && host.endsWith("." + tools.DEFAULT_HOST)) {
+    subdomain = host.substring(0, host.indexOf("." + tools.DEFAULT_HOST));
   }
-  return { host, subdomain };
+  return subdomain;
 }
 
 
-var getGame = (subdomain) => {
+tools.getGame = (subdomain) => {
   return new Promise((resolve, reject) => {
     ormHelper.getMap()['game'].model.find({ name: subdomain }, (err, games) => {
       if(err){
@@ -184,9 +199,9 @@ var getGame = (subdomain) => {
 
 
 router.use('/', async (req, res, next) => {
-  const domainInfo = getDomainInfo(req);
-  if (req.url === '/driver' && domainInfo.subdomain !== undefined) {
-    var game = await getGame(domainInfo.subdomain);
+  const subdomain = tools.getSubdomain(req.get('host'));
+  if (req.url === '/driver' && subdomain !== undefined) {
+    var game = await tools.getGame(subdomain);
     
     res.writeHead(200, {
       'Content-Type': 'application/javascript'
@@ -234,8 +249,8 @@ router.use(express.static(publicdir));
 //BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
 ////////////////////////////////////////////
 console.log('---Socket IO');
-var jwtHelper = new(require('./utils/jwtHelper.js')).JwtHelper(DEFAULT_HOST, JWT_SECRET, SESSION_EXP_SEC);
-var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtHelper);
+var jwtHelper = new(require('./utils/jwtHelper.js')).JwtHelper(tools.DEFAULT_HOST, JWT_SECRET, SESSION_EXP_SEC);
+var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtHelper, tools);
 socketIOHelper.init();
 
 console.log('---JWT');
@@ -404,9 +419,6 @@ router.get('/u/:name/:file', function(req, res) {
   var name = req.params.name;
   var file = req.params.file;
 
-  res.cookie('httponly', 'val1', { maxAge: 900000, httpOnly: true });
-  res.cookie('browsable', 'val2', { maxAge: 900000, httpOnly: false });
-
   ormHelper.getMap()['user'].model.find({ email: name }, function(err, users) {
     var content = null;
     if (err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null) {
@@ -554,18 +566,18 @@ router.post('/fileupload', jwtHelper.authRequired(), (req, res) => {
       }
       
       let game;
-      const domainInfo = getDomainInfo(req);
-      if (domainInfo.subdomain !== undefined) {
-        game = await getGame(domainInfo.subdomain);
+      const subdomain = tools.getSubdomain(req.get('host'));
+      if (subdomain !== undefined) {
+        game = await tools.getGame(subdomain);
         
-        fileService.createGameDriver(req.user.id, { name: domainInfo.subdomain, data, game }, function(err) {
+        fileService.createGameDriver(req.user.id, { name: subdomain, data, game }, function(err) {
           if (err) {
             console.log('err persisting game driver: ', err);
             res.redirect('/');
           }
           else {
             console.log('game driver persisted');
-            res.redirect('/game');
+            res.redirect('/play');
           }
         });
       } else {

@@ -2,112 +2,151 @@
 "use strict";
 
 class SocketIOHelper {
-	constructor(server, tokenUtil) {
-		this.messages = [];
+	constructor(server, tokenUtil, {getSubdomain, getGame}) {
+		this.messages = {};
 		this.sockets = [];
+		this.socketNcidenceCookieMap = {};
 		this.socketUserNameMap = {};
 		this.socketIdMap = {};
-		
+		this.subdomainInfoMap = {};
+
 
 		var socketio = require('socket.io');
 		this.io = socketio.listen(server);
 		this.async = require('async');
 		this.cookie = require('cookie');
 		this.tokenUtil = tokenUtil;
+		this.getSubdomain = getSubdomain;
+		this.getGame = getGame;
 	}
 	
-	logoutUser(socketId) {
-		if(socketId && this.socketIdMap[socketId]) {
-			const socket = this.socketIdMap[socketId];
-			socket.loggedOut = true;
-			socket.name = 'Anonymous';
-			this.updateRoster();
-			
-			if(socket.myParent) {
-				this.logoutUser(socket.myParent.id)
-			}
+	
+	logoutUser(ncidenceCookie) {
+		console.log('logoutUser IO', ncidenceCookie);
+		
+		if(ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
+			this.socketNcidenceCookieMap[ncidenceCookie].forEach(socketId => {
+				console.log('logoutUser IO 2', socketId);
+				if (this.socketIdMap[socketId] != undefined) {
+					const socket = this.socketIdMap[socketId];
+					socket.loggedOut = true;
+					socket.name = 'Anonymous';
+					socket.emit('whoami', 'Anonymous' );
+					this.updateRoster(socket);
+				}
+			});
 		}
 	}
-	
-	loginUser(socketId, user, token) {
-		if(socketId && this.socketIdMap[socketId]) {
-			const socket = this.socketIdMap[socketId];
-			socket.name = user.username;
-			socket.loggedOut = false;
-			socket.token = token;
-			this.updateRoster();
-			if(socket.myParent) {
-				this.loginUser(socket.myParent.id, user, token)
-			}
+
+	loginUser(ncidenceCookie, user, token) {
+		console.log('loginUser IO', ncidenceCookie);
+		if(ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
+			this.socketNcidenceCookieMap[ncidenceCookie].forEach(socketId => {
+				console.log('loginUser IO 2', socketId);
+				if (this.socketIdMap[socketId] !== undefined) {
+					const socket = this.socketIdMap[socketId];
+					socket.name = user.username;
+					socket.loggedOut = false;
+					socket.token = token;
+					console.log('loginUser IO 2');
+					socket.emit('whoami', user ? user.username : 'Anonymous' );
+					this.updateRoster(socket);
+				}
+			});
 		}
 	}
-	
-	updateRoster() {
+	updateRoster(socket) {
 		const foundNames = {};
 		this.async.map(
-			this.sockets,
+			this.sockets.filter(s => s.subdomain === socket.subdomain),
 			(socket, callback) => {
 				foundNames[socket.name] = foundNames[socket.name] ? foundNames[socket.name] + 1 : 1;
 				callback(null, (socket.myParent === undefined && (socket.name === 'Anonymous' || foundNames[socket.name] === 1)) ? socket.name : null);
 			},
 			(err, names) => {
-				this.broadcast('roster', names);
+				this.broadcast('roster', names, socket);
 			}
 		);
 	}
-	
-	broadcast(event, data) {
-		this.sockets.forEach((socket) => {
+
+	broadcast(event, data, socket) {
+		this.sockets.filter(s => s.subdomain === socket.subdomain).forEach((socket) => {
 			socket.emit(event, data);
 		});
 	}
 
 	init() {
-		
-		this.io.on('connection', (socket) => {
+
+		this.io.on('connection', async (socket) => {
 			const cookies = this.cookie.parse(socket.request.headers.cookie || '');
+			socket.subdomain = this.getSubdomain(socket.request.headers.host);
+			socket.subdomain = socket.subdomain === undefined ? '#' : socket.subdomain;
 			
-			if(cookies.io) {
+			const ncidenceCookie = cookies.ncidence;
+			
+			if(this.socketNcidenceCookieMap[ncidenceCookie] === undefined) {
+				this.socketNcidenceCookieMap[ncidenceCookie] = [];
+			}
+			this.socketNcidenceCookieMap[ncidenceCookie].push(socket.id);
+			
+			if(!this.subdomainInfoMap[socket.subdomain]) {
+				let gameTemp = await this.getGame(socket.subdomain);
+				this.subdomainInfoMap[socket.subdomain] = {subdomain : socket.subdomain, owner: (gameTemp.game !== undefined ? gameTemp.game.owner.email : null)};
+			}
+			const subDomainInfo = this.subdomainInfoMap[socket.subdomain];
+
+
+			if (this.messages[socket.subdomain] === undefined) {
+				this.messages[socket.subdomain] = [];
+			}
+
+			if (cookies.io) {
 				socket.myParent = this.socketIdMap[cookies.io];
-				if(socket.myParent) {
+				if (socket.myParent) {
 					socket.myParent.myChild = socket;
 				}
 			}
 			this.socketIdMap[socket.id] = socket;
 			this.sockets.push(socket);
-			
-			
+			socket.emit('connected', subDomainInfo);
+
 			//SET USER INFO
 			var setUserInfo = (socket) => {
-				if(socket.loggedOut) {
+				if (socket.loggedOut) {
 					socket.name = 'Anonymous';
-				}else {
+				}
+				else {
 					var token = socket.token ? socket.token : this.tokenUtil.getTokenFromCookies(cookies);
 					var user = token ? this.tokenUtil.verifyToken(token) : null;
 					socket.name = String((user ? user.username : null) || 'Anonymous');
-					if(!user) {
-						this.updateRoster();
+					if (!user) {
+						this.updateRoster(socket);
 					}
+					return user
 				}
 			}
-			setUserInfo(socket);
+			(() => {
+				const user = setUserInfo(socket);
+				this.updateRoster(socket);
+				socket.emit('whoami', user ? user.username : 'Anonymous' );
+			})();
+			
 
-
-
-			this.messages.forEach((data) => {
+			this.messages[socket.subdomain].forEach((data) => {
 				socket.emit('message', data);
 			});
 
 			socket.on('disconnect', () => {
-				if(socket.myParent) {
+				if (socket.myParent) {
 					socket.myParent.myChild = undefined;
 				}
-				if(socket.myChild) {
+				if (socket.myChild) {
 					socket.myChild.myParent = undefined;
 				}
-				this.socketIdMap[socket.id] = undefined;;
+				this.socketNcidenceCookieMap[ncidenceCookie].splice(this.sockets.indexOf(socket.id), 1)
+				this.socketIdMap[socket.id] = undefined;
 				this.sockets.splice(this.sockets.indexOf(socket), 1);
-				this.updateRoster();
+				this.updateRoster(socket);
 			});
 
 			socket.on('message', (msg) => {
@@ -122,13 +161,8 @@ class SocketIOHelper {
 					text: text
 				};
 
-				this.broadcast('message', data);
-				this.messages.push(data);
-			});
-
-			socket.on('identify', () => {
-				setUserInfo(socket);
-				this.updateRoster();
+				this.broadcast('message', data, socket);
+				this.messages[socket.subdomain].push(data);
 			});
 
 

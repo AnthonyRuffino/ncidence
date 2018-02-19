@@ -1,38 +1,51 @@
 <html>
 
-	<head>
-		<title>Mystic Square</title>
-	</head>
-	
-	
-	<body>
-		<h1>Hurray!</h1>
-		<div id="gameDiv"></div>
-	</body>
-	
-	<script>
-		
-	</script>
-	
-	<script src="js/renderer.js"></script>
-	<script src="js/driver.js"></script>
-	<script src="js/gameEngine.js"></script>
-	
-	<script>
-		/*global Renderer*/
-		/*global GameDriver*/
-		/*global GameEngine*/
-		/*global GameTile*/
-		
-		var DEFAULT_TILES_PER_SIDE = 4;
-		var BOARD_SIZE_PERCENTAGE = .50;
-		var DEBUG = true;
-	
-		var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
-		renderer.init();
-		var driver = new GameDriver(renderer, document, DEFAULT_TILES_PER_SIDE, window.console.log, function(txt){alert.call(window, txt);}, DEBUG);
-		driver.init();
-		new GameEngine(renderer, driver, window).start();
-	</script>
-	
+<head>
+	<title>Mystic Square</title>
+</head>
+
+
+<body>
+	<h1>Hurray!</h1>
+	<div id="gameDiv"></div>
+</body>
+
+<script>
+</script>
+
+<script src="js/renderer.js"></script>
+<script src="js/driver.js"></script>
+<script src="js/gameEngine.js"></script>
+
+<script>
+	/*global Renderer*/
+	/*global GameDriver*/
+	/*global GameEngine*/
+	/*global GameTile*/
+
+	var BOARD_SIZE_PERCENTAGE = .50;
+	var DEBUG = true;
+
+	var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
+	renderer.init();
+	var driver = new GameDriver(renderer, window.console.log, function(txt) { alert.call(window, txt); });
+	driver.init();
+
+
+
+	document.onmousedown = function(mouse) {
+		var mouseX = mouse.x - driver.renderer.horizontalOffset;
+		var mouseY = mouse.y - driver.renderer.verticalOffset;
+		driver.click(mouseX, mouseY);
+	};
+
+	document.onkeydown = function(event) {
+		driver.onkeydown(event);
+	};
+
+
+
+	new GameEngine(renderer, driver, window).start();
+</script>
+
 </html>

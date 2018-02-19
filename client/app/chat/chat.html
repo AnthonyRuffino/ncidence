@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="en" ng-app>
+<html lang="en" ng-app ng-controller="ChatController">
   <head>
-    <title>Chat</title>
+    <title ng-bind="title"></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/bootstrap-responsive.min.css">
+    <link rel="shortcut icon" type="image/x-icon" href="/img/space/blueships1.png"/>
     <style>
       body {
         padding-top: 60px;
@@ -18,9 +19,16 @@
         $scope.roster = [];
         $scope.name = '';
         $scope.text = '';
+        
+        $scope.title = '';
 
         socket.on('connect', function () {
           socket.emit('identify', $scope.name);
+        });
+        
+        socket.on('connected', function (data) {
+          $scope.title = 'Chat - ' + data.subdomain;
+          $scope.$apply();
         });
 
         socket.on('message', function (msg) {
@@ -42,7 +50,7 @@
     </script>
   </head>
   <body>
-    <div class="container" ng-controller="ChatController">
+    <div class="container">
       <div class="navbar navbar-fixed-top navbar-inverse">
         <div class="navbar-inner">
           <div class="pull-right">
@@ -51,7 +59,7 @@
         </div>
       </div>
       <div class="page-header">
-        <h1>Chat</h1>
+        <h1 ng-bind="title"></h1>
       </div>
       <div class="row">
         <div class="span3">

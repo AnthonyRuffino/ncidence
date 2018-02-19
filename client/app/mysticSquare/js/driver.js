@@ -120,9 +120,9 @@ class GameTile extends Square {
 
 
 class GameDriver {
-  constructor(renderer, controlsBinding, tilesPerSide, log, alert, isDebug) {
+  constructor(renderer, log, alert) {
 	  this.renderer = renderer;
-	  this.tilesPerSide = tilesPerSide;
+	  this.tilesPerSide = 4;
 	  this.moves = 0;
 	  this.numberOfSlots = null;
 	  this.gameTiles = null;
@@ -131,10 +131,7 @@ class GameDriver {
 	  this.log = log;
 	  this.alert = alert;
 	  this.textSize = null;
-	  this.isDebug = isDebug;
-	  
-	  this.bindClick(controlsBinding);
-	  this.bindKeys(controlsBinding);
+	  this.isDebug = false;
 	  this.textSizeBase = 35;
 	  this.GameTileClass = GameTile;
   }
@@ -270,28 +267,6 @@ class GameDriver {
     
     calculateTextSize(){
   	  this.textSize = this.textSizeBase *(4/this.tilesPerSide);
-    }
-  	
-  	
-  	//BEGIN CONTROLS
-  	bindClick(clickBinding){
-  	  if(clickBinding !== undefined && clickBinding !== null){
-  		  var _this = this;
-  		  clickBinding.onmousedown = function(mouse){
-  			  var mouseX = mouse.x - _this.renderer.horizontalOffset;
-  			  var mouseY = mouse.y - _this.renderer.verticalOffset;
-  			  _this.click(mouseX,mouseY);
-  		  };
-  	  }
-    }
-    
-    bindKeys(keyBinding){
-  	  if(keyBinding !== undefined && keyBinding !== null){
-  		  var _this = this;
-  		  keyBinding.onkeydown = function(event){
-  			  _this.onkeydown(event);
-  		  };
-  	  }
     }
     
   	onkeydown(event){

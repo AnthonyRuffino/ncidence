@@ -18,17 +18,18 @@ class JwtHelper {
 
 		this.cookieMaxAge = (expiresIn * 1000) * 10;
 		this.jwtTokenKey = 'jwt-token';
+		this.logoutUrl = '/logout';
 	}
 
 
 
 
 	setJwtCookie(res, token) {
-		res.cookie(this.jwtTokenKey, token, { maxAge: this.cookieMaxAge, httpOnly: true, domain: "." + this.domain });
+		res.cookie(this.jwtTokenKey, token, { maxAge: this.cookieMaxAge, httpOnly: true, domain: this.domain });
 	}
 
 	clearJwtCookie(res) {
-		res.clearCookie(this.jwtTokenKey);
+		res.cookie(this.jwtTokenKey, 'expired', { maxAge: 1, httpOnly: true, domain: this.domain });
 	}
 
 	getTokenFromCookies(cookies) {
@@ -50,18 +51,26 @@ class JwtHelper {
 
 	init(router, userService, socketIOHelper, urlencodedParser) {
 		var jwtHeaderFromCookie = (req, res, next) => {
+	
+			if(req.url === this.logoutUrl) {
+				this.clearJwtCookie(res);
+				next();
+				return;
+			}
+			
 			var token = this.getTokenFromCookies(req.cookies);
 			if (token !== undefined && token !== null) {
 				let payload = this.verifyToken(token);
 				if (payload) {
 					const user = { id: payload.id, username: payload.username };
 					const newToken = this.jwt.sign(user, this.jwtOptions.secretOrKey, { expiresIn: this.jwtOptions.expiresIn });
+					console.log('jwtHeaderFromCookie', req.url);
 					this.setJwtCookie(res, newToken);
 					req.headers['authorization'] = 'JWT ' + newToken;
 					req.user = user
 				}
 				else {
-					this.clearJwtCookie(res);
+					//this.clearJwtCookie(res);
 				}
 			}
 			next();
@@ -85,20 +94,14 @@ class JwtHelper {
 		this.passport.use(strategy);
 
 
-		router.get("/logout", (req, res) => {
-
-			var token = this.getTokenFromCookies(req.cookies);
-			var user = this.verifyToken(token);
-
-			if (user) {
-				//socketIOHelper.logoutUser(user.username);
-				socketIOHelper.logoutUser(req.cookies.io);
-			}
-
+		//logout
+		router.get(this.logoutUrl, (req, res) => {
+			socketIOHelper.logoutUser(req.cookies.ncidence);
 			this.clearJwtCookie(res);
 			res.redirect('/');
 		});
 
+		//login
 		router.post("/auth", urlencodedParser, (req, res) => {
 			userService.login2(req.body.username, req.body.password, (err, user) => {
 				if (err) {
@@ -109,9 +112,11 @@ class JwtHelper {
 					res.status(401).json({ message: "passwords did not match" });
 					return;
 				}
+				
+				console.log('/auth', req.cookies);
 
 				var token = this.jwt.sign(user, this.jwtOptions.secretOrKey, { expiresIn: this.jwtOptions.expiresIn });
-				socketIOHelper.loginUser(req.cookies.io, user, token);
+				socketIOHelper.loginUser(req.cookies.ncidence, user, token);
 				this.setJwtCookie(res, token);
 				res.redirect('/');
 			});
