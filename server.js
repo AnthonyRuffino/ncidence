@@ -233,10 +233,7 @@ if (useHttps === true) {
   });
 }
 
-var fauxIndexHtmlObj = new(require('./utils/middleware/fauxIndexHtml.js')).FauxIndexHtml(publicdir);
-router.use(function(req, res, next) {
-  fauxIndexHtmlObj.process(req, res, next)
-});
+router.use(require('no-extension')(publicdir));
 
 router.use(express.static(publicdir));
 //////////////////////////
