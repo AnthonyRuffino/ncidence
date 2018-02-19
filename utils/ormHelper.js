@@ -2,13 +2,13 @@
 "use strict";
 
 class OrmHelper {
-	constructor({ ip, user, password, database, mySqlHelper, entities, loadDefaultData }) {
+	constructor({ ip, user, password, database, yourSql, entities, loadDefaultData }) {
 		this.orm = require('orm');
 		this.password = password;
 		this.ip = ip;
 		this.user = user;
 		this.database = database;
-		this.mySqlHelper = mySqlHelper;
+		this.yourSql = yourSql;
 		this.entities = entities;
 		this.map = {};
 		this.loadDefaultData = loadDefaultData;
@@ -22,7 +22,7 @@ class OrmHelper {
 
 		var entities = this.entities;
 		var database = this.database;
-		var mySqlHelper = this.mySqlHelper;
+		var yourSql = this.yourSql;
 		var ip = this.ip;
 		var user = this.user;
 		var map = this.map;
@@ -225,7 +225,7 @@ class OrmHelper {
 						if (isListy(uniqueConstraint.columns)) {
 
 							console.log('Creating unique constraint: ' + entity.name);
-							mySqlHelper.createUniqueConstraint(database, entity.name, uniqueConstraint.columns, (err) => {
+							yourSql.createUniqueConstraint(database, entity.name, uniqueConstraint.columns, (err) => {
 								if (err)
 									console.log('Error creating unique constraint: ' + JSON.stringify(err));
 							});
@@ -241,7 +241,7 @@ class OrmHelper {
 								const jointTableName = entity.name + "_" + other.desc;
 
 								console.log('Creating unique constraint during hasMany processing: ' + jointTableName);
-								mySqlHelper.createUniqueConstraint(database, jointTableName, [other.name + "_id", entity.name + "_id"], (err) => {
+								yourSql.createUniqueConstraint(database, jointTableName, [other.name + "_id", entity.name + "_id"], (err) => {
 									if (err)
 										console.log('Error creating unique constraint during hasMany processing: ' + JSON.stringify(err));
 								});

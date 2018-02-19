@@ -2,21 +2,10 @@ console.log('..........................................................');
 console.log('..........................................................');
 console.log('..........................................................');
 console.log('....................@Launching Ncidence@..................');
-console.log('........................................................');
-console.log('......................................................');
-console.log('....................................................');
-console.log('..................................................');
-console.log('................................................');
-console.log('..............................................');
-console.log('............................................');
-console.log('..........................................');
-console.log('........................................');
-console.log('......................................');
-console.log('....................................');
-console.log('..................................');
-console.log('................................');
-console.log('..............................');
-console.log('............................');
+console.log('..........................................................');
+console.log('..........................................................');
+console.log('..........................................................');
+
 
 const tools = {};
 
@@ -32,18 +21,20 @@ var fs = require('fs');
 
 var guid = require('./utils/guid.js');
 
-var QUERY_ROWS_LIMIT = 10000;
-var CAPTCHA_EXP_IN_MINUTES = 5;
+
 
 
 var SESSION_EXP_SEC = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
 var JWT_SECRET = process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp';
 
+var QUERY_ROWS_LIMIT = 10000;
+var CAPTCHA_EXP_IN_MINUTES = 5;
+
 
 //////////////////////
 //BEGIN MYSQL CONFIG
 //////////////////////
-var mySqlHelper = new(require('./utils/mySqlHelper.js')).MySqlHelper();
+var yourSql = new(require('your-sql')).YourSql();
 var ormHelper = null;
 var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 var mySqlUser = process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
@@ -53,7 +44,14 @@ var mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
 
 //START To Default Host Database.  Connect to 'mysql' schema first
 if (mySqlIp !== null && mySqlIp !== undefined) {
-  mySqlHelper.init(mySqlIp, mySqlUser, mySqlPassword, 'mysql');
+  yourSql.init({
+    host: mySqlIp, 
+    user: mySqlUser, 
+    password: mySqlPassword, 
+    database: 'mysql', 
+    connectionLimit: 100, 
+    debug : true 
+  });
 
   const entities = [];
   entities.push((require('./utils/orm/entities/role.js')).Entity);
@@ -68,13 +66,13 @@ if (mySqlIp !== null && mySqlIp !== undefined) {
     user: mySqlUser,
     password: mySqlPassword,
     database: DEFAULT_SCHEMA,
-    mySqlHelper,
+    yourSql,
     entities,
     loadDefaultData: process.env.LOAD_DEFAULT_DATA || true
   });
 
   console.log('LOADING mysql. ');
-  mySqlHelper.createDatabase(DEFAULT_SCHEMA, function() {
+  yourSql.createDatabase(DEFAULT_SCHEMA, function() {
     ormHelper.sync();
   });
 
@@ -258,7 +256,7 @@ console.log('Define /api/db');
 router.get('/api/db', function(req, res) {
   if (req.query.psw !== undefined && req.query.psw !== null && req.query.psw === process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD) {
 
-    mySqlHelper.query(req.query.sql, function(err, results) {
+    yourSql.query(req.query.sql, function(err, results) {
       if (err) {
         res.json(200, err);
       }
@@ -285,7 +283,7 @@ router.get('/api/db', function(req, res) {
 console.log('Define /api/init-db');
 router.get('/api/init-db', function(req, res) {
   try {
-    mySqlHelper.createDatabase(DEFAULT_SCHEMA);
+    yourSql.createDatabase(DEFAULT_SCHEMA);
   }
   catch (ex) {
     res.json(200, {
@@ -301,7 +299,7 @@ router.get('/api/guid', function(req, res) {
 });
 
 router.get('/api/schemaSizeInMb', function(req, res) {
-  mySqlHelper.getSchemaSizeInMb(req.query.schema, function(err, results) {
+  yourSql.getSchemaSizeInMb(req.query.schema, function(err, results) {
     if (err) {
       res.json(200, {
         err: err
