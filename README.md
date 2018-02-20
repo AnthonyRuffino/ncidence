@@ -17,8 +17,6 @@ To use it, simply:
 * Upload your front end driver
 * Market your new game
 
-**WriteMe.md** also supports GitHub-style syntax highlighting for numerous languages, like so:
-
 ---
 
 To see a live deployment, **[go here](https://ncidence.org)**.
