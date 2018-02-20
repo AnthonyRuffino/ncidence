@@ -238,16 +238,18 @@ router.use(express.static(publicdir));
 //BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
 ////////////////////////////////////////////
 console.log('---Socket IO');
-var jwtHelper = new(require('./utils/jwtHelper.js')).JwtHelper({
+var jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
   domain: tools.DEFAULT_HOST, 
   secretOrKey: JWT_SECRET, 
-  expiresIn: SESSION_EXP_SEC
+  expiresIn: SESSION_EXP_SEC,
+  useJsonOnLogin: false,
+  useJsonOnLogout: false
 });
-var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtHelper, tools);
+var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtCookiePasser, tools);
 socketIOHelper.init();
 
 console.log('---JWT');
-jwtHelper.init({
+jwtCookiePasser.init({
   router,
   urlencodedParser,
   userService,
@@ -546,7 +548,7 @@ router.get('/api/captcha', function(req, res) {
 var fileService = new(require('./utils/orm/services/fileService.js')).FileService(ormHelper);
 
 var formidable = require('formidable')
-router.post('/fileupload', jwtHelper.authRequired(), (req, res) => {
+router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
   var form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
     var filePath = files.filetoupload.path;
@@ -623,7 +625,7 @@ router.get("/public", function(req, res) {
   res.json({ message: "Public Success!", user: req.user });
 });
 
-router.get("/secret", jwtHelper.authRequired(), function(req, res) {
+router.get("/secret", jwtCookiePasser.authRequired(), function(req, res) {
   res.json({ message: "Secret Success!", user: req.user });
 });
 
