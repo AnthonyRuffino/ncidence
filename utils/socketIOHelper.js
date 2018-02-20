@@ -139,7 +139,7 @@ class SocketIOHelper {
 				if (socket.myChild) {
 					socket.myChild.myParent = undefined;
 				}
-				this.socketNcidenceCookieMap[ncidenceCookie].splice(this.sockets.indexOf(socket.id), 1)
+				this.socketNcidenceCookieMap[ncidenceCookie].splice(this.socketNcidenceCookieMap[ncidenceCookie].indexOf(socket.id), 1)
 				this.socketIdMap[socket.id] = undefined;
 				this.sockets.splice(this.sockets.indexOf(socket), 1);
 				this.updateRoster(socket);
