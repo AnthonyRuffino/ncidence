@@ -21,12 +21,10 @@ class SocketIOHelper {
 	}
 	
 	
-	logoutUser(ncidenceCookie) {
-		console.log('logoutUser IO', ncidenceCookie);
-		
+	logoutUserHook(req) {
+		const ncidenceCookie = req.cookies.ncidence;
 		if(ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
 			this.socketNcidenceCookieMap[ncidenceCookie].forEach(socketId => {
-				console.log('logoutUser IO 2', socketId);
 				if (this.socketIdMap[socketId] != undefined) {
 					const socket = this.socketIdMap[socketId];
 					socket.loggedOut = true;
@@ -38,17 +36,15 @@ class SocketIOHelper {
 		}
 	}
 
-	loginUser(ncidenceCookie, user, token) {
-		console.log('loginUser IO', ncidenceCookie);
+	loginUserHook(req, user, token) {
+		const ncidenceCookie = req.cookies.ncidence;
 		if(ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
 			this.socketNcidenceCookieMap[ncidenceCookie].forEach(socketId => {
-				console.log('loginUser IO 2', socketId);
 				if (this.socketIdMap[socketId] !== undefined) {
 					const socket = this.socketIdMap[socketId];
 					socket.name = user.username;
 					socket.loggedOut = false;
 					socket.token = token;
-					console.log('loginUser IO 2');
 					socket.emit('whoami', user ? user.username : 'Anonymous' );
 					this.updateRoster(socket);
 				}

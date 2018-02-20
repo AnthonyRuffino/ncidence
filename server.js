@@ -238,12 +238,21 @@ router.use(express.static(publicdir));
 //BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
 ////////////////////////////////////////////
 console.log('---Socket IO');
-var jwtHelper = new(require('./utils/jwtHelper.js')).JwtHelper(tools.DEFAULT_HOST, JWT_SECRET, SESSION_EXP_SEC);
+var jwtHelper = new(require('./utils/jwtHelper.js')).JwtHelper({
+  domain: tools.DEFAULT_HOST, 
+  secretOrKey: JWT_SECRET, 
+  expiresIn: SESSION_EXP_SEC
+});
 var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtHelper, tools);
 socketIOHelper.init();
 
 console.log('---JWT');
-jwtHelper.init(router, userService, socketIOHelper, urlencodedParser);
+jwtHelper.init({
+  router,
+  urlencodedParser,
+  userService,
+  loginLogoutHooks: socketIOHelper
+  });
 /////////////////////////////////////////
 //END SOCKET IO SETUP & JWT AUTH SETUP///
 /////////////////////////////////////////

@@ -248,55 +248,8 @@ class UserService {
             });
         }
     }
-
-
-    login(req, res) {
-        
-        var email = req.query.email;
-        var password = req.query.password;
-        
-        if(email === undefined || email === null || email.length < 1){
-            res.json(200, {
-                err: 'email is required'
-            });
-        }else if(password === undefined || password === null || password.length < 1){
-            res.json(200, {
-                err: 'password is required'
-            });
-        }else{
-            var ormHelper = this.ormHelper;
-            var bcrypt = this.bcrypt;
-            var invalidMessage = 'username or password not valid';
-            var userModel = ormHelper.getMap()['user'].model;
-            
-            userModel.find({
-                email: email
-            }, function(err, users) {
-                if (err) throw err;
     
-                if (users.length < 1 || users[0] === undefined || users[0] === null) {
-                    res.json(500, {
-                        err: invalidMessage + '!'
-                    });
-                }
-                else {
-                    var authenticated = bcrypt.compareSync(password, users[0].password);
-                    if (authenticated) {
-                        res.json(200, {
-                            id: users[0].id
-                        });
-                    }
-                    else {
-                        res.json(200, {
-                            err: invalidMessage + '?'
-                        });
-                    }
-                }
-            });
-        }
-    }
-    
-    getUserForToken(user) {
+    mapUserForJwtToken(user) {
         return {id: user.id, username: user.email };
     }
     
@@ -318,7 +271,7 @@ class UserService {
         });
     }
     
-    login2(email, password, callback) {
+    login(email, password, callback) {
         if(email === undefined || email === null || email.length < 1){
             callback('email is required');
         }else if(password === undefined || password === null || password.length < 1){
@@ -340,7 +293,7 @@ class UserService {
                 else {
                     var authenticated = bcrypt.compareSync(password, users[0].password);
                     if (authenticated) {
-                        callback(null, this.getUserForToken(users[0]) );
+                        callback(null, users[0] );
                     }
                     else {
                         callback(invalidMessage );
