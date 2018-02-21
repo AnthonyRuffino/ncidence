@@ -54,7 +54,7 @@ const processUser = (user) => {
                 dropUser(() => {
                     console.log('DROPPING Database: ' + user.User);
                     yourSql.query(`DROP DATABASE ${user.User}`, async(dropDatabaseError, rows) => {
-                        if(dropDatabaseError) {
+                        if (dropDatabaseError) {
                             console.log('ERROR DROPPING Database: ' + user.User, dropDatabaseError);
                         }
                         resolve();
