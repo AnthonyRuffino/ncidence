@@ -29,6 +29,7 @@
     "fs": "0.0.2",
     "jsonwebtoken": "^8.1.1",
     "jwt-cookie-passer": "^1.0.1",
+    "minimist": "^1.2.0",
     "mkpath": "^1.0.0",
     "moment-timezone": "^0.5.14",
     "mysql": "^2.15.0",

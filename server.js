@@ -10,35 +10,35 @@ console.log('..........................................................');
 const tools = {};
 
 
-var DEFAULT_SCHEMA = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
+let DEFAULT_SCHEMA = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
 global.__base = __dirname + '/';
-var publicdir = __dirname + '/client';
+let publicdir = __dirname + '/client';
 
-var http = require('http');
-var express = require('express');
+let http = require('http');
+let express = require('express');
 
-var fs = require('fs');
+let fs = require('fs');
 
-var guid = require('./utils/guid.js');
-
-
+let guid = require('./utils/guid.js');
 
 
-var SESSION_EXP_SEC = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
-var JWT_SECRET = process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp';
 
-var QUERY_ROWS_LIMIT = 10000;
-var CAPTCHA_EXP_IN_MINUTES = 5;
+
+let SESSION_EXP_SEC = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
+let JWT_SECRET = process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp';
+
+let QUERY_ROWS_LIMIT = 10000;
+let CAPTCHA_EXP_IN_MINUTES = 5;
 
 
 //////////////////////
 //BEGIN MYSQL CONFIG
 //////////////////////
-var yourSql = new(require('./utils/yourSql.js')).YourSql();
-var ormHelper = null;
-var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
-var mySqlUser = process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
-var mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
+let yourSql = new(require('./utils/yourSql.js')).YourSql();
+let ormHelper = null;
+let mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
+let mySqlUser = process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
+let mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
 
 
 
@@ -104,7 +104,7 @@ else {
 
 
 
-var userService = new(require('./utils/orm/services/userService.js')).UserService(ormHelper);
+let userService = new(require('./utils/orm/services/userService.js')).UserService(ormHelper);
 //////////////////////
 //END MYSQL CONFIG
 //////////////////////
@@ -118,25 +118,25 @@ var userService = new(require('./utils/orm/services/userService.js')).UserServic
 //  * `port` - The HTTP port to listen on. If `process.env.PORT` is set, _it overrides this value_.
 //
 console.log('Configure Router');
-var router = express();
-var server = http.createServer(router);
-var secureServer = null;
+let router = express();
+let server = http.createServer(router);
+let secureServer = null;
 
 
 
 
 //COOKIE PARSER
-var cookieParser = require('cookie-parser');
+let cookieParser = require('cookie-parser');
 router.use(cookieParser());
 
 //BODY PARSER
-var bodyParser = require('body-parser');
-var urlencodedParser = bodyParser.urlencoded({ extended: false });
+let bodyParser = require('body-parser');
+let urlencodedParser = bodyParser.urlencoded({ extended: false });
 router.use(bodyParser.json());
 
 
 const ONE_YEAR_IN_MS = 1000 * 60 * 60 * 24 * 365;
-var setSiteCookie = (req, res, next) => {
+let setSiteCookie = (req, res, next) => {
   let cookieValue = req.cookies['ncidence'];
   if (cookieValue === undefined || cookieValue === null) {
     cookieValue = guid.generate(true);
@@ -154,12 +154,12 @@ router.use(setSiteCookie);
 //////////////////////
 //BEGIN HTTPS CONFIG
 //////////////////////
-var useHttps = false;
-var secureServerErr = null;
+let useHttps = false;
+let secureServerErr = null;
 
 if (process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null) {
   console.log('Using SSL.');
-  var sslHelper = new(require('./utils/sslHelper.js')).SSLHelper(fs);
+  let sslHelper = new(require('./utils/sslHelper.js')).SSLHelper(fs);
   try {
     secureServer = sslHelper.configure(router);
   }
@@ -179,7 +179,7 @@ else {
 
 
 String.prototype.replaceAll = function(search, replacement) {
-  var target = this;
+  let target = this;
   return target.split(search).join(replacement);
 };
 
@@ -219,7 +219,7 @@ tools.getGame = (subdomain) => {
 router.use('/', async(req, res, next) => {
   const subdomain = tools.getSubdomain(req.get('host'));
   if (req.url === '/driver' && subdomain !== undefined) {
-    var game = await tools.getGame(subdomain);
+    let game = await tools.getGame(subdomain);
 
     res.writeHead(200, {
       'Content-Type': 'application/javascript'
@@ -259,14 +259,14 @@ router.use(express.static(publicdir));
 //BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
 ////////////////////////////////////////////
 console.log('---Socket IO');
-var jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
+let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
   domain: tools.DEFAULT_HOST,
   secretOrKey: JWT_SECRET,
   expiresIn: SESSION_EXP_SEC,
   useJsonOnLogin: false,
   useJsonOnLogout: false
 });
-var socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtCookiePasser, tools);
+let socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtCookiePasser, tools);
 socketIOHelper.init();
 
 console.log('---JWT');
@@ -350,16 +350,16 @@ router.get('/api/schemaSizeInMb', function(req, res) {
 
 router.get('/api/roles', function(req, res) {
 
-  var query = {};
-  var options = {};
-  var limit = null;
-  var order = [];
-  var isIdSearch = false;
+  let query = {};
+  let options = {};
+  let limit = null;
+  let order = [];
+  let isIdSearch = false;
 
-  var role = ormHelper.getMap()['role'];
-  var entity = role.entity;
-  var definition = entity.definition;
-  var model = role.model;
+  let role = ormHelper.getMap()['role'];
+  let entity = role.entity;
+  let definition = entity.definition;
+  let model = role.model;
 
   Object.keys(req.query).forEach(function(key) {
     if (key === '_limit') {
@@ -377,7 +377,7 @@ router.get('/api/roles', function(req, res) {
       }
     }
     else if (key === '_offset') {
-      var offset = Number(req.query[key]);
+      let offset = Number(req.query[key]);
       if (offset != null && !isNaN(offset))
         options.offset = offset;
     }
@@ -388,7 +388,7 @@ router.get('/api/roles', function(req, res) {
     }
     else if (key.startsWith("__") && key.length > 2 && key !== '__proto__') {
       /*
-      var fieldName = key.substr(2);
+      let fieldName = key.substr(2);
       
       if (entity.hasOne !== undefined && entity.hasOne !== null && entity.hasOne.length > 0) {
 				entity.hasOne.forEach(function(owner) {
@@ -414,7 +414,7 @@ router.get('/api/roles', function(req, res) {
         if (isIdSearch) {
           rows[0].getUsers(function(err, users) {
             rows[0].users = users;
-            var resObj = {
+            let resObj = {
               data: rows
             };
             if (err) resObj.errorGettingUsers = err;
@@ -439,17 +439,17 @@ router.get('/api/roles', function(req, res) {
 
 
 router.get('/u/:name/:file', function(req, res) {
-  var name = req.params.name;
-  var file = req.params.file;
+  let name = req.params.name;
+  let file = req.params.file;
 
   ormHelper.getMap()['user'].model.find({ email: name }, function(err, users) {
-    var content = null;
+    let content = null;
     if (err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null) {
 
       console.log('test param: ', req.query.ex !== undefined);
       if (req.query.ex !== undefined) {
-        var code = '((ctx) => { console.log("testValue: ", ctx.testValue); ctx.res.writeHead(200, {"Content-Type": "text/html"}); ctx.res.end("<h1>LOLZ - "+ctx.testValue+"</h1>"); })(ctx);';
-        var your_code = new Function(['ctx'].join(','), code);
+        let code = '((ctx) => { console.log("testValue: ", ctx.testValue); ctx.res.writeHead(200, {"Content-Type": "text/html"}); ctx.res.end("<h1>LOLZ - "+ctx.testValue+"</h1>"); })(ctx);';
+        let your_code = new Function(['ctx'].join(','), code);
 
         try {
           your_code({ req, res, testValue: 'trster' });
@@ -480,8 +480,8 @@ router.get('/u/:name/:file', function(req, res) {
         }
         else {
           if (files[0].content_type === 'lambda') {
-            var code = '((req, res) => { ' + files[0].content + ' })(req, res);';
-            var your_code = new Function(['req', 'res'].join(','), code);
+            let code = '((req, res) => { ' + files[0].content + ' })(req, res);';
+            let your_code = new Function(['req', 'res'].join(','), code);
             your_code(req, res);
           }
           else {
@@ -503,9 +503,9 @@ router.get('/u/:name/:file', function(req, res) {
 
 router.get('/api/promise', async function(req, res) {
 
-  var delay = req.query.delay || 500;
+  let delay = req.query.delay || 500;
 
-  var prom = function(inVal) {
+  let prom = function(inVal) {
     return new Promise(function(resolve, reject) {
       setTimeout(function() {
         if (req.query.error) {
@@ -519,7 +519,7 @@ router.get('/api/promise', async function(req, res) {
   }
 
   try {
-    var promiseData = await prom(req.query.text || 'example');
+    let promiseData = await prom(req.query.text || 'example');
 
     res.json(200, {
       val: promiseData,
@@ -535,14 +535,14 @@ router.get('/api/promise', async function(req, res) {
 });
 
 
-var captchapng = require('captchapng');
+let captchapng = require('captchapng');
 router.get('/api/captcha', function(req, res) {
 
-  var number = parseInt(Math.random() * 900000 + 100000);
-  var captchaId = guid.generate(true, 4);
-  var expDate = new Date((new Date()).getTime() + CAPTCHA_EXP_IN_MINUTES * 60000);
+  let number = parseInt(Math.random() * 900000 + 100000);
+  let captchaId = guid.generate(true, 4);
+  let expDate = new Date((new Date()).getTime() + CAPTCHA_EXP_IN_MINUTES * 60000);
 
-  var captchaModel = ormHelper.getMap()['captcha'].model;
+  let captchaModel = ormHelper.getMap()['captcha'].model;
 
   captchaModel.create({ guid: captchaId, answer: number + '', expiration_date: expDate }, function(err) {
     if (err) {
@@ -551,12 +551,12 @@ router.get('/api/captcha', function(req, res) {
       });
     }
     else {
-      var p = new captchapng(80, 30, number); // width,height,numeric captcha 
+      let p = new captchapng(80, 30, number); // width,height,numeric captcha 
       p.color(0, 0, 0, 0); // First color: background (red, green, blue, alpha) 
       p.color(80, 80, 80, 255); // Second color: paint (red, green, blue, alpha)
 
-      var img = p.getBase64();
-      var imgbase64 = new Buffer(img, 'base64');
+      let img = p.getBase64();
+      let imgbase64 = new Buffer(img, 'base64');
       res.writeHead(200, {
         'Content-Type': 'image/png',
         'captcha-id': captchaId
@@ -568,16 +568,16 @@ router.get('/api/captcha', function(req, res) {
 
 });
 
-var fileService = new(require('./utils/orm/services/fileService.js')).FileService(ormHelper);
+let fileService = new(require('./utils/orm/services/fileService.js')).FileService(ormHelper);
 
-var formidable = require('formidable')
+let formidable = require('formidable')
 router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
-  var form = new formidable.IncomingForm();
+  let form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
-    var filePath = files.filetoupload.path;
+    let filePath = files.filetoupload.path;
     console.log('filePath: ', filePath, files.filetoupload.name);
 
-    //var text = fs.readFileSync(files.filetoupload.path,'utf8')
+    //let text = fs.readFileSync(files.filetoupload.path,'utf8')
     //fileService
 
 
@@ -671,7 +671,7 @@ router.get("/secret", jwtCookiePasser.authRequired(), function(req, res) {
 if (secureServer != null) {
   try {
     secureServer.listen(process.env.SECURE_PORT || 443, process.env.SECURE_IP || "0.0.0.0", function() {
-      var addr = secureServer.address();
+      let addr = secureServer.address();
       console.log("Secure server listening at", addr.address + ":" + addr.port);
     });
   }
@@ -689,6 +689,6 @@ if (server === undefined || server === null) {
 
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function() {
   console.log('trying to listen...');
-  var addr = server.address();
+  let addr = server.address();
   console.log("Chat server listening at", addr.address + ":" + addr.port);
 });
