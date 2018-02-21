@@ -34,7 +34,7 @@ var CAPTCHA_EXP_IN_MINUTES = 5;
 //////////////////////
 //BEGIN MYSQL CONFIG
 //////////////////////
-var yourSql = new(require('your-sql')).YourSql();
+var yourSql = new(require('./utils/yourSql.js')).YourSql();
 var ormHelper = null;
 var mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 var mySqlUser = process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
@@ -45,12 +45,12 @@ var mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
 //START To Default Host Database.  Connect to 'mysql' schema first
 if (mySqlIp !== null && mySqlIp !== undefined) {
   yourSql.init({
-    host: mySqlIp, 
-    user: mySqlUser, 
-    password: mySqlPassword, 
-    database: 'mysql', 
-    connectionLimit: 100, 
-    debug : true 
+    host: mySqlIp,
+    user: mySqlUser,
+    password: mySqlPassword,
+    database: 'mysql',
+    connectionLimit: 100,
+    debug: true
   });
 
   const entities = [];
@@ -61,21 +61,41 @@ if (mySqlIp !== null && mySqlIp !== undefined) {
   entities.push((require('./utils/orm/entities/captcha.js')).Entity);
   entities.push((require('./utils/orm/entities/game.js')).Entity);
 
-  ormHelper = new(require('./utils/ormHelper.js')).OrmHelper({
-    ip: mySqlIp,
-    user: mySqlUser,
-    password: mySqlPassword,
+  const getOrmHelperInstance = ({
+    ip,
+    user,
+    password,
+    database,
+    mySqlHelper,
+    localEntities,
+    doSync
+  }) => {
+    return new(require('./utils/ormHelper.js')).OrmHelper({
+      ip: ip || mySqlIp,
+      user: user || mySqlUser,
+      password: password || mySqlPassword,
+      database,
+      yourSql: mySqlHelper,
+      entities: localEntities,
+      loadDefaultData: doSync
+    });
+  }
+
+  ormHelper = getOrmHelperInstance({
     database: DEFAULT_SCHEMA,
-    yourSql,
-    entities,
-    loadDefaultData: process.env.LOAD_DEFAULT_DATA || true
+    mySqlHelper: yourSql,
+    localEntities: entities,
+    doSync: process.env.LOAD_DEFAULT_DATA || true
   });
+  ormHelper.getOrmHelperInstance = getOrmHelperInstance;
 
   console.log('LOADING mysql. ');
-  yourSql.createDatabase(DEFAULT_SCHEMA, function() {
+  yourSql.createDatabase(DEFAULT_SCHEMA).then(() => {
+    ormHelper.sync();
+  }).catch((err) => {
+    console.log(err);
     ormHelper.sync();
   });
-
 
 }
 else {
@@ -117,13 +137,13 @@ router.use(bodyParser.json());
 
 const ONE_YEAR_IN_MS = 1000 * 60 * 60 * 24 * 365;
 var setSiteCookie = (req, res, next) => {
-			let cookieValue = req.cookies['ncidence'];
-			if(cookieValue === undefined || cookieValue === null) {
-			  cookieValue = guid.generate(true);
-			}
-			
-			res.cookie('ncidence', cookieValue, { maxAge: ONE_YEAR_IN_MS, httpOnly: true, domain: '.' + tools.DEFAULT_HOST });
-			next();
+  let cookieValue = req.cookies['ncidence'];
+  if (cookieValue === undefined || cookieValue === null) {
+    cookieValue = guid.generate(true);
+  }
+
+  res.cookie('ncidence', cookieValue, { maxAge: ONE_YEAR_IN_MS, httpOnly: true, domain: '.' + tools.DEFAULT_HOST });
+  next();
 };
 router.use(setSiteCookie);
 
@@ -176,16 +196,16 @@ tools.getSubdomain = (host) => {
 tools.getGame = (subdomain) => {
   return new Promise((resolve, reject) => {
     ormHelper.getMap()['game'].model.find({ name: subdomain }, (err, games) => {
-      if(err){
+      if (err) {
         reject(err);
         return;
       }
-      if(!games[0]){
-        resolve({ })
+      if (!games[0]) {
+        resolve({})
         return;
       };
       games[0].getDefinition((err, data) => {
-        if(err){
+        if (err) {
           reject(err);
           return;
         }
@@ -196,21 +216,22 @@ tools.getGame = (subdomain) => {
 }
 
 
-router.use('/', async (req, res, next) => {
+router.use('/', async(req, res, next) => {
   const subdomain = tools.getSubdomain(req.get('host'));
   if (req.url === '/driver' && subdomain !== undefined) {
     var game = await tools.getGame(subdomain);
-    
+
     res.writeHead(200, {
       'Content-Type': 'application/javascript'
     });
-    
-    if(game !== undefined && game.game !== undefined && game.definition.driver !== undefined) {
+
+    if (game !== undefined && game.game !== undefined && game.definition.driver !== undefined) {
       res.end(game.definition.driver);
-    }else {
+    }
+    else {
       res.end('window.location.replace("/");');
     }
-    
+
   }
   else {
     next();
@@ -239,8 +260,8 @@ router.use(express.static(publicdir));
 ////////////////////////////////////////////
 console.log('---Socket IO');
 var jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
-  domain: tools.DEFAULT_HOST, 
-  secretOrKey: JWT_SECRET, 
+  domain: tools.DEFAULT_HOST,
+  secretOrKey: JWT_SECRET,
   expiresIn: SESSION_EXP_SEC,
   useJsonOnLogin: false,
   useJsonOnLogout: false
@@ -254,7 +275,7 @@ jwtCookiePasser.init({
   urlencodedParser,
   userService,
   loginLogoutHooks: socketIOHelper
-  });
+});
 /////////////////////////////////////////
 //END SOCKET IO SETUP & JWT AUTH SETUP///
 /////////////////////////////////////////
@@ -294,7 +315,9 @@ router.get('/api/db', function(req, res) {
 console.log('Define /api/init-db');
 router.get('/api/init-db', function(req, res) {
   try {
-    yourSql.createDatabase(DEFAULT_SCHEMA);
+    yourSql.createDatabase(DEFAULT_SCHEMA).then(() => {}).catch((err) => {
+      console.log(err);
+    });
   }
   catch (ex) {
     res.json(200, {
@@ -558,18 +581,18 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
     //fileService
 
 
-    fs.readFile(files.filetoupload.path, async (err, data) => {
+    fs.readFile(files.filetoupload.path, async(err, data) => {
       if (err) {
         console.log('err loading file: ', err);
         res.redirect('/');
         return;
       }
-      
+
       let game;
       const subdomain = tools.getSubdomain(req.get('host'));
       if (subdomain !== undefined) {
         game = await tools.getGame(subdomain);
-        
+
         fileService.createGameDriver(req.user.id, { name: subdomain, data, game }, function(err) {
           if (err) {
             console.log('err persisting game driver: ', err);
@@ -580,7 +603,8 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
             res.redirect('/play');
           }
         });
-      } else {
+      }
+      else {
         fileService.createFile(req.user.id, { name: files.filetoupload.name, content: data, content_type: 'text/html', game }, function(err) {
           if (err) {
             console.log('err persisting file: ', err);
@@ -591,10 +615,6 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
           res.redirect('/');
         });
       }
-      
-      
-      
-
     });
   });
 });
@@ -605,8 +625,14 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
 
 
 
-
-
+const gameService = new(require('./utils/orm/services/gameService.js')).GameService({ ormHelper, yourSql, debug: true, subEntities: [(require('./utils/orm/entities/gameModels/blah.js')).Entity] });
+router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, function(req, res) {
+  gameService.createGameAndSchema(req.body.game, req.user.id).then(game => {
+    res.redirect(req.protocol + '://' + req.body.game+ '.' + tools.DEFAULT_HOST);
+  }).catch(err => {
+    res.json(500, { err });
+  });
+});
 
 
 

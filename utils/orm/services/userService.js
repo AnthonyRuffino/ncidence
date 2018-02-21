@@ -266,7 +266,7 @@ class UserService {
                 callback(null);
             }
             else {
-                callback(this.getUserForToken(users[0]));
+                callback(this.mapUserForJwtToken(users[0]));
             }
         });
     }

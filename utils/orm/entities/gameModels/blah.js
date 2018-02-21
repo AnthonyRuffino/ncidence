@@ -32,15 +32,6 @@ var helpers = {
 var hasOne = null;
 
 hasOne = [];
-hasOne.push({
-    name: 'user',
-    altName: 'owner',
-    options: {
-        required: true,
-        reverse: 'games',
-        autoFetch: true
-    }
-});
 
 
 ////////////////////////////
@@ -57,15 +48,13 @@ var hasMany = [];
 ////////////////////////////
 var extendsTo = [];
 extendsTo.push({
-    name: 'database',
+    name: 'extension',
     data: {
-        password: {
+        thing: {
             type: "text",
-            size: 254,
-            unique: true,
-            required: true
-        },
-        mb: { type: 'number' }
+            size: 32,
+            required: false
+        }
     }
 });
 
@@ -76,17 +65,13 @@ extendsTo.push({
 var defaultData = [];
 ((defaultData) => {
     defaultData.push({
-        values: {
+        values:{
             id: 1,
             name: 'test',
         },
-        hasOne: {
-            owner: { id: 1 }
-        },
         extendsTo: {
-            database: {
-                password: 'test',
-                mb: 0
+            extension: {
+                thing: 'thingValue'
             }
         }
     });
@@ -99,7 +84,7 @@ var defaultData = [];
 /////////////
 try {
     exports.Entity = {
-        name: 'game',
+        name: 'blah',
         definition: definition,
         helpers: helpers,
         hasOne: hasOne,
@@ -109,5 +94,5 @@ try {
     };
 }
 catch (err) {
-    console.log('Error exporting entity [game]. Error: ' + err);
+    console.log('Error exporting entity [blah]. Error: ' + err);
 }

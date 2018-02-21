@@ -82,6 +82,7 @@ class OrmHelper {
 				
 				const extensions = {};
 				iterate(entity.extendsTo, (extension) => {
+					console.log('crating extension: ' + extension.name);
 					extensions[extension.name] = model.extendsTo(extension.name, extension.data);
 				});
 
