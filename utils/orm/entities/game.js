@@ -1,113 +1,81 @@
-/////////////////////
-//ENTITY DEFINITION//
-/////////////////////
-var definition = {
-    name: {
-        type: "text",
-        size: 64,
-        unique: true,
-        required: true
-    },
-}
+"use strict";
 
-
-/////////////////////
-//ENTITY HELPERS/////
-/////////////////////
-var helpers = {
-    methods: {
-        //userNameAndEmail: function() {
-        //    return this.username + ' (' + this.email + ')';
-        //}
-    },
-    validations: {
-        //age: orm.enforce.ranges.number(0, undefined, "under-age")
-    }
-}
-
-
-////////////////////////////
-//HAS ONE ASSOCIATIONS//////
-////////////////////////////
-var hasOne = null;
-
-hasOne = [];
-hasOne.push({
-    name: 'user',
-    altName: 'owner',
-    options: {
-        required: true,
-        reverse: 'games',
-        autoFetch: true
-    }
-});
-
-
-////////////////////////////
-//HAS MANY ASSOCIATIONS/////
-////////////////////////////
-var hasMany = [];
-
-//var uniqueConstraints = [];
-//uniqueConstraints.push({columns: ['role_id','user_id']});
-
-
-////////////////////////////
-//EXTENDS TO  ASSOCIATIONS//
-////////////////////////////
-var extendsTo = [];
-extendsTo.push({
-    name: 'database',
-    data: {
-        password: {
-            type: "text",
-            size: 254,
-            unique: true,
-            required: true
-        },
-        mb: { type: 'number' }
-    }
-});
-
-
-//////////////////////
-//DEFAULT DATA////////
-//////////////////////
-var defaultData = [];
-((defaultData) => {
-    defaultData.push({
-        values: {
-            id: 1,
-            name: 'test',
-        },
-        hasOne: {
-            owner: { id: 1 }
-        },
-        extendsTo: {
-            database: {
-                password: 'test',
-                mb: 0
+class Game {
+    constructor() {
+        this.name = 'game';
+        
+        this.definition = {
+            name: {
+                type: "text",
+                size: 64,
+                unique: true,
+                required: true
             }
-        }
-    });
-})(defaultData)
-
-
-
-/////////////
-//EXPORTS////
-/////////////
-try {
-    exports.Entity = {
-        name: 'game',
-        definition: definition,
-        helpers: helpers,
-        hasOne: hasOne,
-        hasMany: hasMany,
-        extendsTo: extendsTo,
-        defaultData: defaultData
-    };
+        };
+        
+        this.helpers = {
+            methods: {
+                //userNameAndEmail: function() {
+                //    return this.username + ' (' + this.email + ')';
+                //}
+            },
+            validations: {
+                //age: orm.enforce.ranges.number(0, undefined, "under-age")
+            }
+        };
+        
+        this.hasOne = [];
+        this.hasOne.push({
+            name: 'user',
+            altName: 'owner',
+            options: {
+                required: true,
+                reverse: 'games',
+                autoFetch: true
+            }
+        });
+        
+        this.hasMany = [];
+        
+        //let uniqueConstraints = [];
+        //uniqueConstraints.push({columns: ['role_id','user_id']});
+        
+        
+        this.extendsTo = [];
+        this.extendsTo.push({
+            name: 'database',
+            data: {
+                password: {
+                    type: "text",
+                    size: 254,
+                    unique: true,
+                    required: true
+                },
+                mb: { type: 'number' }
+            }
+        });
+        
+        
+        //////////////////////
+        //DEFAULT DATA////////
+        //////////////////////
+        this.defaultData = [];
+        this.defaultData.push({
+            values: {
+                id: 1,
+                name: 'test',
+            },
+            hasOne: {
+                owner: { id: 1 }
+            },
+            extendsTo: {
+                database: {
+                    password: 'test',
+                    mb: 0
+                }
+            }
+        });
+    }
 }
-catch (err) {
-    console.log('Error exporting entity [game]. Error: ' + err);
-}
+
+module.exports = () => new Game();

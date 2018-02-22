@@ -1,13 +1,14 @@
 "use strict";
 
 class GameService {
-    constructor({ ormHelper, yourSql, debug, subEntities }) {
+    constructor({ ormHelper, yourSql, debug, secrets }) {
         this.ormHelper = ormHelper;
         this.yourSql = yourSql;
         this.debug = debug;
         this.uuidv4 = require('uuid/v4');
         this.gameOrmHelperMap = {};
-        this.subEntities = subEntities;
+        this.subEntityMap = {};
+        this.secrets = secrets;
     }
 
     log(msg, err) {
@@ -83,14 +84,15 @@ class GameService {
     async fetchCachedGameOrmHelper(name, refreshCache) {
         const game = await this.getGame(name, true);
         if (refreshCache || this.gameOrmHelperMap[name] === undefined || this.gameOrmHelperMap[name] === null) {
-            const gameOrmHelper = this.ormHelper.getOrmHelperInstance({
-                user: 'game_' + name,
-                password: game.database.password,
-                database: 'game_' + name,
-                mySqlHelper: null,
-                localEntities: this.subEntities,
-                doSync: false
-            });
+            const gameOrmHelper = require(global.__base + 'utils/ormHelper.js')({
+                  ip: this.secrets.dbHost,
+                  user: 'game_' + name,
+                  password: game.database.password,
+                  database: 'game_' + name,
+                  yourSql: null,
+                  entities: this.subEntityMap[name],
+                  loadDefaultData: false
+                });
             gameOrmHelper.sync();
             this.gameOrmHelperMap[name] = gameOrmHelper;
         }
@@ -124,9 +126,10 @@ class GameService {
     }
 
 
-    createGameAndSchema(name, userId) {
+    createGameAndSchema(name, userId, subEntities) {
         return new Promise(async (resolve, reject) => {
-            try{
+            try {
+                this.subEntityMap[name] = subEntities;
                 this.log(`createGame: ${name}`);
                 const existingGame = await this.getGame(name, false);
                 if (this.objectHasName(existingGame)) {
@@ -144,13 +147,15 @@ class GameService {
         
                 await this.yourSql.createDatabase(userAndSchemaName);
                 this.log(`Schema created: ${userAndSchemaName}`);
-        
-        
-                const ormHelperTemp = this.ormHelper.getOrmHelperInstance({
-                    database: userAndSchemaName,
-                    mySqlHelper: this.yourSql,
-                    localEntities: this.subEntities,
-                    doSync: true
+
+                const ormHelperTemp = require(global.__base + 'utils/ormHelper.js')({
+                  ip: this.secrets.dbHost,
+                  user: this.secrets.dbUser,
+                  password: this.secrets.dbSecret,
+                  database: userAndSchemaName,
+                  yourSql: this.yourSql,
+                  entities: subEntities,
+                  loadDefaultData: true
                 });
         
                 ormHelperTemp.sync();
@@ -171,4 +176,6 @@ class GameService {
     }
 }
 
-exports.GameService = GameService;
+module.exports = function(conf) {
+    return new GameService(conf);
+};

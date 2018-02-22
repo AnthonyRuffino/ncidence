@@ -41,6 +41,6 @@
     "passport-jwt": "^3.0.1",
     "redirect-secure": "^1.0.0",
     "socket.io": "^2.0.4",
-    "your-sql": "^1.0.3"
+    "your-sql": "^1.0.4"
   }
 }

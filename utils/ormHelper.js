@@ -20,37 +20,37 @@ class OrmHelper {
 
 	sync() {
 
-		var entities = this.entities;
-		var database = this.database;
-		var yourSql = this.yourSql;
-		var ip = this.ip;
-		var user = this.user;
-		var map = this.map;
+		let entities = this.entities;
+		let database = this.database;
+		let yourSql = this.yourSql;
+		let ip = this.ip;
+		let user = this.user;
+		let map = this.map;
 
-		var exists = (thing) => {
+		let exists = (thing) => {
 			return thing !== undefined && thing !== null;
-		}
+		};
 
-		var isListy = (list) => {
+		let isListy = (list) => {
 			return exists(list) && list.length > 0;
-		}
-		var iterate = (list, action) => {
+		};
+		let iterate = (list, action) => {
 			if (isListy(list)) {
 				list.forEach(function(item) {
 					action(item);
 				});
 			}
-		}
-		var iterateKeys = (obj, action) => {
+		};
+		let iterateKeys = (obj, action) => {
 			if (exists(obj)) {
-				var keys = Object.keys(obj);
+				let keys = Object.keys(obj);
 				iterate(keys, action);
 			}
-		}
+		};
 		
-		var capFirstLetter = (word) => {
+		let capFirstLetter = (word) => {
 			return word.charAt(0).toUpperCase() + word.slice(1);
-		}
+		};
 
 
 		this.orm.connect("mysql://" + user + ":" + this.password + "@" + ip + "/" + database, (err, db) => {
@@ -60,7 +60,7 @@ class OrmHelper {
 			let hasOneMap = {};
 			entities.forEach(function(entity) {
 				console.log('Defing table: ' + database + "." + entity.name);
-				var model = db.define(entity.name, entity.definition, entity.helpers);
+				let model = db.define(entity.name, entity.definition, entity.helpers);
 
 				iterate(entity.hasOne, (owner) => {
 					if (exists(map[owner.name]) && exists(map[owner.name].model)) {
@@ -90,7 +90,7 @@ class OrmHelper {
 			});
 
 			if(this.loadDefaultData) {
-				console.log('Loading default data...')
+				console.log('Loading default data...');
 			}
 			
 			!this.loadDefaultData ? console.log('Skipping default data loading...') : db.sync(function(err) {
@@ -108,10 +108,10 @@ class OrmHelper {
 
 						if (rows.length > 0) {
 
-							var different = false;
+							let different = false;
 
-							var keys = Object.keys(values);
-							for (var i = 0; i < keys.length; i++) {
+							let keys = Object.keys(values);
+							for (let i = 0; i < keys.length; i++) {
 								if (rows[0][keys[i]] === undefined) {
 									different = true;
 								}
@@ -137,7 +137,7 @@ class OrmHelper {
 							console.log('Creating [' + entity.name + ']: ' + values.id);
 							let hasMany = defaultDatum.hasMany;
 							let extendsTo = defaultDatum.extendsTo;
-							var createEntity = (modelValues) => {
+							let createEntity = (modelValues) => {
 								map[entity.name].model.create(modelValues, function(err, createdEntity) {
 									if (err) {
 										console.log('Error: ' + err);
@@ -175,18 +175,18 @@ class OrmHelper {
 										});
 									});
 								});
-							}
+							};
 							
 							
 							let hasOne = defaultDatum.hasOne;
-							var processHasOnes = async function(getHasOneData) {
-								var hasOneKeys = Object.keys(hasOne);
+							let processHasOnes = async function(getHasOneData) {
+								let hasOneKeys = Object.keys(hasOne);
 								if (exists(hasOneKeys)) {
-									for (var i = 0; i < hasOneKeys.length; i++) {
+									for (let i = 0; i < hasOneKeys.length; i++) {
 										
 										let hasOneKey = hasOneKeys[i];
 										try {
-											var promiseData = await getHasOneData(hasOne[hasOneKey].id, hasOneMap[hasOneKey]);
+											let promiseData = await getHasOneData(hasOne[hasOneKey].id, hasOneMap[hasOneKey]);
 											values[hasOneKey] = promiseData;
 											values[hasOneKey + '_id'] = promiseData.id;
 										}
@@ -196,7 +196,7 @@ class OrmHelper {
 									}
 								}
 								createEntity(values);
-							}
+							};
 							
 							if (exists(hasOne)) {
 								processHasOnes((id, model) => {
@@ -215,7 +215,7 @@ class OrmHelper {
 
 						}
 					});
-				}
+				};
 
 				iterate(entities, function(entity) {
 					iterate(entity.defaultData, (defaultDatum) => {
@@ -256,9 +256,6 @@ class OrmHelper {
 }
 
 
-try {
-	exports.OrmHelper = OrmHelper;
-}
-catch (err) {
-
-}
+module.exports = function(conf) {
+	return new OrmHelper(conf);
+};

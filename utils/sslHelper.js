@@ -8,19 +8,19 @@ class SSLHelper {
   }
   
   configure(router) {
-  	  var https = this.https;
+  	  let https = this.https;
 	  console.log("Begin HTTPS server setup.");
 	  if(https != undefined && https != null){
-		  var sslKeyFile = process.env.sslKeyFile || './ssl/domain-key.pem';
+		  let sslKeyFile = process.env.sslKeyFile || './ssl/domain-key.pem';
 	       console.log('sslKeyFile: ' + sslKeyFile);
 	       
-	       var sslDomainCertFile = process.env.sslDomainCertFile || './ssl/domain.org.crt';
+	       let sslDomainCertFile = process.env.sslDomainCertFile || './ssl/domain.org.crt';
 	       console.log('sslDomainCertFile: ' + sslDomainCertFile);
 	       
-	       var sslCaBundleFile = process.env.ssCaBundleFile || './ssl/bundle.crt';
+	       let sslCaBundleFile = process.env.ssCaBundleFile || './ssl/bundle.crt';
 	       console.log('sslCaBundleFile: ' + sslCaBundleFile);
 	       
-	       var certFileEncoding = 'utf8';
+	       let certFileEncoding = 'utf8';
 	       
 	       if (this.fs.existsSync(sslKeyFile) === false) {
 	           console.log('sslKeyFile  was not found!');
@@ -28,7 +28,7 @@ class SSLHelper {
 	           console.log('sslDomainCertFile  was not found!');
 	       }
 	       else{
-	           var ssl = {
+	           let ssl = {
 	                key: this.fs.readFileSync(sslKeyFile, certFileEncoding),
 	                cert: this.fs.readFileSync(sslDomainCertFile, certFileEncoding)
 	            };
@@ -36,7 +36,7 @@ class SSLHelper {
 	            if (this.fs.existsSync(sslCaBundleFile)) {
 	                console.log('sslCaBundleFile found.');
 	                
-	                var ca, cert, chain, line, _i, _len;
+	                let ca, cert, chain, line, _i, _len;
 	            
 	                ca = [];
 	            
@@ -72,9 +72,6 @@ class SSLHelper {
 	}
 }
 
-try {
-    exports.SSLHelper = SSLHelper;
-}
-catch(err) {
-    
+module.exports = function(fs) {
+	return new SSLHelper(fs);
 }

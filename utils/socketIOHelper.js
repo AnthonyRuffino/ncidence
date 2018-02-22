@@ -2,7 +2,7 @@
 "use strict";
 
 class SocketIOHelper {
-	constructor(server, tokenUtil, {getSubdomain, getGame}) {
+	constructor(server, tokenUtil) {
 		this.messages = {};
 		this.sockets = [];
 		this.socketNcidenceCookieMap = {};
@@ -11,13 +11,13 @@ class SocketIOHelper {
 		this.subdomainInfoMap = {};
 
 
-		var socketio = require('socket.io');
+		let socketio = require('socket.io');
 		this.io = socketio.listen(server);
 		this.async = require('async');
 		this.cookie = require('cookie');
 		this.tokenUtil = tokenUtil;
-		this.getSubdomain = getSubdomain;
-		this.getGame = getGame;
+		this.getSubdomain = global.__getSubdomain;
+		this.getGame = global.__getGame;
 	}
 	
 	
@@ -107,13 +107,13 @@ class SocketIOHelper {
 			socket.emit('connected', subDomainInfo);
 
 			//SET USER INFO
-			var setUserInfo = (socket) => {
+			let setUserInfo = (socket) => {
 				if (socket.loggedOut) {
 					socket.name = 'Anonymous';
 				}
 				else {
-					var token = socket.token ? socket.token : this.tokenUtil.getTokenFromCookies(cookies);
-					var user = token ? this.tokenUtil.verifyToken(token) : null;
+					let token = socket.token ? socket.token : this.tokenUtil.getTokenFromCookies(cookies);
+					let user = token ? this.tokenUtil.verifyToken(token) : null;
 					socket.name = String((user ? user.username : null) || 'Anonymous');
 					if (!user) {
 						this.updateRoster(socket);
@@ -147,12 +147,12 @@ class SocketIOHelper {
 
 			socket.on('message', (msg) => {
 				setUserInfo(socket);
-				var text = String(msg || '');
+				let text = String(msg || '');
 
 				if (!text)
 					return;
 
-				var data = {
+				let data = {
 					name: socket.name,
 					text: text
 				};
@@ -166,9 +166,6 @@ class SocketIOHelper {
 	}
 }
 
-try {
-	exports.SocketIOHelper = SocketIOHelper;
-}
-catch (err) {
-
+module.exports = function(server, tokenUtil){
+	return new SocketIOHelper(server, tokenUtil);
 }

@@ -18,8 +18,8 @@ class FileService {
         }
         else {
             console.log('creating new game: ' + name);
-            var ormHelper = this.ormHelper;
-            var gameORM = ormHelper.getMap()['game'];
+            let ormHelper = this.ormHelper;
+            let gameORM = ormHelper.getMap()['game'];
 
             gameORM.model.create({ name: name, owner_id: userId }, function(err, createdGame) {
                 if (err) {
@@ -42,17 +42,17 @@ class FileService {
 
     createFile(userId, file, callback) {
 
-        var ormHelper = this.ormHelper;
+        let ormHelper = this.ormHelper;
 
-        var fileModel = ormHelper.getMap()['file'].model;
+        let fileModel = ormHelper.getMap()['file'].model;
 
-        var fileData = {
+        let fileData = {
             name: file.name,
             content_type: file.content_type,
             content: file.content,
             last_modified: new Date(),
             user_id: userId
-        }
+        };
 
 
         fileModel.find({
@@ -74,9 +74,6 @@ class FileService {
     }
 }
 
-try {
-    exports.FileService = FileService;
-}
-catch (err) {
-
-}
+module.exports = function(ormHelper) {
+    return new FileService(ormHelper);
+};

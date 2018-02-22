@@ -1,258 +1,237 @@
-/////////////////////
-//ENTITY DEFINITION//
-/////////////////////
-var definition = {
-    email: {
-        type: "text",
-        size: 254,
-        unique: true,
-        required: true
-    },
-    password: {
-        type: "text",
-        size: 254,
-        required: true
-    },
-    is_locked: {
-        type: "boolean",
-        defaultValue: false,
-        required: true
-    },
-    is_confirmed: {
-        type: "boolean",
-        defaultValue: false,
-        required: true
-    },
-    login_attempts_since_last_success: {
-        type: "integer",
-        size: 2,
-        defaultValue: 0,
-        required: true
-    },
-    last_login_time: {
-        type: "date",
-        time: true
-    },
-    status: {
-        type: "enum",
-        values: ["Client", "User", "Rep", "Admin"],
-        required: true
-    },
-    signup_time: {
-        type: "date",
-        time: true,
-        required: true
-    },
-    lock_date: {
-        type: "date",
-        time: true,
-        required: false
-    }
-}
+"use strict";
 
-
-/////////////////////
-//ENTITY HELPERS/////
-/////////////////////
-var helpers = {
-    methods: {
-        //userNameAndEmail: function() {
-        //    return this.username + ' (' + this.email + ')';
-        //}
-    },
-    validations: {
-        //age: orm.enforce.ranges.number(0, undefined, "under-age")
-    }
-}
-
-
-////////////////////////////
-//HAS ONE ASSOCIATIONS//////
-////////////////////////////
-var hasOne = null;
-/*
-hasOne = [];
-hasOne.push({
-    name: 'role',
-    options: {
-        required: false,
-        reverse: 'users',
-        autoFetch : true
-    }
-});
-*/
-
-
-////////////////////////////
-//HAS MANY ASSOCIATIONS/////
-////////////////////////////
-var hasMany = [];
-hasMany.push({
-    name: 'role',
-    desc: 'role',
-    options: {
-        reverse: 'users',
-        key: true,
-        accessor: 'Roles'
-    },
-    meta: {
-        why: String,
-        num: {
-            type: 'integer',
-            size: 2,
-            defaultValue: 0
-        }
-    }
-});
-
-//var uniqueConstraints = [];
-//uniqueConstraints.push({columns: ['role_id','user_id']});
-
-
-////////////////////////////
-//EXTENDS TO  ASSOCIATIONS//
-////////////////////////////
-var extendsTo = [];
-extendsTo.push({
-    name: 'verification',
-    data: {
-        street: String,
-        number: Number
-    }
-});
-
-
-//////////////////////
-//DEFAULT DATA////////
-//////////////////////
-var defaultData = [];
-((defaultData) => {
-    const bcrypt = require('bcrypt-nodejs');
-    defaultData.push({
-        values:{
-            id: 1,
-            email: 'admin',
-            password: bcrypt.hashSync('admin', bcrypt.genSaltSync(8), null),
-            is_locked: false,
-            is_confirmed: true,
-            login_attempts_since_last_success: 0,
-            last_login_time: new Date(),
-            status: 'Admin',
-            signup_time: new Date(),
-            lock_date: null
-        },
-        hasMany: {
-            role: [
-                {
+class User {
+    constructor() {
+        this.name = 'user';
+        
+        this.definition = {
+            email: {
+                type: "text",
+                size: 254,
+                unique: true,
+                required: true
+            },
+            password: {
+                type: "text",
+                size: 254,
+                required: true
+            },
+            is_locked: {
+                type: "boolean",
+                defaultValue: false,
+                required: true
+            },
+            is_confirmed: {
+                type: "boolean",
+                defaultValue: false,
+                required: true
+            },
+            login_attempts_since_last_success: {
+                type: "integer",
+                size: 2,
+                defaultValue: 0,
+                required: true
+            },
+            last_login_time: {
+                type: "date",
+                time: true
+            },
+            status: {
+                type: "enum",
+                values: ["Client", "User", "Rep", "Admin"],
+                required: true
+            },
+            signup_time: {
+                type: "date",
+                time: true,
+                required: true
+            },
+            lock_date: {
+                type: "date",
+                time: true,
+                required: false
+            }
+        };
+        
+        
+        /////////////////////
+        //ENTITY HELPERS/////
+        /////////////////////
+        this.helpers = {
+            methods: {
+                //userNameAndEmail: function() {
+                //    return this.username + ' (' + this.email + ')';
+                //}
+            },
+            validations: {
+                //age: orm.enforce.ranges.number(0, undefined, "under-age")
+            }
+        };
+        
+        this.hasOne = null;
+        /*
+        this.hasOne = [];
+        this.hasOne.push({
+            name: 'role',
+            options: {
+                required: false,
+                reverse: 'users',
+                autoFetch : true
+            }
+        });
+        */
+        
+        this.hasMany = [];
+        this.hasMany.push({
+            name: 'role',
+            desc: 'role',
+            options: {
+                reverse: 'users',
+                key: true,
+                accessor: 'Roles'
+            },
+            meta: {
+                why: String,
+                num: {
+                    type: 'integer',
+                    size: 2,
+                    defaultValue: 0
+                }
+            }
+        });
+        
+        //this.uniqueConstraints = [];
+        //this.uniqueConstraints.push({columns: ['role_id','user_id']});
+        
+        
+        ////////////////////////////
+        //EXTENDS TO  ASSOCIATIONS//
+        ////////////////////////////
+        this.extendsTo = [];
+        this.extendsTo.push({
+            name: 'verification',
+            data: {
+                street: String,
+                number: Number
+            }
+        });
+        
+        
+        //////////////////////
+        //DEFAULT DATA////////
+        //////////////////////
+        this.defaultData = [];
+        ((defaultData) => {
+            const bcrypt = require('bcrypt-nodejs');
+            defaultData.push({
+                values:{
                     id: 1,
-                    meta: {
-                        why: 'I made this',
-                        num: 1
-                    }
+                    email: 'admin',
+                    password: bcrypt.hashSync('admin', bcrypt.genSaltSync(8), null),
+                    is_locked: false,
+                    is_confirmed: true,
+                    login_attempts_since_last_success: 0,
+                    last_login_time: new Date(),
+                    status: 'Admin',
+                    signup_time: new Date(),
+                    lock_date: null
                 },
-                {
-                    id: 2,
-                    meta: {
-                        why: 'I earned this',
-                        num: 2
-                    }
+                hasMany: {
+                    role: [
+                        {
+                            id: 1,
+                            meta: {
+                                why: 'I made this',
+                                num: 1
+                            }
+                        },
+                        {
+                            id: 2,
+                            meta: {
+                                why: 'I earned this',
+                                num: 2
+                            }
+                        }
+                    ]
                 }
-            ]
-        }
-    });
-    defaultData.push({
-        values:{
-            id: 2,
-            email: 'rep',
-            password: bcrypt.hashSync('rep', bcrypt.genSaltSync(8), null),
-            is_locked: false,
-            is_confirmed: true,
-            login_attempts_since_last_success: 0,
-            last_login_time: new Date(),
-            status: 'Rep',
-            signup_time: new Date(),
-            lock_date: null
-        },
-        hasMany: {
-            role: [
-                {
+            });
+            defaultData.push({
+                values:{
                     id: 2,
-                    meta: {
-                        why: 'Admin likes me',
-                        num: 3
-                    }
+                    email: 'rep',
+                    password: bcrypt.hashSync('rep', bcrypt.genSaltSync(8), null),
+                    is_locked: false,
+                    is_confirmed: true,
+                    login_attempts_since_last_success: 0,
+                    last_login_time: new Date(),
+                    status: 'Rep',
+                    signup_time: new Date(),
+                    lock_date: null
+                },
+                hasMany: {
+                    role: [
+                        {
+                            id: 2,
+                            meta: {
+                                why: 'Admin likes me',
+                                num: 3
+                            }
+                        }
+                    ]
                 }
-            ]
-        }
-    });
-    defaultData.push({
-        values:{
-            id: 3,
-            email: 'user',
-            password: bcrypt.hashSync('user', bcrypt.genSaltSync(8), null),
-            is_locked: false,
-            is_confirmed: true,
-            login_attempts_since_last_success: 0,
-            last_login_time: new Date(),
-            status: 'User',
-            signup_time: new Date(),
-            lock_date: null
-        },
-        hasMany: {
-            role: [
-                {
+            });
+            defaultData.push({
+                values:{
                     id: 3,
-                    meta: {
-                        why: 'I singed up',
-                        num: 66
-                    }
+                    email: 'user',
+                    password: bcrypt.hashSync('user', bcrypt.genSaltSync(8), null),
+                    is_locked: false,
+                    is_confirmed: true,
+                    login_attempts_since_last_success: 0,
+                    last_login_time: new Date(),
+                    status: 'User',
+                    signup_time: new Date(),
+                    lock_date: null
+                },
+                hasMany: {
+                    role: [
+                        {
+                            id: 3,
+                            meta: {
+                                why: 'I singed up',
+                                num: 66
+                            }
+                        }
+                    ]
                 }
-            ]
-        }
-    });
-    defaultData.push({
-        values:{
-            id: 4,
-            email: 'client',
-            password: bcrypt.hashSync('client', bcrypt.genSaltSync(8), null),
-            is_locked: false,
-            is_confirmed: true,
-            login_attempts_since_last_success: 0,
-            last_login_time: new Date(),
-            status: 'Client',
-            signup_time: new Date(),
-            lock_date: null
-        },
-        hasMany: {
-            role: [
-                {
+            });
+            defaultData.push({
+                values:{
                     id: 4,
-                    meta: {
-                        why: 'I paid with bit coin',
-                        num: 999
-                    }
+                    email: 'client',
+                    password: bcrypt.hashSync('client', bcrypt.genSaltSync(8), null),
+                    is_locked: false,
+                    is_confirmed: true,
+                    login_attempts_since_last_success: 0,
+                    last_login_time: new Date(),
+                    status: 'Client',
+                    signup_time: new Date(),
+                    lock_date: null
+                },
+                hasMany: {
+                    role: [
+                        {
+                            id: 4,
+                            meta: {
+                                why: 'I paid with bit coin',
+                                num: 999
+                            }
+                        }
+                    ]
                 }
-            ]
-        }
-    });
-})(defaultData)
-
-
-
-/////////////
-//EXPORTS////
-/////////////
-try {
-    exports.Entity = {
-        name: 'user',
-        definition: definition,
-        helpers: helpers,
-        hasOne: hasOne,
-        hasMany: hasMany,
-        extendsTo: extendsTo,
-        defaultData: defaultData
-    };
+            });
+        })(this.defaultData);
+    }
 }
-catch (err) {
-    console.log('Error exporting entity [user]. Error: ' + err);
-}
+
+module.exports = () => new User();

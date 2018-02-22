@@ -3,14 +3,14 @@
 class UserService {
     constructor(ormHelper) {
         
-        var sesAccessKeyId = process.env.SES_ACCESS_KEY_ID || null;
-        var sesSecretAccessKey = process.env.SES_SECRET_ACCESS_KEY || null;
-        var sesRegion = process.env.SES_REGION || 'us-east-1';
+        let sesAccessKeyId = process.env.SES_ACCESS_KEY_ID || null;
+        let sesSecretAccessKey = process.env.SES_SECRET_ACCESS_KEY || null;
+        let sesRegion = process.env.SES_REGION || 'us-east-1';
         
         
         this.ormHelper = ormHelper;
         this.bcrypt = require('bcrypt-nodejs');
-        this.guid = require(global.__base + 'utils/guid.js');
+        this.uuidv4 = require('uuid/v4');
         this.transport = require('nodemailer').createTransport({
             transport: 'ses', // loads nodemailer-ses-transport
             accessKeyId: sesAccessKeyId,
@@ -18,7 +18,7 @@ class UserService {
             region: sesRegion
         });
         
-        var template = require(global.__base + 'utils/htmlTemplates/signupTemplate.js');
+        let template = require(global.__base + 'utils/htmlTemplates/signupTemplate.js');
         this.templateTranport = this.transport.templateSender({
             subject: 'Confirm account at {{serviceName}}',
             text: template.text,
@@ -31,12 +31,12 @@ class UserService {
     }
     
     validateEmail(email) {
-        var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        let re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         return re.test(email);
     }
     
     getInvalidInputMessage(email, password, password2, captchaAnswer, captchaId) {
-        var invalidInputMessage = null;
+        let invalidInputMessage = null;
         if(email === undefined || email == null || email.length < 1){
             invalidInputMessage = 'email required';
         }else if(!this.validateEmail(email)){
@@ -58,20 +58,20 @@ class UserService {
 
     createUser(req, res) {
 
-        var ormHelper = this.ormHelper;
+        let ormHelper = this.ormHelper;
 
-        var userModel = ormHelper.getMap()['user'].model;
-        var email = req.query.email !== undefined && req.query.email !== null ? req.query.email.toLowerCase() : null;
-        var password = req.query.password;
-        var password2 = req.query.password2;
-        var captchaAnswer = req.query.captchaAnswer;
-        var captchaId = req.query.captchaId;
-        var bcrypt = this.bcrypt;
-        var guid = this.guid;
-        var templateTranport = this.templateTranport;
+        let userModel = ormHelper.getMap()['user'].model;
+        let email = req.query.email !== undefined && req.query.email !== null ? req.query.email.toLowerCase() : null;
+        let password = req.query.password;
+        let password2 = req.query.password2;
+        let captchaAnswer = req.query.captchaAnswer;
+        let captchaId = req.query.captchaId;
+        let bcrypt = this.bcrypt;
+        let uuidv4 = this.uuidv4;
+        let templateTranport = this.templateTranport;
 
 
-        var finalCallBack = function(err, info, user) {
+        let finalCallBack = function(err, info, user) {
             if (err) {
                 res.json(200, {
                     err: 'issue sending the verification token: ' + err
@@ -84,7 +84,7 @@ class UserService {
             }
         }
 
-        var createTokenCallback = function(err, user, tokenVal) {
+        let createTokenCallback = function(err, user, tokenVal) {
             if (err) {
                 res.json(500, {
                     err: 'issue creating verification token: ' + err
@@ -101,9 +101,9 @@ class UserService {
                     finalCallBack(err, info, user);
                 });
             }
-        }
+        };
 
-        var findUserPostCreationCallback = function(err, users, email) {
+        let findUserPostCreationCallback = function(err, users, email) {
             if (err) throw err;
 
             if (users.length < 1 || users[0] === undefined || users[0] === null) {
@@ -112,8 +112,8 @@ class UserService {
                 });
             }
             else {
-                var tokenVal = guid.generate(true, 2);
-                var tokenModel = ormHelper.getMap()['token'].model;
+                let tokenVal = uuidv4().substring(0, 13);
+                let tokenModel = ormHelper.getMap()['token'].model;
                 tokenModel.create({
                     val: tokenVal,
                     expriration_date: new Date(),
@@ -124,9 +124,9 @@ class UserService {
                     createTokenCallback(err, users[0], tokenVal);
                 });
             }
-        }
+        };
 
-        var createUserCallback = function(err) {
+        let createUserCallback = function(err) {
             if (err) {
                 res.json(500, {
                     err: 'unable to create.' + err
@@ -139,9 +139,9 @@ class UserService {
                     findUserPostCreationCallback(err, users, email);
                 });
             }
-        }
+        };
 
-        var emailLookupPreCreateCallback = function(err, exists, email, roles) {
+        let emailLookupPreCreateCallback = function(err, exists, email, roles) {
             if (err) {
                 res.json(500, {
                     err: 'unable to create.' + err
@@ -153,21 +153,21 @@ class UserService {
                 });
             }
             else {
-                var userData = {
+                let userData = {
                     email: email,
                     password: bcrypt.hashSync(password, bcrypt.genSaltSync(8), null),
                     status: "User",
                     signup_time: new Date(),
                     role: roles[0]
-                }
+                };
 
                 userModel.create(userData, function(err) {
                     createUserCallback(err);
                 });
             }
-        }
+        };
 
-        var findRoleCallback = function(err, roles) {
+        let findRoleCallback = function(err, roles) {
             if (err) throw err;
 
             if (roles.length < 1 || roles[0] === null) {
@@ -182,9 +182,9 @@ class UserService {
                     emailLookupPreCreateCallback(err, exists, email, roles);
                 });
             }
-        }
+        };
         
-        var findCaptchaCallback = function(err, captchas) {
+        let findCaptchaCallback = function(err, captchas) {
             if (err) throw err;
 
             if (captchas.length < 1 || captchas[0] === null) {
@@ -194,8 +194,8 @@ class UserService {
             }
             else {
                 
-                var captchaIsInvalidValidMessage = null;
-                var captchaNeedsUpdate = true;
+                let captchaIsInvalidValidMessage = null;
+                let captchaNeedsUpdate = true;
                 if(captchas[0].is_used === true){
                     captchaIsInvalidValidMessage = 'captcha has already been used';
                     captchaNeedsUpdate = false;
@@ -235,9 +235,9 @@ class UserService {
                     });
                 }
             }
-        }
+        };
         
-        var invlaidInputMessage = this.getInvalidInputMessage(email, password, password2, captchaAnswer, captchaId);
+        let invlaidInputMessage = this.getInvalidInputMessage(email, password, password2, captchaAnswer, captchaId);
         if(invlaidInputMessage !== undefined && invlaidInputMessage !== null){
             res.json(500, {
                 err: invlaidInputMessage
@@ -254,8 +254,8 @@ class UserService {
     }
     
     getUserById(id, callback) {
-        var ormHelper = this.ormHelper;
-        var userModel = ormHelper.getMap()['user'].model;
+        let ormHelper = this.ormHelper;
+        let userModel = ormHelper.getMap()['user'].model;
             
         userModel.find({
             id: id
@@ -277,10 +277,10 @@ class UserService {
         }else if(password === undefined || password === null || password.length < 1){
             callback('password is required');
         }else{
-            var ormHelper = this.ormHelper;
-            var bcrypt = this.bcrypt;
-            var invalidMessage = 'username or password not valid';
-            var userModel = ormHelper.getMap()['user'].model;
+            let ormHelper = this.ormHelper;
+            let bcrypt = this.bcrypt;
+            let invalidMessage = 'username or password not valid';
+            let userModel = ormHelper.getMap()['user'].model;
             
             userModel.find({
                 email: email
@@ -291,7 +291,7 @@ class UserService {
                     callback(invalidMessage + '!');
                 }
                 else {
-                    var authenticated = bcrypt.compareSync(password, users[0].password);
+                    let authenticated = bcrypt.compareSync(password, users[0].password);
                     if (authenticated) {
                         callback(null, users[0] );
                     }
@@ -304,9 +304,6 @@ class UserService {
     }
 }
 
-try {
-    exports.UserService = UserService;
-}
-catch (err) {
-
-}
+module.exports = function(ormHelper) {
+    return new UserService(ormHelper);
+};

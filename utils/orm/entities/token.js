@@ -1,95 +1,74 @@
-/////////////////////
-//ENTITY DEFINITION//
-/////////////////////
-var definition = {
-    val: {
-        type: "text",
-        size: 254,
-        unique: true,
-        required: true
-    },
-    expriration_date: {
-        type: "date",
-        time: true,
-        required: true
-    },
-    type: {
-        type: "enum",
-        values: ["Signup", "Session"],
-        required: true
-    },
-    client: {
-        type: "enum",
-        values: ["Browser", "App", "Other"],
-        required: true
-    }
-}
+"use strict";
 
-
-/////////////////////
-//ENTITY HELPERS/////
-/////////////////////
-var helpers = {
-    methods: {
-
-    },
-    validations: {
+class Token {
+    constructor() {
+        this.name = 'token';
         
+        this.definition = {
+            val: {
+                type: "text",
+                size: 254,
+                unique: true,
+                required: true
+            },
+            expriration_date: {
+                type: "date",
+                time: true,
+                required: true
+            },
+            type: {
+                type: "enum",
+                values: ["Signup", "Session"],
+                required: true
+            },
+            client: {
+                type: "enum",
+                values: ["Browser", "App", "Other"],
+                required: true
+            }
+        };
+        
+        this.helpers = {
+            methods: {
+        
+            },
+            validations: {
+                
+            }
+        };
+        
+        this.hasOne = [];
+        this.hasOne.push({
+            name: 'user',
+            options: {
+                required: false,
+                reverse: 'tokens'
+            }
+        });
+        
+        this.hasMany = [];
+        this.hasMany.push({
+        
+        });
+        
+        this.extendsTo = [];
+        this.extendsTo.push({
+        
+        });
+        
+        this.hasMany = null;
+        this.extendsTo = null;
+        this.defaultData = null;
+        
+        
+        //////////////////////
+        //DEFAULT DATA////////
+        //////////////////////
+        this.defaultData = [];
+        
+        
+    
     }
 }
 
-
-////////////////////////////
-//HAS ONE ASSOCIATIONS//////
-////////////////////////////
-var hasOne = [];
-hasOne.push({
-    name: 'user',
-    options: {
-        required: false,
-        reverse: 'tokens'
-    }
-});
-
-
-////////////////////////////
-//HAS MANY ASSOCIATIONS/////
-////////////////////////////
-var hasMany = [];
-hasMany.push({
-
-});
-
-
-////////////////////////////
-//EXTENDS TO  ASSOCIATIONS//
-////////////////////////////
-var extendsTo = [];
-extendsTo.push({
-
-});
-
-
-//////////////////////
-//DEFAULT DATA////////
-//////////////////////
-var defaultData = [];
-
-
-/////////////
-//EXPORTS////
-/////////////
-try {
-    exports.Entity = {
-        name: 'token',
-        definition: definition,
-        helpers: helpers,
-        hasOne: hasOne,
-        hasMany: null,
-        extendsTo: null,
-        defaultData: null
-    };
-}
-catch (err) {
-    console.log('Error exporting entity [token]. Error: ' + err);
-}
+module.exports = () => new Token();

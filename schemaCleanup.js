@@ -1,6 +1,6 @@
 var argv = require('minimist')(process.argv.slice(2));
 
-let yourSql = new(require('your-sql')).YourSql();
+let yourSql = require('your-sql')();
 
 let mySqlIp = argv.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 let mySqlUser = argv.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';

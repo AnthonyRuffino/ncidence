@@ -6,123 +6,44 @@ console.log('..........................................................');
 console.log('..........................................................');
 console.log('..........................................................');
 
+String.prototype.replaceAll = function(search, replacement) {
+  let target = this;
+  return target.split(search).join(replacement);
+};
 
-const tools = {};
-
-
-let DEFAULT_SCHEMA = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
+//GLOBALS
+global.__schema = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
+global.__host = global.__schema.replaceAll('__', '-').replaceAll('_', '.');
 global.__base = __dirname + '/';
-let publicdir = __dirname + '/client';
+global.__publicdir = __dirname + '/client';
+global.__sessionExpiration = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
+global.__QUERY_ROWS_LIMIT = 10000;
+global.__CAPTCHA_EXP_IN_MINUTES = 5;
 
+
+//SECRETS
+const SECRETS = {
+  jwtSecret: process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp',
+  dbUser: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
+  dbSecret: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb',
+  dbHost: process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost'
+};
+
+
+//REQUIRES
 let http = require('http');
 let express = require('express');
-
 let fs = require('fs');
-
-let guid = require('./utils/guid.js');
-
-
-
-
-let SESSION_EXP_SEC = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
-let JWT_SECRET = process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp';
-
-let QUERY_ROWS_LIMIT = 10000;
-let CAPTCHA_EXP_IN_MINUTES = 5;
+let uuidv4 = require('uuid/v4');
+let yourSql = require('your-sql')();
+let formidable = require('formidable');
+let captchapng = require('captchapng');
 
 
-//////////////////////
-//BEGIN MYSQL CONFIG
-//////////////////////
-let yourSql = new(require('your-sql')).YourSql();
-let ormHelper = null;
-let mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
-let mySqlUser = process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
-let mySqlPassword = process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
-
-
-
-//START To Default Host Database.  Connect to 'mysql' schema first
-if (mySqlIp !== null && mySqlIp !== undefined) {
-  yourSql.init({
-    host: mySqlIp,
-    user: mySqlUser,
-    password: mySqlPassword,
-    database: 'mysql',
-    connectionLimit: 100,
-    debug: true
-  });
-
-  const entities = [];
-  entities.push((require('./utils/orm/entities/role.js')).Entity);
-  entities.push((require('./utils/orm/entities/user.js')).Entity);
-  entities.push((require('./utils/orm/entities/file.js')).Entity);
-  entities.push((require('./utils/orm/entities/token.js')).Entity);
-  entities.push((require('./utils/orm/entities/captcha.js')).Entity);
-  entities.push((require('./utils/orm/entities/game.js')).Entity);
-
-  const getOrmHelperInstance = ({
-    ip,
-    user,
-    password,
-    database,
-    mySqlHelper,
-    localEntities,
-    doSync
-  }) => {
-    return new(require('./utils/ormHelper.js')).OrmHelper({
-      ip: ip || mySqlIp,
-      user: user || mySqlUser,
-      password: password || mySqlPassword,
-      database,
-      yourSql: mySqlHelper,
-      entities: localEntities,
-      loadDefaultData: doSync
-    });
-  }
-
-  ormHelper = getOrmHelperInstance({
-    database: DEFAULT_SCHEMA,
-    mySqlHelper: yourSql,
-    localEntities: entities,
-    doSync: process.env.LOAD_DEFAULT_DATA || true
-  });
-  ormHelper.getOrmHelperInstance = getOrmHelperInstance;
-
-  console.log('LOADING mysql. ');
-  yourSql.createDatabase(DEFAULT_SCHEMA).then(() => {
-    ormHelper.sync();
-  }).catch((err) => {
-    console.log(err);
-    ormHelper.sync();
-  });
-
-}
-else {
-  console.log('mysql NOT LOADED.');
-}
-
-
-
-let userService = new(require('./utils/orm/services/userService.js')).UserService(ormHelper);
-//////////////////////
-//END MYSQL CONFIG
-//////////////////////
-
-
-
-//
-// ## SimpleServer `SimpleServer(obj)`
-//
-// Creates a new instance of SimpleServer with the following options:
-//  * `port` - The HTTP port to listen on. If `process.env.PORT` is set, _it overrides this value_.
-//
+//ROUTER AND SERVER
 console.log('Configure Router');
 let router = express();
 let server = http.createServer(router);
-let secureServer = null;
-
-
 
 
 //COOKIE PARSER
@@ -134,66 +55,81 @@ let bodyParser = require('body-parser');
 let urlencodedParser = bodyParser.urlencoded({ extended: false });
 router.use(bodyParser.json());
 
+//HOST COOKIE
+router.use(require('./utils/middleware/hostCookie.js')('ncidence', (1000 * 60 * 60 * 24 * 365)));
 
-const ONE_YEAR_IN_MS = 1000 * 60 * 60 * 24 * 365;
-let setSiteCookie = (req, res, next) => {
-  let cookieValue = req.cookies['ncidence'];
-  if (cookieValue === undefined || cookieValue === null) {
-    cookieValue = guid.generate(true);
-  }
-
-  res.cookie('ncidence', cookieValue, { maxAge: ONE_YEAR_IN_MS, httpOnly: true, domain: '.' + tools.DEFAULT_HOST });
-  next();
-};
-router.use(setSiteCookie);
+//SECURE SERVER
+const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
 
 
+router.use(require('no-extension')(global.__publicdir));
+router.use(express.static(global.__publicdir));
 
 
 
 //////////////////////
-//BEGIN HTTPS CONFIG
+//BEGIN MYSQL CONFIG
 //////////////////////
-let useHttps = false;
-let secureServerErr = null;
+yourSql.init({
+  host: SECRETS.dbHost,
+  user: SECRETS.dbUser,
+  password: SECRETS.dbSecret,
+  database: 'mysql',
+  connectionLimit: 100,
+  debug: true
+});
 
-if (process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null) {
-  console.log('Using SSL.');
-  let sslHelper = new(require('./utils/sslHelper.js')).SSLHelper(fs);
-  try {
-    secureServer = sslHelper.configure(router);
-  }
-  catch (err) {
-    secureServer = null;
-    secureServerErr = "Err1: " + err;
-    console.log('Error creating https server: ' + err);
-  }
-  useHttps = secureServer !== null;
-}
-else {
-  console.log('Not using SSL.');
-}
+const entities = [];
+entities.push(require('./utils/orm/entities/role.js')());
+entities.push(require('./utils/orm/entities/user.js')());
+entities.push(require('./utils/orm/entities/file.js')());
+entities.push(require('./utils/orm/entities/token.js')());
+entities.push(require('./utils/orm/entities/captcha.js')());
+entities.push(require('./utils/orm/entities/game.js')());
+
+const ormHelper = require('./utils/ormHelper.js')({
+    ip: SECRETS.dbHost,
+    user: SECRETS.dbUser,
+    password: SECRETS.dbSecret,
+    database: global.__schema,
+    yourSql,
+    entities,
+    loadDefaultData: process.env.LOAD_DEFAULT_DATA || true
+  });
+
+console.log('LOADING mysql. ');
+yourSql.createDatabase(global.__schema).then(() => {
+  ormHelper.sync();
+}).catch((err) => {
+  console.log(err);
+  ormHelper.sync();
+});
 //////////////////////
-//END HTTPS CONFIG
+//END MYSQL CONFIG
 //////////////////////
 
 
-String.prototype.replaceAll = function(search, replacement) {
-  let target = this;
-  return target.split(search).join(replacement);
-};
+//////////////////////
+//BEGIN SERVICES
+//////////////////////
+let userService = require('./utils/orm/services/userService.js')(ormHelper);
+let fileService = require('./utils/orm/services/fileService.js')(ormHelper);
+const gameService = require('./utils/orm/services/gameService.js')({ ormHelper, yourSql, debug: true, secrets: SECRETS });
+//////////////////////
+//END SERVICES
+//////////////////////
 
-tools.DEFAULT_HOST = DEFAULT_SCHEMA.replaceAll('__', '-').replaceAll('_', '.');
-tools.getSubdomain = (host) => {
+
+global.__getSubdomain = (host) => {
   let subdomain;
-  if (tools.DEFAULT_HOST !== host && host.endsWith("." + tools.DEFAULT_HOST)) {
-    subdomain = host.substring(0, host.indexOf("." + tools.DEFAULT_HOST));
+  if (global.__host !== host && host.endsWith("." + global.__host)) {
+    subdomain = host.substring(0, host.indexOf("." + global.__host));
   }
   return subdomain;
-}
+};
 
 
-tools.getGame = (subdomain) => {
+global.__getGame = (subdomain) => {
   return new Promise((resolve, reject) => {
     ormHelper.getMap()['game'].model.find({ name: subdomain }, (err, games) => {
       if (err) {
@@ -201,9 +137,9 @@ tools.getGame = (subdomain) => {
         return;
       }
       if (!games[0]) {
-        resolve({})
+        resolve({});
         return;
-      };
+      }
       games[0].getDefinition((err, data) => {
         if (err) {
           reject(err);
@@ -213,13 +149,13 @@ tools.getGame = (subdomain) => {
       });
     });
   });
-}
+};
 
 
 router.use('/', async(req, res, next) => {
-  const subdomain = tools.getSubdomain(req.get('host'));
+  const subdomain = global.__getSubdomain(req.get('host'));
   if (req.url === '/driver' && subdomain !== undefined) {
-    let game = await tools.getGame(subdomain);
+    let game = await global.__hostgetGame(subdomain);
 
     res.writeHead(200, {
       'Content-Type': 'application/javascript'
@@ -239,19 +175,7 @@ router.use('/', async(req, res, next) => {
 
 });
 
-//////////////////////////
-//BEGIN MIDDLEWARE///
-//////////////////////////
-console.log('Enable Middleware');
-if (useHttps === true) {
-  router.use('redirect-secure');
-}
 
-router.use(require('no-extension')(publicdir));
-router.use(express.static(publicdir));
-//////////////////////////
-//END MIDDLEWARE///
-//////////////////////////
 
 
 
@@ -260,13 +184,13 @@ router.use(express.static(publicdir));
 ////////////////////////////////////////////
 console.log('---Socket IO');
 let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
-  domain: tools.DEFAULT_HOST,
-  secretOrKey: JWT_SECRET,
-  expiresIn: SESSION_EXP_SEC,
+  domain: global.__host,
+  secretOrKey: SECRETS.jwtSecret,
+  expiresIn: global.__sessionExpiration,
   useJsonOnLogin: false,
   useJsonOnLogout: false
 });
-let socketIOHelper = new(require('./utils/socketIOHelper.js')).SocketIOHelper(secureServer !== null ? secureServer : server, jwtCookiePasser, tools);
+let socketIOHelper = require('./utils/socketIOHelper.js')(secureServer !== null ? secureServer : server, jwtCookiePasser);
 socketIOHelper.init();
 
 console.log('---JWT');
@@ -333,8 +257,8 @@ router.get('/api/roles', function(req, res) {
     }
   });
 
-  if (limit === null || isNaN(limit) || limit > QUERY_ROWS_LIMIT) {
-    limit = QUERY_ROWS_LIMIT;
+  if (limit === null || isNaN(limit) || limit > global.__QUERY_ROWS_LIMIT) {
+    limit = global.__QUERY_ROWS_LIMIT;
   }
 
   model.find(query, options, limit, order,
@@ -377,7 +301,6 @@ router.get('/u/:name/:file', function(req, res) {
   let file = req.params.file;
 
   ormHelper.getMap()['user'].model.find({ email: name }, function(err, users) {
-    let content = null;
     if (err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null) {
 
       console.log('test param: ', req.query.ex !== undefined);
@@ -433,12 +356,12 @@ router.get('/u/:name/:file', function(req, res) {
 
 
 
-let captchapng = require('captchapng');
+
 router.get('/api/captcha', function(req, res) {
 
   let number = parseInt(Math.random() * 900000 + 100000);
-  let captchaId = guid.generate(true, 4);
-  let expDate = new Date((new Date()).getTime() + CAPTCHA_EXP_IN_MINUTES * 60000);
+  let captchaId = uuidv4().substring(0, 4);
+  let expDate = new Date((new Date()).getTime() + global.__CAPTCHA_EXP_IN_MINUTES * 60000);
 
   let captchaModel = ormHelper.getMap()['captcha'].model;
 
@@ -466,9 +389,7 @@ router.get('/api/captcha', function(req, res) {
 
 });
 
-let fileService = new(require('./utils/orm/services/fileService.js')).FileService(ormHelper);
 
-let formidable = require('formidable')
 router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
   let form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
@@ -487,9 +408,9 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
       }
 
       let game;
-      const subdomain = tools.getSubdomain(req.get('host'));
+      const subdomain = global.__getSubdomain(req.get('host'));
       if (subdomain !== undefined) {
-        game = await tools.getGame(subdomain);
+        game = await global.__getGame(subdomain);
 
         fileService.createGameDriver(req.user.id, { name: subdomain, data, game }, function(err) {
           if (err) {
@@ -520,13 +441,9 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
 
 
 
-
-
-
-const gameService = new(require('./utils/orm/services/gameService.js')).GameService({ ormHelper, yourSql, debug: true, subEntities: [(require('./utils/orm/entities/gameModels/blah.js')).Entity] });
 router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, function(req, res) {
-  gameService.createGameAndSchema(req.body.game, req.user.id).then(game => {
-    res.redirect(req.protocol + '://' + req.body.game+ '.' + tools.DEFAULT_HOST);
+  gameService.createGameAndSchema(req.body.game, req.user.id, [require('./utils/orm/entities/gameModels/blah.js')()]).then(game => {
+    res.redirect(req.protocol + '://' + req.body.game + '.' + global.__host);
   }).catch(err => {
     res.json(500, { err });
   });
@@ -575,7 +492,7 @@ if (secureServer != null) {
   }
   catch (err2) {
     console.log("Err: " + err2);
-    secureServerErr = "Err: " + err2;
+    //secureServerErr = "Err: " + err2;
   }
 }
 
