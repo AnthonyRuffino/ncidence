@@ -16,67 +16,51 @@ yourSql.init({
 });
 
 
-const processUser = (user) => {
+const processDatabase = (database) => {
     return new Promise((resolve, reject) => {
-        yourSql.query(`select distinct User, Host, Db from db where User='${user.User}' and Host='${user.Host}' and Db='${user.User}'`, async(error, rows) => {
+        const droppingDatabase = `- Dropping database ${database}`;
+        const droppingUser = `  Dropping user ${database}`;
+        yourSql.query(`DROP DATABASE ${database}`, async(error, dropDatabaseError) => {
             if (error) {
-                console.log('error', error);
-                reject(error);
+                console.log(`Error ${droppingDatabase}!!!`, error);
+            } else {
+                console.log(droppingDatabase);
             }
-
-            const dropUser = (callback) => {
-                console.log('- DROPPING USER: ' + user.User);
-                yourSql.query(`DROP USER '${user.User}'@'${user.Host}'`, async(dropUserError, rows) => {
-                    if (error) {
-                        console.log('ERROR DROPPING User: ' + user.User, dropUserError);
-                    }
-                    callback();
-                });
-            }
-
-
-            if (!rows || !rows.results) {
-                dropUser(resolve);
-            }
-            else {
-                dropUser(() => {
-                    console.log('  DROPPING Database: ' + user.User);
-                    yourSql.query(`DROP DATABASE ${user.User}`, async(dropDatabaseError, rows) => {
-                        if (dropDatabaseError) {
-                            console.log('ERROR DROPPING Database: ' + user.User, dropDatabaseError);
-                        }
-                        resolve();
-                    });
-                });
-            }
+            
+            yourSql.query(`DROP USER '${database}'@'localhost'`, async(dropUserError, rows) => {
+                if (error) {
+                    console.log(`Error ${droppingUser}!!!`, dropUserError);
+                }else if(rows){
+                    console.log(droppingUser);
+                }
+                resolve();
+            });
         });
     });
 }
 
-const processAllUsers = (users) => {
-    const userPromises = [];
-    users.results.forEach(user => {
-        console.log('User:', user.User, user.Host);
-        const processResults = processUser(user);
-        userPromises.push(processResults);
+const processAllDatabases = (databases) => {
+    const databasePromises = [];
+    databases.results.forEach(database => {
+        if(database.Database.startsWith('game_')) {
+            const processResults = processDatabase(database.Database);
+            databasePromises.push(processResults);
+        }
     });
-    console.log('-----------------------------------');
-    console.log('');
-    return Promise.all(userPromises);
+    return Promise.all(databasePromises);
 }
 
-yourSql.query(`select distinct User, Host from mysql.user where User like 'game%'`, (error, rows) => {
+yourSql.query(`SHOW DATABASES`, (error, databases) => {
     if (error) {
         exit(error);
     }
-    if (!rows || !rows.results) {
-        exit('No game_ users');
+    if (!databases || !databases.results) {
+        exit('DATABASES FOUND');
     }
     console.log('>>>>>>>>>>>>>> START <<<<<<<<<<<<<<');
     console.log('');
-    const users = processAllUsers(rows);
 
-    users.then((results) => {
+    processAllDatabases(databases).then((results) => {
         exit();
     });
 });
