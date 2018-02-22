@@ -34,7 +34,7 @@ let CAPTCHA_EXP_IN_MINUTES = 5;
 //////////////////////
 //BEGIN MYSQL CONFIG
 //////////////////////
-let yourSql = new(require('./utils/yourSql.js')).YourSql();
+let yourSql = new(require('your-sql')).YourSql();
 let ormHelper = null;
 let mySqlIp = process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 let mySqlUser = process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
@@ -282,72 +282,6 @@ jwtCookiePasser.init({
 
 
 
-
-
-console.log('Define /api/db');
-router.get('/api/db', function(req, res) {
-  if (req.query.psw !== undefined && req.query.psw !== null && req.query.psw === process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD) {
-
-    yourSql.query(req.query.sql, function(err, results) {
-      if (err) {
-        res.json(200, err);
-      }
-      else {
-        res.json(200, results);
-      }
-    });
-  }
-  else {
-    if (req.query.psw !== undefined && req.query.psw !== null) {
-      res.json(200, {
-        err: 'try again'
-      });
-    }
-    else {
-      res.json(200, {
-        err: 'not authorized'
-      });
-    }
-  }
-});
-
-
-console.log('Define /api/init-db');
-router.get('/api/init-db', function(req, res) {
-  try {
-    yourSql.createDatabase(DEFAULT_SCHEMA).then(() => {}).catch((err) => {
-      console.log(err);
-    });
-  }
-  catch (ex) {
-    res.json(200, {
-      err: 'mysql connection error: ' + ex
-    });
-  }
-});
-
-router.get('/api/guid', function(req, res) {
-  res.json(200, {
-    guid: guid.generate(req.query.useDashes)
-  });
-});
-
-router.get('/api/schemaSizeInMb', function(req, res) {
-  yourSql.getSchemaSizeInMb(req.query.schema, function(err, results) {
-    if (err) {
-      res.json(200, {
-        err: err
-      });
-    }
-    else {
-      res.json(200, {
-        sizeInMb: results
-      });
-    }
-  });
-
-});
-
 router.get('/api/roles', function(req, res) {
 
   let query = {};
@@ -497,42 +431,6 @@ router.get('/u/:name/:file', function(req, res) {
 
 });
 
-
-
-
-
-router.get('/api/promise', async function(req, res) {
-
-  let delay = req.query.delay || 500;
-
-  let prom = function(inVal) {
-    return new Promise(function(resolve, reject) {
-      setTimeout(function() {
-        if (req.query.error) {
-          reject(req.query.error);
-        }
-        else {
-          resolve(inVal);
-        }
-      }, parseInt(delay));
-    });
-  }
-
-  try {
-    let promiseData = await prom(req.query.text || 'example');
-
-    res.json(200, {
-      val: promiseData,
-      delay: delay
-    });
-  }
-  catch (error) {
-    res.json(400, {
-      error: error,
-      delay: delay
-    });
-  }
-});
 
 
 let captchapng = require('captchapng');

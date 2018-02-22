@@ -1,22 +1,10 @@
 var argv = require('minimist')(process.argv.slice(2));
 
-let yourSql = new(require('./utils/yourSql.js')).YourSql();
+let yourSql = new(require('your-sql')).YourSql();
 
 let mySqlIp = argv.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
 let mySqlUser = argv.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
 let mySqlPassword = argv.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
-
-
-const exit = (error) => {
-    console.log(!error ? '>>>>>>>>>>>>>>#######<<<<<<<<<<<<<<' : '');
-    console.log(error || '>>>>>>>>>>>>>>SUCCESS<<<<<<<<<<<<<<');
-    console.log(!error ? '>>>>>>>>>>>>>>#######<<<<<<<<<<<<<<' : '');
-    setTimeout(() => {
-        process.exit(error ? 1 : 0);
-    }, 1500)
-}
-
-
 
 yourSql.init({
     host: mySqlIp,
@@ -37,7 +25,7 @@ const processUser = (user) => {
             }
 
             const dropUser = (callback) => {
-                console.log('DROPPING USER: ' + user.User);
+                console.log('- DROPPING USER: ' + user.User);
                 yourSql.query(`DROP USER '${user.User}'@'${user.Host}'`, async(dropUserError, rows) => {
                     if (error) {
                         console.log('ERROR DROPPING User: ' + user.User, dropUserError);
@@ -52,7 +40,7 @@ const processUser = (user) => {
             }
             else {
                 dropUser(() => {
-                    console.log('DROPPING Database: ' + user.User);
+                    console.log('  DROPPING Database: ' + user.User);
                     yourSql.query(`DROP DATABASE ${user.User}`, async(dropDatabaseError, rows) => {
                         if (dropDatabaseError) {
                             console.log('ERROR DROPPING Database: ' + user.User, dropDatabaseError);
@@ -72,6 +60,8 @@ const processAllUsers = (users) => {
         const processResults = processUser(user);
         userPromises.push(processResults);
     });
+    console.log('-----------------------------------');
+    console.log('');
     return Promise.all(userPromises);
 }
 
@@ -82,12 +72,20 @@ yourSql.query(`select distinct User, Host from mysql.user where User like 'game%
     if (!rows || !rows.results) {
         exit('No game_ users');
     }
-
-    console.log('###################################');
+    console.log('>>>>>>>>>>>>>> START <<<<<<<<<<<<<<');
+    console.log('');
     const users = processAllUsers(rows);
 
     users.then((results) => {
-        console.log('###################################');
         exit();
     });
 });
+
+
+const exit = (error) => {
+    console.log('');
+    console.log(error || '>>>>>>>>>>>>>>  END  <<<<<<<<<<<<<<');
+    setTimeout(() => {
+        process.exit(error ? 1 : 0);
+    }, 1500)
+}

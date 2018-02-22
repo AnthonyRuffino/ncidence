@@ -23,7 +23,7 @@ class GameService {
     }
 
     objectHasName(obj) {
-        return !(obj === undefined || obj === null || (Object.keys(obj).length === 0 && obj.constructor === Object) || obj.name === undefined);
+        return !(obj === undefined || obj === null || (Object.keys(obj).length === 0 && obj.constructor === Object) || obj.game === undefined);
     }
 
 
