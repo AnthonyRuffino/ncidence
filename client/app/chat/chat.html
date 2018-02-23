@@ -11,42 +11,15 @@
         padding-top: 60px;
       }
     </style>
+    <script src="/controller.js"></script>
     <script>
       function ChatController($scope) {
-        var socket = io.connect();
-
-        $scope.messages = [];
-        $scope.roster = [];
-        $scope.name = '';
-        $scope.text = '';
-        
-        $scope.title = '';
-
-        socket.on('connect', function () {
-          socket.emit('identify', $scope.name);
-        });
-        
-        socket.on('connected', function (data) {
-          $scope.title = 'Chat - ' + data.subdomain;
-          $scope.$apply();
-        });
-
-        socket.on('message', function (msg) {
-          $scope.messages.push(msg);
-          $scope.$apply();
-        });
-
-        socket.on('roster', function (names) {
-          $scope.roster = names;
-          $scope.$apply();
-        });
-
-        $scope.send = function send() {
-          console.log('Sending message:', $scope.text);
-          socket.emit('message', $scope.text);
-          $scope.text = '';
-        };
-      }
+	      	socket = (new Controller({name: 'Chat'})).connect({ io, $scope });
+	      	
+	      	socket.hook.message = (msg) => {
+	      	  console.log('hook message override', msg);
+	      	};
+	      }
     </script>
   </head>
   <body>
@@ -95,6 +68,7 @@
         </div>
       </div>
     </div>
+    
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/jquery.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>

@@ -5,45 +5,17 @@
 		
 		<link rel="shortcut icon" type="image/x-icon" href="/img/space/blueships1.png"/>
 		
+		<script src="/controller.js"></script>
+		
 		<script>
+				/*global Controller*/
+				/*global io*/
 	      function ChatController($scope) {
-	        var socket = io.connect();
-	
-	        $scope.messages = [];
-	        $scope.roster = [];
-	        $scope.name = '';
-	        $scope.text = '';
-	        $scope.title = '';
-	        $scope.owner = '';
-	
-	        socket.on('connect', function () {
-	        	//console.log('connect');
-	        });
-	        
-	        socket.on('whoami', function (me) {
-	        	console.log('me', me);
-	        });
-	
-	        socket.on('message', function (msg) {
-	          $scope.messages.push(msg);
-	          $scope.$apply();
-	        });
-	        
-	        socket.on('connected', function (data) {
-	          $scope.title = 'Play ' + data.subdomain;
-	          console.log('game', data.owner);
-	          $scope.$apply();
-	        });
-	
-	        socket.on('roster', function (names) {
-	          $scope.roster = names;
-	          $scope.$apply();
-	        });
-	
-	        $scope.send = function send() {
-	          socket.emit('message', $scope.text);
-	          $scope.text = '';
-	        };
+	      	socket = (new Controller({name: 'Play'})).connect({ io, $scope });
+	      	
+	      	socket.hook.message = (msg) => {
+	      	  console.log('hook message override', msg);
+	      	};
 	      }
 	    </script>
 	</head>
@@ -58,6 +30,7 @@
 		
 	</script>
 	
+	
 	<script src="js/renderer.js"></script>
 	<script src="/driver"></script>
 	<script src="js/gameEngine.js"></script>
@@ -67,6 +40,7 @@
 		/*global Renderer*/
 		/*global GameDriver*/
 		/*global GameEngine*/
+		
 		
 		window.addEventListener('keydown', function(e) {
 		  if(e.keyCode == 32 && e.target == document.body) {
@@ -80,8 +54,6 @@
 			}
 			
 			var BOARD_SIZE_PERCENTAGE = .50;
-			var DEBUG = true;
-		
 			var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
 			renderer.init();
 			
