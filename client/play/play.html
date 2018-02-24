@@ -1,98 +1,109 @@
 <html ng-app ng-controller="ChatController">
 
-	<head>
-		<title ng-bind="title"></title>
-		
-		<link rel="shortcut icon" type="image/x-icon" href="/img/space/blueships1.png"/>
-		
-		<script src="/controller.js"></script>
-		
-		<script>
-				/*global Controller*/
-				/*global io*/
-	      function ChatController($scope) {
-	      	socket = (new Controller({name: 'Play'})).connect({ io, $scope });
-	      	
-	      	socket.hook.message = (msg) => {
-	      	  console.log('hook message override', msg);
-	      	};
-	      }
-	    </script>
-	</head>
-	
-	
-	<body>
-		<h1 ng-model="title"></h1>
-		<div id="gameDiv"></div>
-	</body>
-	
-	<script>
-		
-	</script>
-	
-	
-	<script src="js/renderer.js"></script>
-	<script src="/driver"></script>
-	<script src="js/gameEngine.js"></script>
-	
-	
-	<script>
-		/*global Renderer*/
-		/*global GameDriver*/
-		/*global GameEngine*/
-		
-		
-		window.addEventListener('keydown', function(e) {
-		  if(e.keyCode == 32 && e.target == document.body) {
-		    e.preventDefault();
-		  }
-		});
-		
+<head>
+	<title ng-bind="title"></title>
+
+	<link rel="shortcut icon" type="image/x-icon" href="/img/space/blueships1.png" />
+
+	<script src="/controller.js"></script>
+
+</head>
+
+
+<body>
+	<h1 ng-model="title"></h1>
+	<div id="gameDiv"></div>
+</body>
+
+<script>
+</script>
+
+
+<script src="js/renderer.js"></script>
+<script src="/driver"></script>
+<script src="js/gameEngine.js"></script>
+
+
+<script>
+	/*global Renderer*/
+	/*global GameDriver*/
+	/*global GameEngine*/
+
+
+	window.addEventListener('keydown', function(e) {
+		if (e.keyCode == 32 && e.target == document.body) {
+			e.preventDefault();
+		}
+	});
+
+
+	/*global Controller*/
+	/*global io*/
+	const startGame = (socket) => {
 		let gameDriverMissingMessage = null;
-		try{
-			if(GameDriver === undefined) {
-				
+		try {
+			if (GameDriver === undefined) {
+
 			}
-		}catch(err) {
+		}
+		catch (err) {
 			gameDriverMissingMessage = err;
 		}
-		
+
+		console.log('Loading engine, ', socket);
 		gameEngine = !gameDriverMissingMessage ? (() => {
-			
-			var BOARD_SIZE_PERCENTAGE = .50;
-			var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
-			renderer.init();
-			
-			var driver = new GameDriver(renderer, window.console.log, function(txt) { alert.call(window, txt); });
-			if(driver.init) {
-				driver.init();
-			}
-		
-		
-			if(driver.click) {
-				document.onmousedown = function(mouse) {
-					var mouseX = mouse.x - driver.renderer.horizontalOffset;
-					var mouseY = mouse.y - driver.renderer.verticalOffset;
-					driver.click(mouseX, mouseY);
-				};
-			}
-			
-		
-			if(driver.onkeydown) {
-				document.onkeydown = function(event) {
-					driver.onkeydown(event);
-				};
-			}
-			
-			
-			return new GameEngine(renderer, driver, window);
-		})() :
-		((redirectHome)=>{ return { start: redirectHome } })( () => {window.alert(gameDriverMissingMessage); console.log('redirecting from page'); window.location.replace("/");});
+
+				var BOARD_SIZE_PERCENTAGE = .50;
+				var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
+				renderer.init();
+
+				var driver = new GameDriver(socket, renderer, window.body, window.console.log, function(txt) { alert.call(window, txt); });
+				if (driver.init) {
+					driver.init();
+				}
+
+
+				if (driver.click) {
+					document.onmousedown = function(mouse) {
+						var mouseX = mouse.x - driver.renderer.horizontalOffset;
+						var mouseY = mouse.y - driver.renderer.verticalOffset;
+						driver.click(mouseX, mouseY);
+					};
+				}
+
+
+				if (driver.onkeydown) {
+					document.onkeydown = function(event) {
+						driver.onkeydown(event);
+					};
+				}
+
+
+				return new GameEngine(renderer, driver, window);
+			})() :
+			((redirectHome) => { return { start: redirectHome } })(() => {
+				window.alert(gameDriverMissingMessage);
+				console.log('redirecting from page');
+				window.location.replace("/");
+			});
+			console.log('Starting game');
 		gameEngine.start();
+	}
+
+	function ChatController($scope) {
+		const socket = (new Controller({ name: 'Play' })).connect({ io, $scope });
+
+		socket.hook.message = (msg) => {
+			console.log('hook message override', msg);
+		};
 		
-	</script>
-	
-	<script src="/socket.io/socket.io.js"></script>
-	<script src="/js/angular.min.js"></script>
-	
+		console.log('Load game');
+
+		startGame(socket);
+	}
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/angular.min.js"></script>
+
 </html>

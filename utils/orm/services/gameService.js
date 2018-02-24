@@ -1,15 +1,18 @@
 "use strict";
 
 class GameService {
-    constructor({ ormHelper, yourSql, debug, secrets, subEntities }) {
+    constructor({ ormHelper, yourSql, debug, secrets }) {
         this.ormHelper = ormHelper;
         this.yourSql = yourSql;
         this.debug = debug;
         this.uuidv4 = require('uuid/v4');
         this.crc32 = require('fast-crc32c');
         this.gameOrmHelperMap = {};
-        this.subEntities = subEntities;
         this.secrets = secrets;
+    }
+    
+    getSubEntities() {
+        return [require(global.__base + 'utils/orm/entities/gameModels/driver.js')()];
     }
 
     log(msg, err) {
@@ -54,7 +57,7 @@ class GameService {
                     password: this.secrets.dbSecret,
                     database: userAndSchemaName,
                     yourSql: this.yourSql,
-                    entities: this.subEntities,
+                    entities: this.getSubEntities(),
                     loadDefaultData: true
                 });
 
@@ -94,10 +97,25 @@ class GameService {
                     gameAndDriver.driver.save(resolve);
                 }
             } else {
-                reject(`No game detected: ${game}`);
+                reject(`No game detected: ${name}`);
                 return;
             }
         });
+    }
+    
+    //const hook = getHook(`( ({ emit, dataIn, username, subdomain, broadcast }) => ${socketIOHook.code} })(ctx);`);
+    getSocketIOHooks(subdomain) {
+        const returnArray = [];
+        returnArray.push({
+            on: 'win',
+            code: `{ ctx.broadcast({name: subdomain + '-Admin', text: "Win confirmed: " + username })`
+        });
+        
+        returnArray.push({
+            on: 'check-loss',
+            code: `{ console.log('ILLEGAL LOGGING'); ctx.emit('youlose', {text: 'You lose!', from: subdomain + '-Admin', username: username }) `
+        });
+        return returnArray;
     }
 
 
@@ -201,7 +219,7 @@ class GameService {
                     password: game.database.password,
                     database: 'game_' + name,
                     yourSql: null,
-                    entities: this.subEntities,
+                    entities: this.getSubEntities(),
                     loadDefaultData: false
                 });
                 gameOrmHelper.sync((err) => {

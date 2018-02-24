@@ -1,6 +1,10 @@
 /* jshint node:true */ /* global define, escape, unescape */
 "use strict";
 
+const getHook = function(code) {
+	return new Function(['ctx'].join(','), code);
+}
+
 class SocketIOHelper {
 	constructor({ server, tokenUtil, gameService }) {
 		this.messages = {};
@@ -124,7 +128,7 @@ class SocketIOHelper {
 			(() => {
 				const user = setUserInfo(socket);
 				this.updateRoster(socket);
-				socket.emit('whoami', user ? (user.username ? user.username : 'Anonymous-' + user.id) : 'Anonymous' );
+				socket.emit('whoami', user ? (user.username ? user.username : 'Anonymouz') : 'Anonymous' );
 			})();
 			
 
@@ -160,8 +164,30 @@ class SocketIOHelper {
 				this.broadcast('message', data, socket);
 				this.messages[socket.subdomain].push(data);
 			});
-
-
+			
+			
+			const getSocketIOHooks = this.gameService.getSocketIOHooks(socket.subdomain);
+			if(getSocketIOHooks) {
+				getSocketIOHooks.forEach((socketIOHook) => {
+					socket.on(socketIOHook.on, (dataIn) => {
+						try {
+					    	//const hook = getHook(`( ({ emit, dataIn, username, subdomain, broadcast }) => { ctx.broadcast({name: subdomain + '-Admin', text: "Win confirmed: " + username}) })(ctx);`);
+					    	const hook = getHook(`( ({ emit, dataIn, username, subdomain, broadcast }) => ${socketIOHook.code} })(ctx);`);
+					    	//const hook =  getHook(socketIOHook.code);
+					    	hook({
+					    		emit: (message, data) => socket.emit(message, data),
+					    		dataIn,
+					    		username: socket.name,
+					    		subdomain: socket.subdomain,
+					    		broadcast: (data) => this.broadcast('message', data, socket)
+					    	});
+					    }
+					    catch (executionException) {
+					      console.log('Error registering code hook: ', socketIOHook, executionException);
+					    }
+					});
+				});
+			}
 		});
 	}
 }

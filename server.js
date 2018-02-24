@@ -160,8 +160,7 @@ const gameService = require('./utils/orm/services/gameService.js')({
   ormHelper, 
   yourSql, 
   debug: true, 
-  secrets: SECRETS,
-  subEntities: [require('./utils/orm/entities/gameModels/driver.js')()] 
+  secrets: SECRETS 
 });
 //////////////////////
 //END SERVICES
