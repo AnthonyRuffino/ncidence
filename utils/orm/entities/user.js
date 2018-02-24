@@ -5,11 +5,16 @@ class User {
         this.name = 'user';
         
         this.definition = {
-            email: {
+            username: {
                 type: "text",
                 size: 254,
                 unique: true,
                 required: true
+            },
+            email: {
+                type: "text",
+                size: 254,
+                required: false
             },
             password: {
                 type: "text",
@@ -126,7 +131,7 @@ class User {
             defaultData.push({
                 values:{
                     id: 1,
-                    email: 'admin',
+                    username: 'admin',
                     password: bcrypt.hashSync('admin', bcrypt.genSaltSync(8), null),
                     is_locked: false,
                     is_confirmed: true,
@@ -158,7 +163,7 @@ class User {
             defaultData.push({
                 values:{
                     id: 2,
-                    email: 'rep',
+                    username: 'rep',
                     password: bcrypt.hashSync('rep', bcrypt.genSaltSync(8), null),
                     is_locked: false,
                     is_confirmed: true,
@@ -183,7 +188,7 @@ class User {
             defaultData.push({
                 values:{
                     id: 3,
-                    email: 'user',
+                    username: 'user',
                     password: bcrypt.hashSync('user', bcrypt.genSaltSync(8), null),
                     is_locked: false,
                     is_confirmed: true,
@@ -208,7 +213,7 @@ class User {
             defaultData.push({
                 values:{
                     id: 4,
-                    email: 'client',
+                    username: 'client',
                     password: bcrypt.hashSync('client', bcrypt.genSaltSync(8), null),
                     is_locked: false,
                     is_confirmed: true,

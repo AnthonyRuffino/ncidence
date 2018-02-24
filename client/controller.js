@@ -24,7 +24,6 @@ class Controller {
         }
 
         socket.on('connect', () => {
-        	//console.log('connect');
         	hook.connect();
         });
         

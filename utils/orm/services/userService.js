@@ -250,7 +250,7 @@ class UserService {
     }
     
     mapUserForJwtToken(user) {
-        return {id: user.id, username: user.email };
+        return {id: user.id, username: user.username };
     }
     
     getUserById(id, callback) {
@@ -271,8 +271,8 @@ class UserService {
         });
     }
     
-    login(email, password, callback) {
-        if(email === undefined || email === null || email.length < 1){
+    login(username, password, callback) {
+        if(username === undefined || username === null || username.length < 1){
             callback('email is required');
         }else if(password === undefined || password === null || password.length < 1){
             callback('password is required');
@@ -283,7 +283,7 @@ class UserService {
             let userModel = ormHelper.getMap()['user'].model;
             
             userModel.find({
-                email: email
+                username: username
             }, (err, users) => {
                 if (err) throw err;
     

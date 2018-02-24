@@ -300,7 +300,7 @@ router.get('/u/:name/:file', function(req, res) {
   let name = req.params.name;
   let file = req.params.file;
 
-  ormHelper.getMap()['user'].model.find({ email: name }, function(err, users) {
+  ormHelper.getMap()['user'].model.find({ username: name }, function(err, users) {
     if (err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null) {
 
       console.log('test param: ', req.query.ex !== undefined);

@@ -87,7 +87,7 @@ class SocketIOHelper {
 			
 			if(!this.subdomainInfoMap[socket.subdomain]) {
 				let gameTemp = await this.gameService.getGame(socket.subdomain);
-				this.subdomainInfoMap[socket.subdomain] = {subdomain : socket.subdomain, owner: (gameTemp.game !== undefined ? gameTemp.game.owner.email : null)};
+				this.subdomainInfoMap[socket.subdomain] = {subdomain : socket.subdomain, owner: (gameTemp.game !== undefined ? gameTemp.game.owner.username : null)};
 			}
 			const subDomainInfo = this.subdomainInfoMap[socket.subdomain];
 
@@ -124,7 +124,7 @@ class SocketIOHelper {
 			(() => {
 				const user = setUserInfo(socket);
 				this.updateRoster(socket);
-				socket.emit('whoami', user ? (!user.username ? user.username : 'Anonymous-' + user.id) : 'Anonymous' );
+				socket.emit('whoami', user ? (user.username ? user.username : 'Anonymous-' + user.id) : 'Anonymous' );
 			})();
 			
 
