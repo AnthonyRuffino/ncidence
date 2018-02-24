@@ -48,10 +48,16 @@
 		  }
 		});
 		
-		gameEngine = (() => {
+		let gameDriverMissingMessage = null;
+		try{
 			if(GameDriver === undefined) {
-				window.location.replace("/");
+				
 			}
+		}catch(err) {
+			gameDriverMissingMessage = err;
+		}
+		
+		gameEngine = !gameDriverMissingMessage ? (() => {
 			
 			var BOARD_SIZE_PERCENTAGE = .50;
 			var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
@@ -80,7 +86,8 @@
 			
 			
 			return new GameEngine(renderer, driver, window);
-		})();
+		})() :
+		((redirectHome)=>{ return { start: redirectHome } })( () => {window.alert(gameDriverMissingMessage); console.log('redirecting from page'); window.location.replace("/");});
 		gameEngine.start();
 		
 	</script>

@@ -19,6 +19,14 @@ global.__publicdir = __dirname + '/client';
 global.__sessionExpiration = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
 global.__QUERY_ROWS_LIMIT = 10000;
 global.__CAPTCHA_EXP_IN_MINUTES = 5;
+global.__getSubdomain = (host) => {
+  host = host.indexOf(':') > -1 ? host.substring(0, host.indexOf(':')) : host;
+  let subdomain;
+  if (global.__host !== host && host.endsWith("." + global.__host)) {
+    subdomain = host.substring(0, host.indexOf("." + global.__host));
+  }
+  return subdomain;
+};
 
 
 //SECRETS
@@ -62,6 +70,40 @@ router.use(require('./utils/middleware/hostCookie.js')('ncidence', (1000 * 60 * 
 const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
 
 
+//Driver middleware
+router.use('/', async(req, res, next) => {
+  
+  try{
+    const subdomain = global.__getSubdomain(req.get('host'));
+    if (req.url === '/driver' && subdomain !== undefined) {
+      let gameAndDriver = await gameService.getGameAndDriver(subdomain);
+      
+      res.writeHead(200, {
+        'Content-Type': 'application/javascript'
+      });
+  
+      if (gameAndDriver.game !== undefined && gameAndDriver.driver !== undefined) {
+        if(!gameAndDriver.driver.content) {
+          res.end(`window.alert('${"From driver missing driver CONTENT redirect;"}'); window.location.replace('/pla');`);
+        } else {
+          res.end(gameAndDriver.driver.content);
+        }
+      }
+      else {
+        res.end(`window.alert('${"From driver missing driver redirect;"}'); window.location.replace('/pla');`);
+      }
+    }
+    else {
+      next();
+    }
+  } catch(err) {
+    console.log('driver redirect bug err: ', err);
+    next();
+  }
+
+});
+
+//File system middleware
 router.use(require('no-extension')(global.__publicdir));
 router.use(express.static(global.__publicdir));
 
@@ -112,68 +154,21 @@ yourSql.createDatabase(global.__schema).then(() => {
 //////////////////////
 //BEGIN SERVICES
 //////////////////////
-let userService = require('./utils/orm/services/userService.js')(ormHelper);
-let fileService = require('./utils/orm/services/fileService.js')(ormHelper);
-const gameService = require('./utils/orm/services/gameService.js')({ ormHelper, yourSql, debug: true, secrets: SECRETS });
+const userService = require('./utils/orm/services/userService.js')(ormHelper);
+const fileService = require('./utils/orm/services/fileService.js')(ormHelper);
+const gameService = require('./utils/orm/services/gameService.js')({ 
+  ormHelper, 
+  yourSql, 
+  debug: true, 
+  secrets: SECRETS,
+  subEntities: [require('./utils/orm/entities/gameModels/driver.js')()] 
+});
 //////////////////////
 //END SERVICES
 //////////////////////
 
 
-global.__getSubdomain = (host) => {
-  let subdomain;
-  if (global.__host !== host && host.endsWith("." + global.__host)) {
-    subdomain = host.substring(0, host.indexOf("." + global.__host));
-  }
-  return subdomain;
-};
 
-
-global.__getGame = (subdomain) => {
-  return new Promise((resolve, reject) => {
-    ormHelper.getMap()['game'].model.find({ name: subdomain }, (err, games) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      if (!games[0]) {
-        resolve({});
-        return;
-      }
-      games[0].getDefinition((err, data) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve({ game: games[0], definition: data });
-      });
-    });
-  });
-};
-
-
-router.use('/', async(req, res, next) => {
-  const subdomain = global.__getSubdomain(req.get('host'));
-  if (req.url === '/driver' && subdomain !== undefined) {
-    let game = await global.__hostgetGame(subdomain);
-
-    res.writeHead(200, {
-      'Content-Type': 'application/javascript'
-    });
-
-    if (game !== undefined && game.game !== undefined && game.definition.driver !== undefined) {
-      res.end(game.definition.driver);
-    }
-    else {
-      res.end('window.location.replace("/");');
-    }
-
-  }
-  else {
-    next();
-  }
-
-});
 
 
 
@@ -190,7 +185,12 @@ let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
   useJsonOnLogin: false,
   useJsonOnLogout: false
 });
-let socketIOHelper = require('./utils/socketIOHelper.js')(secureServer !== null ? secureServer : server, jwtCookiePasser);
+
+let socketIOHelper = require('./utils/socketIOHelper.js')({ 
+  server: secureServer !== null ? secureServer : server,
+  tokenUtil: jwtCookiePasser,
+  gameService
+});
 socketIOHelper.init();
 
 console.log('---JWT');
@@ -394,13 +394,8 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
   let form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files) {
     let filePath = files.filetoupload.path;
-    console.log('filePath: ', filePath, files.filetoupload.name);
 
-    //let text = fs.readFileSync(files.filetoupload.path,'utf8')
-    //fileService
-
-
-    fs.readFile(files.filetoupload.path, async(err, data) => {
+    fs.readFile(files.filetoupload.path, async(err, content) => {
       if (err) {
         console.log('err loading file: ', err);
         res.redirect('/');
@@ -410,26 +405,22 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
       let game;
       const subdomain = global.__getSubdomain(req.get('host'));
       if (subdomain !== undefined) {
-        game = await global.__getGame(subdomain);
-
-        fileService.createGameDriver(req.user.id, { name: subdomain, data, game }, function(err) {
-          if (err) {
-            console.log('err persisting game driver: ', err);
-            res.redirect('/');
-          }
-          else {
-            console.log('game driver persisted');
-            res.redirect('/play');
-          }
-        });
+        
+        try {
+          await gameService.updateGameDriver({ name: subdomain, userId: req.user.id, content });
+        } catch(err) {
+          console.log('err persisting game driver: ', err);
+          res.redirect('/');
+          return;
+        }
+        
+        res.redirect('/play');
+        
       }
       else {
-        fileService.createFile(req.user.id, { name: files.filetoupload.name, content: data, content_type: 'text/html', game }, function(err) {
+        fileService.createFile(req.user.id, { name: files.filetoupload.name, content, content_type: 'text/html', game }, function(err) {
           if (err) {
             console.log('err persisting file: ', err);
-          }
-          else {
-            console.log('file persisted');
           }
           res.redirect('/');
         });
@@ -442,7 +433,10 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
 
 
 router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, function(req, res) {
-  gameService.createGameAndSchema(req.body.game, req.user.id, [require('./utils/orm/entities/gameModels/blah.js')()]).then(game => {
+  gameService.createGameAndSchema({ 
+    name: req.body.game, 
+    userId: req.user.id,
+  }).then(game => {
     res.redirect(req.protocol + '://' + req.body.game + '.' + global.__host);
   }).catch(err => {
     res.json(500, { err });

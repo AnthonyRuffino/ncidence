@@ -2,7 +2,7 @@
 "use strict";
 
 class SocketIOHelper {
-	constructor(server, tokenUtil) {
+	constructor({ server, tokenUtil, gameService }) {
 		this.messages = {};
 		this.sockets = [];
 		this.socketNcidenceCookieMap = {};
@@ -17,7 +17,7 @@ class SocketIOHelper {
 		this.cookie = require('cookie');
 		this.tokenUtil = tokenUtil;
 		this.getSubdomain = global.__getSubdomain;
-		this.getGame = global.__getGame;
+		this.gameService = gameService;
 	}
 	
 	
@@ -86,7 +86,7 @@ class SocketIOHelper {
 			this.socketNcidenceCookieMap[ncidenceCookie].push(socket.id);
 			
 			if(!this.subdomainInfoMap[socket.subdomain]) {
-				let gameTemp = await this.getGame(socket.subdomain);
+				let gameTemp = await this.gameService.getGame(socket.subdomain);
 				this.subdomainInfoMap[socket.subdomain] = {subdomain : socket.subdomain, owner: (gameTemp.game !== undefined ? gameTemp.game.owner.email : null)};
 			}
 			const subDomainInfo = this.subdomainInfoMap[socket.subdomain];
@@ -124,7 +124,7 @@ class SocketIOHelper {
 			(() => {
 				const user = setUserInfo(socket);
 				this.updateRoster(socket);
-				socket.emit('whoami', user ? user.username : 'Anonymous' );
+				socket.emit('whoami', user ? (!user.username ? user.username : 'Anonymous-' + user.id) : 'Anonymous' );
 			})();
 			
 
@@ -166,6 +166,6 @@ class SocketIOHelper {
 	}
 }
 
-module.exports = function(server, tokenUtil){
-	return new SocketIOHelper(server, tokenUtil);
+module.exports = function(configuration){
+	return new SocketIOHelper(configuration);
 }

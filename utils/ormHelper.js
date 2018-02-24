@@ -18,7 +18,7 @@ class OrmHelper {
 		return this.map;
 	}
 
-	sync() {
+	sync(callback) {
 
 		let entities = this.entities;
 		let database = this.database;
@@ -55,6 +55,7 @@ class OrmHelper {
 
 		this.orm.connect("mysql://" + user + ":" + this.password + "@" + ip + "/" + database, (err, db) => {
 			if (err) throw err;
+			
 
 			let hasManyMap = {};
 			let hasOneMap = {};
@@ -82,7 +83,7 @@ class OrmHelper {
 				
 				const extensions = {};
 				iterate(entity.extendsTo, (extension) => {
-					console.log('crating extension: ' + extension.name);
+					console.log(`Defining table: ${entity.name}_${extension.name}`);
 					extensions[extension.name] = model.extendsTo(extension.name, extension.data);
 				});
 
@@ -92,8 +93,15 @@ class OrmHelper {
 			if(this.loadDefaultData) {
 				console.log('Loading default data...');
 			}
-			
-			!this.loadDefaultData ? console.log('Skipping default data loading...') : db.sync(function(err) {
+			if(!this.loadDefaultData) {
+				console.log('Skipping default data loading...')
+				if(callback) {
+					console.log('finishing sync')
+					callback();
+				}
+				return;
+			}
+			db.sync(function(err) {
 				if (err) {
 					console.log('Sync err: ' + err);
 				}
@@ -250,6 +258,11 @@ class OrmHelper {
 						}
 					});
 				});
+				
+				if(callback) {
+					console.log('finishing sync after attempted db sync')
+					callback(err);
+				};
 			});
 		});
 	}

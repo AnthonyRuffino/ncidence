@@ -59,11 +59,16 @@ class Controller {
           $scope.text = '';
         };
         
+        
         return { 
           name: this.name,
           subdomain: this.subdomain,
-          emit: socket.emit,
-          on: socket.on,
+          emit: (name, data) => {
+            socket.emit(name, data);
+          },
+          on:  (name, callback) => {
+            socket.on(name, callback);
+          },
           hook 
         };
       }

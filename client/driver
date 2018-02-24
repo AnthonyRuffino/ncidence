@@ -120,9 +120,9 @@ class GameTile extends Square {
 
 
 class GameDriver {
-  constructor(renderer, controlsBinding, tilesPerSide, log, alert, isDebug) {
+  constructor(renderer, controlsBinding, log, alert, isDebug) {
 	  this.renderer = renderer;
-	  this.tilesPerSide = tilesPerSide;
+	  this.tilesPerSide = 8;
 	  this.moves = 0;
 	  this.numberOfSlots = null;
 	  this.gameTiles = null;

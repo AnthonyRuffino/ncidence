@@ -15,6 +15,51 @@ yourSql.init({
     debug: true
 });
 
+const main = () => {
+    yourSql.query(`SHOW DATABASES`, (error, databases) => {
+        if (error) {
+            exit(error);
+        }
+        if (!databases || !databases.results) {
+            exit('NO DATABASES FOUND');
+        }
+        console.log('>>>>>>>>>>>>>> START <<<<<<<<<<<<<<');
+        console.log('');
+    
+        processAllDatabases(databases).then((results) => {
+            deleteGames().then((results) => {
+                exit();
+            });
+        });
+    });
+}
+
+
+const deleteGames = () => {
+    return new Promise((resolve, reject) => {
+        yourSql.query(`DELETE FROM ncidence__aruffino_c9users_io.game_database`, (error, databases) => {
+            if (error) {
+                console.log('ISSUE DELETING GAME_DATABASE DEFINITIONS:', error);
+                resolve();
+                return;
+            }
+            
+            console.log('GAMES DATABASE DEFINITIONS DELETED');
+            
+            yourSql.query(`DELETE FROM ncidence__aruffino_c9users_io.game`, (error, databases) => {
+                if (error) {
+                    console.log('ISSUE DELETING GAMES:', error);
+                    resolve();
+                    return;
+                }
+                console.log('GAMES DELETED');
+                resolve();;
+            });
+            
+        });
+    });
+};
+
 
 const processDatabase = (database) => {
     return new Promise((resolve, reject) => {
@@ -50,20 +95,7 @@ const processAllDatabases = (databases) => {
     return Promise.all(databasePromises);
 }
 
-yourSql.query(`SHOW DATABASES`, (error, databases) => {
-    if (error) {
-        exit(error);
-    }
-    if (!databases || !databases.results) {
-        exit('DATABASES FOUND');
-    }
-    console.log('>>>>>>>>>>>>>> START <<<<<<<<<<<<<<');
-    console.log('');
 
-    processAllDatabases(databases).then((results) => {
-        exit();
-    });
-});
 
 
 const exit = (error) => {
@@ -73,3 +105,5 @@ const exit = (error) => {
         process.exit(error ? 1 : 0);
     }, 1500)
 }
+
+main();
