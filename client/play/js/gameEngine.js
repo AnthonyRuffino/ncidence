@@ -1,9 +1,10 @@
 "use strict";
 
 class GameEngine {
-	constructor(renderer, driver, window) {
-		this.renderer = renderer;
+	constructor(driver, window) {
 		this.driver = driver;
+		this.renderer = driver.getRenderer();
+		
 		this.window = window;
 		this.window.requestAnimationFrame = window.requestAnimationFrame || function(update) { window.setTimeout(this.update, 16) };
 		this.frameCount = 0;
@@ -17,6 +18,7 @@ class GameEngine {
 		this.lastX = this.getPlayerX();
 		this.lastY = this.getPlayerY();
 		this.lastDistanceTimeSnapshot = this.gameStartTime;
+		this.driver.gameEngine = this;
 	}
 	
 	getPlayerX() {

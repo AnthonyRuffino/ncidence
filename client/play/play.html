@@ -20,7 +20,7 @@
 
 
 <script src="js/renderer.js"></script>
-<script src="/driver"></script>
+<script src="/driver.js"></script>
 <script src="js/gameEngine.js"></script>
 
 
@@ -43,7 +43,7 @@
 		let gameDriverMissingMessage = null;
 		try {
 			if (GameDriver === undefined) {
-
+				gameDriverMissingMessage = 'GameDriver class is not defined'
 			}
 		}
 		catch (err) {
@@ -52,41 +52,44 @@
 
 		console.log('Loading engine, ', socket);
 		gameEngine = !gameDriverMissingMessage ? (() => {
-
-				var BOARD_SIZE_PERCENTAGE = .50;
-				var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
-				renderer.init();
-
-				var driver = new GameDriver(socket, renderer, window.body, window.console.log, function(txt) { alert.call(window, txt); });
-				if (driver.init) {
-					driver.init();
+			
+			var BOARD_SIZE_PERCENTAGE = .50;
+			var renderer = new Renderer(window, document, "gameDiv", BOARD_SIZE_PERCENTAGE);
+			renderer.init();
+			
+			var driver = new GameDriver(socket, renderer, window.body, window.console.log, function(txt) { alert.call(window, txt); });
+			if (driver.init) {
+				driver.init();
+			}
+			
+			if(!driver.getRenderer) {
+				driver.getRenderer = function() {
+					return renderer;
 				}
-
-
-				if (driver.click) {
-					document.onmousedown = function(mouse) {
-						var mouseX = mouse.x - driver.renderer.horizontalOffset;
-						var mouseY = mouse.y - driver.renderer.verticalOffset;
-						driver.click(mouseX, mouseY);
-					};
-				}
-
-
-				if (driver.onkeydown) {
-					document.onkeydown = function(event) {
-						driver.onkeydown(event);
-					};
-				}
-
-
-				return new GameEngine(renderer, driver, window);
-			})() :
-			((redirectHome) => { return { start: redirectHome } })(() => {
-				window.alert(gameDriverMissingMessage);
-				console.log('redirecting from page');
-				window.location.replace("/");
-			});
-			console.log('Starting game');
+			} 
+			
+			if (driver.click) {
+				document.onmousedown = function(mouse) {
+					var mouseX = mouse.x - driver.renderer.horizontalOffset;
+					var mouseY = mouse.y - driver.renderer.verticalOffset;
+					driver.click(mouseX, mouseY);
+				};
+			}
+			
+			if (driver.onkeydown) {
+				document.onkeydown = function(event) {
+					driver.onkeydown(event);
+				};
+			}
+			return new GameEngine(driver, window);
+		})() : ((redirectHome) => {
+			return { start: redirectHome } 
+		})(() => {
+			console.log('redirecting from page');
+			window.alert(gameDriverMissingMessage);
+			window.location.replace("/");
+		});
+		console.log('Starting game');
 		gameEngine.start();
 	}
 

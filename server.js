@@ -75,7 +75,7 @@ router.use('/', async(req, res, next) => {
   
   try{
     const subdomain = global.__getSubdomain(req.get('host'));
-    if (req.url === '/driver' && subdomain !== undefined) {
+    if (req.url === '/driver.js' && subdomain !== undefined) {
       let gameAndDriver = await gameService.getGameAndDriver(subdomain);
       
       res.writeHead(200, {
@@ -88,9 +88,16 @@ router.use('/', async(req, res, next) => {
         } else {
           res.end(gameAndDriver.driver.content);
         }
-      }
-      else {
-        res.end(`window.alert('${"From driver missing driver redirect;"}'); window.location.replace('/pla');`);
+      } else {
+        //res.end(require('./utils/orm/entities/gameModels/defaultDriver.js')());
+        console.log('serving default driver');
+        fs.readFile(global.__publicdir + "/driver.js", "utf8", function(err, defaultDriver) {
+          if(err) {
+            console.log('rror getting default driver');
+            next();
+          }
+          res.end(defaultDriver);
+        });
       }
     }
     else {
