@@ -1,4 +1,15 @@
 "use strict";
+(function(exports){
+
+    // your code goes here
+
+   exports.test = function(){
+        return 'hello world'
+    };
+
+})(typeof exports === 'undefined'? this['mymodule']={}: exports);
+
+
 
 class Entity{
 	constructor(driver,type,id,x,y,width,height,angle,movementSpeed,shape,fillStyle,lineWidth,strokeStyle,image){
@@ -464,7 +475,6 @@ class ControlsBinder{
 		}
 
 		document.onkeydown = function(event){
-			//window.console.log(event.keyCode);
 			driver.controls.onkeydown(event);
 		}
 
@@ -622,11 +632,9 @@ class UniverseViewControls{
 			
 			if(controlClicked === false){
 				this.setPlayerMouse(mouseX, mouseY);
-				window.console.log(this.driver.round(this.driver.player.mouseX), this.driver.round(this.driver.player.mouseY));
+				this.driver.log(this.driver.round(this.driver.player.mouseX), this.driver.round(this.driver.player.mouseY));
 			}
 			
-		}else{
-			//window.console.log('click did not count', msHeld);
 		}
 		this.driver.player.timeWhenLeftMouseWasPressed = null;
 	}
@@ -645,7 +653,7 @@ class UniverseViewControls{
 	}
 	
 	onkeydown(event){
-		window.console.log(event.keyCode);
+		this.driver.log(event.keyCode);
 		if(event.keyCode === 68)	//d
 			this.driver.player.pressingRight = true;
 		else if(event.keyCode === 83)	//s
@@ -839,11 +847,9 @@ class UniverseViewControls{
 			var dx = fixedViewPlayerMouseX - this.driver.player.x;
 			var dy = fixedViewPlayerMouseY - this.driver.player.y;
 			var d = Math.sqrt(dx*dx+dy*dy);
-			window.console.log('distance', d);
+			this.driver.log('distance', d);
 			
 			var viewAngleToEntity = Math.atan2(mouseX-this.driver.renderer.centerX,(-mouseY+this.driver.renderer.centerY));
-			
-			//window.console.log('viewAngleToEntity', radiansToDegrees(viewAngleToEntity), 'this.driver.player.angle', this.driver.player.angle);
 			
 			var fixedViewMouseAngle = ((Math.PI / 180)*(this.driver.player.angle-90)) + viewAngleToEntity;
 			
@@ -864,7 +870,13 @@ class UniverseViewControls{
 
 
 
+let chat = () => {
+	
+}
 
+let emit = () => {
+	
+}
 
 class GameDriver {
     constructor(socket, renderer, body, log, alert) {
@@ -877,7 +889,28 @@ class GameDriver {
         this.log = log;
         this.alert = alert;
         this.isDebug = true;
-		this.socket = socket
+        this.me = 'Anonymouz';
+        
+        //socketio overrides
+        const chatFormat = (name, text) => `${name}: ${text}`;
+		this.socket = socket;
+		chat = (msg) => { socket.emit('message', msg); return chatFormat('me', msg) };
+		emit = (key, data) => socket.emit(key, data);
+		
+		
+		this.socket.hooks.whoami = (me) => {
+			this.me = me;
+		};
+		
+		this.socket.hooks.message = (msg) => {
+			if(msg.name === 'Anonymous' || msg.name !== this.me){
+				console.log(chatFormat(msg.name, msg.text));
+			}
+			
+		};
+		
+		
+		
 
 
         this.EntityClass = Entity;
@@ -987,6 +1020,14 @@ class GameDriver {
 		var universeViewControls = new UniverseViewControls(this);
 		this.controls = universeViewControls;
 		ControlsBinder.bind(this, document);
+		
+		
+		
+		
+		this.socket.on('load', (msg) => {
+          console.log('load recieved from server', msg);
+        });
+        this.socket.emit('load');
 
 
     }
@@ -1135,9 +1176,19 @@ class GameDriver {
 
 }
 
+class Dummy{
+	constructor(val){
+		this.val = 'haha'
+	}
+}
 
 
-
+if(typeof exports !== 'undefined'){
+    exports.Entity = Entity;
+    exports.Player;
+    exports.Dummy = Dummy;
+    
+}
 
 
 

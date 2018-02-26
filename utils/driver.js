@@ -65,7 +65,7 @@ class Driver {
         //////////////////////
         this.defaultData = [];
         ((defaultData) => {
-            const driverJavascript = `log('default driver')`;
+            const driverJavascript = `window.console.log('default driver')`;
             defaultData.push({
                 values:{
                     id: 1,

@@ -16,7 +16,7 @@
       function ChatController($scope) {
 	      	socket = (new Controller({name: 'Chat'})).connect({ io, $scope });
 	      	
-	      	socket.hook.message = (msg) => {
+	      	socket.hooks.message = (msg) => {
 	      	  console.log('hook message override', msg);
 	      	};
 	      }

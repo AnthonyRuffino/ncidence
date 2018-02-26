@@ -1,8 +1,8 @@
 "use strict";
 const crc32c = require('fast-crc32c');
-class Driver {
+class Backend {
     constructor() {
-        this.name = 'driver'
+        this.name = 'backend'
         
         this.definition = {
             version: {
@@ -65,14 +65,14 @@ class Driver {
         //////////////////////
         this.defaultData = [];
         ((defaultData) => {
-            const driverJavascript = `log('default driver')`;
+            const backendJavascript = `console.log('default backend')`;
             defaultData.push({
                 values:{
                     id: 1,
                     version: 'test',
-                    content: driverJavascript,
+                    content: backendJavascript,
                     last_modified: Date.now(),
-                    etag : require('fast-crc32c').calculate(driverJavascript)
+                    etag : require('fast-crc32c').calculate(backendJavascript)
                 },
                 extendsTo: {
                     extension: {
@@ -86,5 +86,5 @@ class Driver {
     }
 }
 
-module.exports = () => new Driver();
+module.exports = () => new Backend();
 

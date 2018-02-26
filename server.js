@@ -12,6 +12,8 @@ String.prototype.replaceAll = function(search, replacement) {
 };
 
 //GLOBALS
+global.__debug = false;
+global.__defaultGameVersion = 'test';
 global.__schema = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
 global.__host = global.__schema.replaceAll('__', '-').replaceAll('_', '.');
 global.__base = __dirname + '/';
@@ -76,28 +78,24 @@ router.use('/', async(req, res, next) => {
   try{
     const subdomain = global.__getSubdomain(req.get('host'));
     if (req.url === '/driver.js' && subdomain !== undefined) {
-      let gameAndDriver = await gameService.getGameAndDriver(subdomain);
       
       res.writeHead(200, {
         'Content-Type': 'application/javascript'
       });
-  
-      if (gameAndDriver.game !== undefined && gameAndDriver.driver !== undefined) {
-        if(!gameAndDriver.driver.content) {
-          res.end(`window.alert('${"From driver missing driver CONTENT redirect;"}'); window.location.replace('/pla');`);
-        } else {
-          res.end(gameAndDriver.driver.content);
-        }
+      
+      let driver = await gameService.getGameEntityRecord(subdomain, 'driver', { version: global.__defaultGameVersion } );
+      if(driver && driver.content) {
+        res.end(driver.content);
       } else {
-        //res.end(require('./utils/orm/entities/gameModels/defaultDriver.js')());
-        console.log('serving default driver');
-        fs.readFile(global.__publicdir + "/driver.js", "utf8", function(err, defaultDriver) {
-          if(err) {
-            console.log('rror getting default driver');
-            next();
-          }
-          res.end(defaultDriver);
-        });
+        next();
+        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! serving default driver');
+        // fs.readFile(global.__publicdir + "/driver.js", "utf8", function(err, defaultDriver) {
+        //   if(err) {
+        //     console.log('error getting default driver');
+        //     next();
+        //   }
+        //   res.end(defaultDriver);
+        // });
       }
     }
     else {
@@ -166,7 +164,7 @@ const fileService = require('./utils/orm/services/fileService.js')(ormHelper);
 const gameService = require('./utils/orm/services/gameService.js')({ 
   ormHelper, 
   yourSql, 
-  debug: true, 
+  debug: global.__debug, 
   secrets: SECRETS 
 });
 //////////////////////
@@ -195,7 +193,8 @@ let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
 let socketIOHelper = require('./utils/socketIOHelper.js')({ 
   server: secureServer !== null ? secureServer : server,
   tokenUtil: jwtCookiePasser,
-  gameService
+  gameService,
+  debug: global.__debug
 });
 socketIOHelper.init();
 
@@ -413,7 +412,7 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
       if (subdomain !== undefined) {
         
         try {
-          await gameService.updateGameDriver({ name: subdomain, userId: req.user.id, content });
+          await gameService.updateGameDriver({ name: subdomain, userId: req.user.id, content, version: global.__defaultGameVersion });
         } catch(err) {
           console.log('err persisting game driver: ', err);
           res.redirect('/');

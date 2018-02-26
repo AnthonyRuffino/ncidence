@@ -82,7 +82,7 @@ class UserService {
                     id: user.id
                 });
             }
-        }
+        };
 
         let createTokenCallback = function(err, user, tokenVal) {
             if (err) {

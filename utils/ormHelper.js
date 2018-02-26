@@ -60,7 +60,7 @@ class OrmHelper {
 			let hasManyMap = {};
 			let hasOneMap = {};
 			entities.forEach(function(entity) {
-				console.log('Defing table: ' + database + "." + entity.name);
+				console.log('Defining table: ' + database + "." + entity.name);
 				let model = db.define(entity.name, entity.definition, entity.helpers);
 
 				iterate(entity.hasOne, (owner) => {

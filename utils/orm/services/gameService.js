@@ -12,7 +12,10 @@ class GameService {
     }
     
     getSubEntities() {
-        return [require(global.__base + 'utils/orm/entities/gameModels/driver.js')()];
+        return [
+            require(global.__base + 'utils/orm/entities/gameModels/driver.js')(),
+            require(global.__base + 'utils/orm/entities/gameModels/backend.js')(),
+            ];
     }
 
     log(msg, err) {
@@ -26,17 +29,43 @@ class GameService {
             }
         }
     }
+    
+    
+    
+    createGame(name, userId) {
+        return new Promise((resolve, reject) => {
+            const rootGameOrm = this.ormHelper.getMap()['game'];
+            if (!rootGameOrm) {
+                reject({ msg: 'no rootGameOrm', map: this.ormHelper.getMap() });
+                return;
+            }
 
-    objectHasName(obj) {
-        return !(obj === undefined || obj === null || (Object.keys(obj).length === 0 && obj.constructor === Object) || obj.game === undefined);
+
+            rootGameOrm.model.create({ name: name, owner_id: userId }, (err, createdGame) => {
+                if (err) {
+                    this.log(`Error saving game: ${name}`, err);
+                    reject(err);
+                    return;
+                }
+                const database = { password: this.uuidv4().substring(0, 13), mb: 0, game: createdGame };
+                rootGameOrm.extensions['database'].create(database, (err, createdExtension) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve({ createdGame, database });
+                });
+            });
+        });
     }
+    
+    
 
     createGameAndSchema({ name, userId }) {
         return new Promise(async(resolve, reject) => {
             try {
                 this.log(`createGame: ${name}`);
-                const existingGame = await this.getGame(name, false);
-                if (this.objectHasName(existingGame)) {
+                if (await this.getGameAndDatabase(name, false)) {
                     throw `A game name '${name}' already exists`;
                 }
 
@@ -84,17 +113,19 @@ class GameService {
         });
     }
 
-    updateGameDriver({ name, userId, content }) {
+
+    updateGameDriver({ name, userId, content, version }) {
         return new Promise(async(resolve, reject) => {
-            const gameAndDriver = await this.getGameAndDriver(name);
-            if (gameAndDriver !== undefined && gameAndDriver.game !== undefined && gameAndDriver.game.game !== undefined) {
-                if (userId !== gameAndDriver.game.game.owner_id) {
-                    reject(`You are not the owner of this game and cannot edit the driver. userId: ${userId}, 'gameAndDriver.game.game.owner_id': ${gameAndDriver.game.owner_id}`);
+            const driver = await this.getGameEntityRecord(name, 'driver', { version } );
+            if (driver) {
+                const gameAndDatabase = await this.getGameAndDatabase(name);
+                if (userId !== gameAndDatabase.game.owner_id) {
+                    reject(`You are not the owner of this game and cannot edit the driver. userId: ${userId}, 'gameAndDriver.game.game.owner_id': ${gameAndDatabase.game.owner_id}`);
                     return;
                 }
                 else {
-                    gameAndDriver.driver.updateContent(gameAndDriver.driver, content);
-                    gameAndDriver.driver.save(resolve);
+                    driver.updateContent(driver, content);
+                    driver.save(resolve);
                 }
             } else {
                 reject(`No game detected: ${name}`);
@@ -103,121 +134,108 @@ class GameService {
         });
     }
     
-    //const hook = getHook(`( ({ emit, dataIn, username, subdomain, broadcast }) => ${socketIOHook.code} })(ctx);`);
-    getSocketIOHooks(subdomain) {
-        const returnArray = [];
-        returnArray.push({
-            on: 'win',
-            code: `{ ctx.broadcast({name: subdomain + '-Admin', text: "Win confirmed: " + username })`
-        });
-        
-        returnArray.push({
-            on: 'check-loss',
-            code: `{ console.log('ILLEGAL LOGGING'); ctx.emit('youlose', {text: 'You lose!', from: subdomain + '-Admin', username: username }) `
-        });
-        return returnArray;
-    }
-
-
-    getGameAndDriver(subdomain) {
-        return new Promise((resolve, reject) => {
-            this.getGame(subdomain, false).then(async(game) => {
-                if (!this.objectHasName(game)) {
-                    resolve({});
-                    return;
-                }
-                this.getDriver(game.game.name).then((driver) => {
-                    driver = driver ? driver.driver : { content: `window.console.log('no driver for game '${game.game.name}')` };
-                    resolve({ game, driver });
-                }).catch(() => {
-                    resolve({game});
-                });
-            }).catch(reject);
-        });
-    };
-
-    getGame(name, fetchPassword) {
+    
+    
+    getGameAndDatabase(name, fetchPassword) {
         return new Promise((resolve, reject) => {
             try{
                 const rootGameOrm = this.ormHelper.getMap()['game'];
                 if (!rootGameOrm) {
-                    reject({ msg: 'no rootGameOrm', map: this.ormHelper.getMap() });
+                    resolve(false);
+                    this.log(`No rootGameOrm found with name: ${name}`);
                     return;
                 }
-    
     
                 rootGameOrm.model.find({ name: name }, (err, games) => {
                     this.log(`Searching for game: ${name}`);
                     if (err) {
                         this.log(`Error checking exisiting game: ${name}`, err);
-                        reject(err);
+                        resolve(false);
                         return;
                     }
                     if (!games[0]) {
                         this.log(`No game found with name: ${name}`);
-                        resolve({});
+                        resolve(false);
                         return;
                     }
-                    //this.log(`Found game with name: ${name}`);
-                    if(fetchPassword) {
-                        games[0].getDatabase((err, database) => {
-                            if (err) {
-                                this.log(`Error getting games database info: ${name}`, err);
-                                reject(err);
-                                return;
-                            }
-                            resolve({ game: games[0], database: { ...database, password: fetchPassword ? database.password : undefined } });
-                        });
-                    } else {
-                        resolve({ game: games[0] });
-                    }
                     
+                    games[0].getDatabase((err, database) => {
+                        if (err) {
+                            console.error(`Error getting games database info: ${name}`, err);
+                            resolve(false);
+                            return;
+                        }
+                        resolve({ game: games[0], database: { ...database, password: fetchPassword ? database.password : undefined } });
+                    });
                 });
             }catch(err) {
-                console.log('Get game error: ', err);
-                resolve({})
+                console.error('Get game error: ', err);
+                resolve(false);
             }
             
         });
     }
 
-
-    getDriver(name) {
+    
+    
+    getGameEntityRecord(gameName, entitiyName, filter) {
         return new Promise((resolve, reject) => {
-            this.fetchCachedGameOrmHelper(name, false).then((gameOrmHelper) => {
+            this.fetchCachedGameOrmHelper(gameName, false)
+            .then((gameOrmHelper) => {
+                try {
                 
-                if(!(gameOrmHelper.getMap()['driver'].model)) {
-                    resolve({});
-                    return;
+                    if(!gameOrmHelper) {
+                        console.log(gameName, `Error fetching model '[${entitiyName}]'`);
+                        resolve(false);
+                        return;
+                    }
+                        
+                    if(!(gameOrmHelper.getMap()[entitiyName].model)) {
+                        console.log(gameName, `Error fetching model '[${entitiyName}]'`);
+                        resolve(false);
+                        return;
+                    }
+                    gameOrmHelper.getMap()[entitiyName].model.find(filter, (err, entities) => {
+                        if (err) {
+                            console.log(`Game ${gameName}, Error fetching entity '[${entitiyName}]' with filter:`, filter, err);
+                            resolve(false);
+                            return;
+                        }
+                        if (!entities[0]) {
+                            console.log(`Game: ${gameName}, Entity '[${entitiyName}]' not found after filter:`, filter);
+                            resolve(false);
+                            return;
+                        }
+                        resolve(entities[0]);
+                    });
                 }
-                gameOrmHelper.getMap()['driver'].model.find({ name: 'test' }, (err, drivers) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    if (!drivers[0]) {
-                        resolve({});
-                        return;
-                    }
-                    resolve({ driver: drivers[0] });
-                });
+                catch(err) {
+                    console.log(gameName, `Exception fetching model for '[${entitiyName}]'`, err);
+                    resolve(false);
+                }
             }).catch((err) => {
-                resolve({});
+                console.log(gameName, `Exception fetching orm helper for '[${gameName}]'`, err);
+                resolve(false);
             });
-            
         });
     }
 
-    fetchCachedGameOrmHelper(name, refreshCache) {
+
+    fetchCachedGameOrmHelper(gameName, refreshCache) {
         return new Promise(async (resolve, reject) => {
-            if (refreshCache || this.gameOrmHelperMap[name] === undefined || this.gameOrmHelperMap[name] === null) {
-                const game = await this.getGame(name, true);
+            if (refreshCache || this.gameOrmHelperMap[gameName] === undefined || this.gameOrmHelperMap[gameName] === null) {
+                const gameAndDatabase = await this.getGameAndDatabase(gameName, true);
+                
+                if(!gameAndDatabase) {
+                    resolve(false);
+                    return;
+                }
                 
                 const gameOrmHelper = require(global.__base + 'utils/ormHelper.js')({
                     ip: this.secrets.dbHost,
-                    user: 'game_' + name,
-                    password: game.database.password,
-                    database: 'game_' + name,
+                    user: 'game_' + gameName,
+                    password: gameAndDatabase.database.password,
+                    database: 'game_' + gameName,
                     yourSql: null,
                     entities: this.getSubEntities(),
                     loadDefaultData: false
@@ -226,42 +244,15 @@ class GameService {
                     if(err) {
                         reject(err);
                     }else {
-                        this.gameOrmHelperMap[name] = gameOrmHelper;
-                        resolve(this.gameOrmHelperMap[name]);
+                        this.gameOrmHelperMap[gameName] = gameOrmHelper;
+                        resolve(this.gameOrmHelperMap[gameName]);
                     }
                 });
                 
             }else {
-                resolve(this.gameOrmHelperMap[name]);
+                resolve(this.gameOrmHelperMap[gameName]);
             }
             
-        });
-    }
-
-    createGame(name, userId) {
-        return new Promise((resolve, reject) => {
-            const rootGameOrm = this.ormHelper.getMap()['game'];
-            if (!rootGameOrm) {
-                reject({ msg: 'no rootGameOrm', map: this.ormHelper.getMap() });
-                return;
-            }
-
-
-            rootGameOrm.model.create({ name: name, owner_id: userId }, (err, createdGame) => {
-                if (err) {
-                    this.log(`Error saving game: ${name}`, err);
-                    reject(err);
-                    return;
-                }
-                const database = { password: this.uuidv4().substring(0, 13), mb: 0, game: createdGame };
-                rootGameOrm.extensions['database'].create(database, (err, createdExtension) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    resolve({ createdGame, database });
-                });
-            });
         });
     }
 }

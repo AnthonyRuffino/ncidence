@@ -15,7 +15,7 @@ class Controller {
         $scope.title = '';
         $scope.owner = '';
         
-        const hook = {
+        const hooks = {
           connect: () => {},
           whoami: () => {},
           message: () => {},
@@ -24,33 +24,31 @@ class Controller {
         }
 
         socket.on('connect', () => {
-        	hook.connect();
+        	hooks.connect();
         });
         
         socket.on('whoami', (me) => {
-        	console.log('me', me);
-        	hook.whoami(me);
+        	console.log('whoami:', me);
+        	hooks.whoami(me);
         });
 
         socket.on('message', (msg) => {
           $scope.messages.push(msg);
           $scope.$apply();
-          hook.message(msg);
+          hooks.message(msg);
         });
         
         socket.on('connected', (data) => {
           this.subdomain = data.subdomain;
-          console.log('data.subdomain', data.subdomain);
           $scope.title = this.name + ' ' + data.subdomain;
-          console.log('game', data.owner);
           $scope.$apply();
-          hook.connected(data);
+          hooks.connected(data);
         });
 
         socket.on('roster', (names) => {
           $scope.roster = names;
           $scope.$apply();
-          hook.roster(names);
+          hooks.roster(names);
         });
 
         $scope.send = () => {
@@ -68,7 +66,7 @@ class Controller {
           on:  (name, callback) => {
             socket.on(name, callback);
           },
-          hook 
+          hooks 
         };
       }
 }
