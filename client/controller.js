@@ -38,6 +38,10 @@ class Controller {
           hooks.message(msg);
         });
         
+        socket.on('debug', (msg) => {
+          console.log('[DEBUG]', msg);
+        });
+        
         socket.on('connected', (data) => {
           this.subdomain = data.subdomain;
           $scope.title = this.name + ' ' + data.subdomain;

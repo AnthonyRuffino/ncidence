@@ -6,13 +6,17 @@ console.log('..........................................................');
 console.log('..........................................................');
 console.log('..........................................................');
 
+
+
+
 String.prototype.replaceAll = function(search, replacement) {
   let target = this;
   return target.split(search).join(replacement);
 };
 
+
 //GLOBALS
-global.__debug = false;
+global.__debug = true;
 global.__defaultGameVersion = 'test';
 global.__schema = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
 global.__host = global.__schema.replaceAll('__', '-').replaceAll('_', '.');
@@ -31,7 +35,40 @@ global.__getSubdomain = (host) => {
 };
 
 
-//SECRETS
+
+// HI-JACK CONSOLE
+((bool) => {
+  const consoleOverrides = ['log','error', 'debug', 'trace', 'warn' , 'info'];
+  const konsole = {};
+    consoleOverrides.forEach((key) => {
+    konsole[key] = console[key];
+  });
+  
+  var consoleHolder = console;
+  var logId = 0;
+  (() => {
+    if (bool) {
+      consoleHolder = console;
+      const len = (num) => (num+'').length;
+      const padded = ((padding, num) => String(padding + num).slice(-len(padding) - (len(padding) < len(num) ? (len(num)-len(padding)) : 0)));
+      
+      Object.keys(consoleHolder).forEach(function(key) {
+        if(consoleOverrides.indexOf(key) >= 0){
+          console[key] = (...args) => konsole[key](padded('      ', `[${key}]`).toUpperCase(), padded('00000000', ++logId), '| ', new Date().toUTCString(), ' | ', ' -', args);
+        } else {
+          console[key] = function() {};
+        }
+      });
+    }
+    else {
+      console = consoleHolder;
+    }
+  })();
+})(true);
+
+
+
+// SECRETS
 const SECRETS = {
   jwtSecret: process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp',
   dbUser: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
@@ -40,7 +77,7 @@ const SECRETS = {
 };
 
 
-//REQUIRES
+// REQUIRES
 let http = require('http');
 let express = require('express');
 let fs = require('fs');
@@ -50,29 +87,29 @@ let formidable = require('formidable');
 let captchapng = require('captchapng');
 
 
-//ROUTER AND SERVER
+// ROUTER AND SERVER
 console.log('Configure Router');
 let router = express();
 let server = http.createServer(router);
 
 
-//COOKIE PARSER
+// COOKIE PARSER
 let cookieParser = require('cookie-parser');
 router.use(cookieParser());
 
-//BODY PARSER
+// BODY PARSER
 let bodyParser = require('body-parser');
 let urlencodedParser = bodyParser.urlencoded({ extended: false });
 router.use(bodyParser.json());
 
-//HOST COOKIE
+// HOST COOKIE
 router.use(require('./utils/middleware/hostCookie.js')('ncidence', (1000 * 60 * 60 * 24 * 365)));
 
-//SECURE SERVER
+// SECURE SERVER
 const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
 
 
-//Driver middleware
+// Driver middleware
 router.use('/', async(req, res, next) => {
   
   try{
@@ -108,14 +145,14 @@ router.use('/', async(req, res, next) => {
 
 });
 
-//File system middleware
+// File system middleware
 router.use(require('no-extension')(global.__publicdir));
 router.use(express.static(global.__publicdir));
 
 
 
 //////////////////////
-//BEGIN MYSQL CONFIG
+// BEGIN MYSQL CONFIG
 //////////////////////
 yourSql.init({
   host: SECRETS.dbHost,
@@ -152,23 +189,22 @@ yourSql.createDatabase(global.__schema).then(() => {
   ormHelper.sync();
 });
 //////////////////////
-//END MYSQL CONFIG
+// END MYSQL CONFIG
 //////////////////////
 
 
 //////////////////////
-//BEGIN SERVICES
+// BEGIN SERVICES
 //////////////////////
 const userService = require('./utils/orm/services/userService.js')(ormHelper);
 const fileService = require('./utils/orm/services/fileService.js')(ormHelper);
 const gameService = require('./utils/orm/services/gameService.js')({ 
-  ormHelper, 
-  yourSql, 
-  debug: global.__debug, 
+  ormHelper,
+  yourSql,
   secrets: SECRETS 
 });
 //////////////////////
-//END SERVICES
+// END SERVICES
 //////////////////////
 
 
@@ -179,7 +215,7 @@ const gameService = require('./utils/orm/services/gameService.js')({
 
 
 ///////////////////////////////////////////
-//BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
+// BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
 ////////////////////////////////////////////
 console.log('---Socket IO');
 let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
@@ -194,7 +230,6 @@ let socketIOHelper = require('./utils/socketIOHelper.js')({
   server: secureServer !== null ? secureServer : server,
   tokenUtil: jwtCookiePasser,
   gameService,
-  debug: global.__debug
 });
 socketIOHelper.init();
 
@@ -206,7 +241,7 @@ jwtCookiePasser.init({
   loginLogoutHooks: socketIOHelper
 });
 /////////////////////////////////////////
-//END SOCKET IO SETUP & JWT AUTH SETUP///
+// END SOCKET IO SETUP & JWT AUTH SETUP///
 /////////////////////////////////////////
 
 

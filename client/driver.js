@@ -888,7 +888,6 @@ class GameDriver {
         this._angleChangeSpeed = 2;
         this.log = log;
         this.alert = alert;
-        this.isDebug = true;
         this.me = 'Anonymouz';
         
         //socketio overrides
@@ -1028,6 +1027,16 @@ class GameDriver {
           console.log('load recieved from server', msg);
         });
         this.socket.emit('load');
+        
+        this.socket.on('beep', (msg) => {
+        	console.log('beep', msg, this.me);
+        	//alert('Beep! ' + this.me);
+        });
+        
+        this.socket.on('hi', (msg) => {
+        	console.log('hi', msg, this.me);
+        	//alert('Bop! ' + this.me);
+        })
 
 
     }
@@ -1176,26 +1185,18 @@ class GameDriver {
 
 }
 
-class Dummy{
+class Hello{
 	constructor(val){
-		this.val = 'haha'
+		this.val = 'Hello ' + val;
+		this.id = 999;
+		
+		if(val === 'fail') {
+			throw 'Hello failure';
+		}
 	}
 }
 
 
 if(typeof exports !== 'undefined'){
-    exports.Entity = Entity;
-    exports.Player;
-    exports.Dummy = Dummy;
-    
+    exports.Hello = Hello;
 }
-
-
-
-
-
-
-
-
-
-

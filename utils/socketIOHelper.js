@@ -6,7 +6,7 @@ const getHook = function(code) {
 }
 
 class SocketIOHelper {
-	constructor({ server, tokenUtil, gameService, debug }) {
+	constructor({ server, tokenUtil, gameService }) {
 		this.messages = {};
 		this.sockets = [];
 		this.socketNcidenceCookieMap = {};
@@ -25,21 +25,7 @@ class SocketIOHelper {
 		this.requireFromString = require('require-from-string');
 		
 		this.subdomainCaches = {};
-		this.debug = debug;
 	}
-	
-	
-	log(msg, err) {
-        if (this.debug) {
-            if (err) {
-                console.error(msg);
-                console.error(err);
-            }
-            else {
-                console.log(msg);
-            }
-        }
-    }
 	
 	
 	logoutUserHook(req) {
@@ -255,11 +241,10 @@ class SocketIOHelper {
 			//
 			// 13. Register backend socket.io endpoints
 			//
-			const driverExports = await this.getGameExports(socket.subdomain, 'driver', { version: global.__defaultGameVersion }) | {};
+			const driverExports = await this.getGameExports(socket.subdomain, 'driver', { version: global.__defaultGameVersion }) || {};
 			const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: global.__defaultGameVersion }) || {};
 			
-			
-			const socketIOHooks = backendExports.getSocketIOHooks ? (backendExports.getSocketIOHooks() || []) : [];
+			const socketIOHooks = backendExports.getSocketIOHooks();
 			socketIOHooks.forEach((socketIOHook) => {
 				socket.on(socketIOHook.on, (dataIn) => {
 					try {
@@ -273,8 +258,9 @@ class SocketIOHelper {
 							cache: this.subdomainCaches[socket.subdomain]
 						});
 				    }
-				    catch (executionException) {
-				      console.error('Error registering code hook: ', socketIOHook, executionException);
+				    catch (err) {
+				      console.info('Error registering code hook: ', socketIOHook, err);
+				      socket.emit('debug', { socketIOHook, message: err && err.message ? err.message : err });
 				    }
 				});
 			});
@@ -290,7 +276,7 @@ class SocketIOHelper {
 				try{
 					entity = await this.gameService.getGameEntityRecord(subdomain, type, filter);
 				}catch(err) {
-					console.error(`Error getting game ${type}: `, err);
+					console.error(`[${subdomain}] - Error getting game ${type}: `, err);
 				}
 			}
 			
@@ -300,14 +286,14 @@ class SocketIOHelper {
 			
 			if(entity && entity.content !== undefined) {
 				try {
-					this.log(`Loading custom exports for ${type}`, subdomain);
+					console.log(`[${subdomain}] - Loading custom exports for ${type}`);
 					exportsForType = this.requireFromString(entity.content.toString('utf8'));
 				} catch(err) {
-					console.error(`Error loading exports for ${type}`, err);
+					console.error(`[${subdomain}] - Error loading exports for ${type}`, err);
 				}
 			} else {
 				const filePath = (type === 'driver' ? (global.__publicdir + '/') : global.__base) + type + '.js';
-				this.log(subdomain, `Loading default exports for ${type}`, subdomain, filePath);
+				console.log(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
 				exportsForType = require(filePath);
 			}
 			resolve(exportsForType);
