@@ -939,7 +939,7 @@ class GameDriver {
         //BOB
         var bobImage = {};
         bobImage.img = new Image();
-        bobImage.img.src = '/img/space/bob.png';
+        bobImage.img.src = '/img/space/morgan.png';
         this.bob = new this.EntityClass(this, 'person', 'bob', sunRadius * 2, 0, sunRadius / 10, sunRadius / 10, 0, 0, 'circle', null, 20, 'red', bobImage);
 
 

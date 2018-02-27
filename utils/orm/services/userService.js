@@ -18,7 +18,7 @@ class UserService {
             region: sesRegion
         });
         
-        let template = require(global.__base + 'utils/htmlTemplates/signupTemplate.js');
+        let template = require(global.__rootdir + 'utils/htmlTemplates/signupTemplate.js');
         this.templateTranport = this.transport.templateSender({
             subject: 'Confirm account at {{serviceName}}',
             text: template.text,

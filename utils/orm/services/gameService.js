@@ -13,8 +13,8 @@ class GameService {
     
     getSubEntities() {
         return [
-            require(global.__base + 'utils/orm/entities/gameModels/driver.js')(),
-            require(global.__base + 'utils/orm/entities/gameModels/backend.js')(),
+            require(global.__rootdir + 'utils/orm/entities/gameModels/driver.js')(),
+            require(global.__rootdir + 'utils/orm/entities/gameModels/backend.js')(),
             ];
     }
 
@@ -80,7 +80,7 @@ class GameService {
                 await this.yourSql.createDatabase(userAndSchemaName);
                 this.log(`Schema created: ${userAndSchemaName}`);
 
-                const ormHelperTemp = require(global.__base + 'utils/ormHelper.js')({
+                const ormHelperTemp = require(global.__rootdir + 'utils/ormHelper.js')({
                     ip: this.secrets.dbHost,
                     user: this.secrets.dbUser,
                     password: this.secrets.dbSecret,
@@ -231,7 +231,7 @@ class GameService {
                     return;
                 }
                 
-                const gameOrmHelper = require(global.__base + 'utils/ormHelper.js')({
+                const gameOrmHelper = require(global.__rootdir + 'utils/ormHelper.js')({
                     ip: this.secrets.dbHost,
                     user: 'game_' + gameName,
                     password: gameAndDatabase.database.password,

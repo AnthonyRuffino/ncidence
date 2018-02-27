@@ -6,7 +6,7 @@ module.exports = function(cookieName, maxAge) {
       if (cookieValue === undefined || cookieValue === null) {
         cookieValue = require('uuid/v4')();
       }
-      res.cookie(cookieName, cookieValue, { maxAge: maxAge, httpOnly: true, domain: '.' + global.__host });
+      res.cookie(cookieName, cookieValue, { maxAge: maxAge, httpOnly: true, domain: '.' + require(global.__rootdir + 'constants.js').host });
       next();
     };
     return setHostCookie;

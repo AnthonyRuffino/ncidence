@@ -20,11 +20,12 @@ class SocketIOHelper {
 		this.async = require('async');
 		this.cookie = require('cookie');
 		this.tokenUtil = tokenUtil;
-		this.getSubdomain = global.__getSubdomain;
 		this.gameService = gameService;
 		this.requireFromString = require('require-from-string');
 		
 		this.subdomainCaches = {};
+		
+		this.constants = require(global.__rootdir + 'constants.js');
 	}
 	
 	
@@ -128,7 +129,7 @@ class SocketIOHelper {
 			//
 			socket.subdomain = await ((host) => {
 				return new Promise(async (resolve, reject) => {
-					let subdomain = this.getSubdomain(host);
+					let subdomain = this.constants.getSubdomain(host);
 					subdomain = subdomain === undefined ? '#' : subdomain;
 					
 					if(!this.subdomainInfoMap[subdomain]) {
@@ -241,21 +242,31 @@ class SocketIOHelper {
 			//
 			// 13. Register backend socket.io endpoints
 			//
-			const driverExports = await this.getGameExports(socket.subdomain, 'driver', { version: global.__defaultGameVersion }) || {};
-			const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: global.__defaultGameVersion }) || {};
+			const driverExports = await this.getGameExports(socket.subdomain, 'driver', { version: this.constants.defaultGameVersion }) || {};
+			const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: this.constants.defaultGameVersion }) || {};
 			
-			const socketIOHooks = backendExports.getSocketIOHooks();
+			const backend = new (backendExports.getBackend({
+				console: { 
+					log: (...args) =>  socket.emit('debug', args) }, 
+				global: {
+					
+				}
+			}))({
+				subdomain: socket.subdomain,
+				broadcast: (data) => this.broadcast('message', data, socket),
+				driverExports: driverExports,
+				cache: this.subdomainCaches[socket.subdomain]
+			});
+			
+			const socketIOHooks = backend.getSocketIOHooks();;
+			
 			socketIOHooks.forEach((socketIOHook) => {
 				socket.on(socketIOHook.on, (dataIn) => {
 					try {
 						socketIOHook.run({
 							emit: (message, data) => socket.emit(message, data),
 							dataIn,
-							username: socket.name,
-							subdomain: socket.subdomain,
-							broadcast: (data) => this.broadcast('message', data, socket),
-							driverExports: driverExports,
-							cache: this.subdomainCaches[socket.subdomain]
+							username: socket.name
 						});
 				    }
 				    catch (err) {
@@ -286,14 +297,14 @@ class SocketIOHelper {
 			
 			if(entity && entity.content !== undefined) {
 				try {
-					console.log(`[${subdomain}] - Loading custom exports for ${type}`);
+					console.info(`[${subdomain}] - Loading custom exports for ${type}`);
 					exportsForType = this.requireFromString(entity.content.toString('utf8'));
 				} catch(err) {
 					console.error(`[${subdomain}] - Error loading exports for ${type}`, err);
 				}
 			} else {
-				const filePath = (type === 'driver' ? (global.__publicdir + '/') : global.__base) + type + '.js';
-				console.log(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
+				const filePath = (type === 'driver' ? global.__publicdir : global.__rootdir) + type + '.js';
+				console.info(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
 				exportsForType = require(filePath);
 			}
 			resolve(exportsForType);

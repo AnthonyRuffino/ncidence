@@ -233,9 +233,9 @@ class OrmHelper {
 					iterate(entity.uniqueConstraints, (uniqueConstraint) => {
 						if (isListy(uniqueConstraint.columns)) {
 
-							console.log('Creating unique constraint: ' + entity.name);
+							console.info('Creating unique constraint: ' + entity.name);
 							yourSql.createUniqueConstraint(database, entity.name, uniqueConstraint.columns, (err) => {
-								if (err)
+								if (err && err.indexOf['already exists'] < 0)
 									console.log('Error creating unique constraint: ' + JSON.stringify(err));
 							});
 						}
@@ -249,10 +249,10 @@ class OrmHelper {
 							if (other.options.key) {
 								const jointTableName = entity.name + "_" + other.desc;
 
-								console.log('Creating unique constraint during hasMany processing: ' + jointTableName);
+								console.info('Creating unique constraint during hasMany processing: ' + jointTableName);
 								yourSql.createUniqueConstraint(database, jointTableName, [other.name + "_id", entity.name + "_id"], (err) => {
-									if (err)
-										console.log('Error creating unique constraint during hasMany processing: ' + JSON.stringify(err));
+									if (err && err.indexOf['already exists'] < 0)
+										console.error('Error creating unique constraint during hasMany processing: ' + JSON.stringify(err));
 								});
 							}
 						}

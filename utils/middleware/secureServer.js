@@ -6,7 +6,7 @@ module.exports = function(fs, router) {
     
     if (process.env.SECURE_PORT !== undefined && process.env.SECURE_PORT !== null) {
       console.log('Using SSL.');
-      let sslHelper = require(global.__base + 'utils/sslHelper.js')(fs);
+      let sslHelper = require(global.__rootdir + 'utils/sslHelper.js')(fs);
       try {
         secureServer = sslHelper.configure(router);
       }

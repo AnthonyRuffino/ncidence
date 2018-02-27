@@ -1,70 +1,32 @@
-console.log('..........................................................');
-console.log('..........................................................');
-console.log('..........................................................');
-console.log('....................@Launching Ncidence@..................');
-console.log('..........................................................');
-console.log('..........................................................');
-console.log('..........................................................');
+
+/*
+    _   __     _     __                   
+   / | / /____(_)___/ /__  ____  ________ 
+  /  |/ / ___/ / __  / _ \/ __ \/ ___/ _ \
+ / /|  / /__/ / /_/ /  __/ / / / /__/  __/
+/_/ |_/\___/_/\__,_/\___/_/ /_/\___/\___/ 
+*/
+NCIDENCE_ASCII_ART();
 
 
-
-
-String.prototype.replaceAll = function(search, replacement) {
-  let target = this;
-  return target.split(search).join(replacement);
-};
-
-
-//GLOBALS
-global.__debug = true;
-global.__defaultGameVersion = 'test';
-global.__schema = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';
-global.__host = global.__schema.replaceAll('__', '-').replaceAll('_', '.');
-global.__base = __dirname + '/';
-global.__publicdir = __dirname + '/client';
-global.__sessionExpiration = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
-global.__QUERY_ROWS_LIMIT = 10000;
-global.__CAPTCHA_EXP_IN_MINUTES = 5;
-global.__getSubdomain = (host) => {
-  host = host.indexOf(':') > -1 ? host.substring(0, host.indexOf(':')) : host;
-  let subdomain;
-  if (global.__host !== host && host.endsWith("." + global.__host)) {
-    subdomain = host.substring(0, host.indexOf("." + global.__host));
-  }
-  return subdomain;
-};
-
+//CONSTANTS
+const constants = require('./constants');
+global.__rootdir = __dirname + '/';
+global.__publicdir = __dirname + '/client/';
 
 
 // HI-JACK CONSOLE
-((bool) => {
-  const consoleOverrides = ['log','error', 'debug', 'trace', 'warn' , 'info'];
-  const konsole = {};
-    consoleOverrides.forEach((key) => {
-    konsole[key] = console[key];
-  });
-  
-  var consoleHolder = console;
-  var logId = 0;
-  (() => {
-    if (bool) {
-      consoleHolder = console;
-      const len = (num) => (num+'').length;
-      const padded = ((padding, num) => String(padding + num).slice(-len(padding) - (len(padding) < len(num) ? (len(num)-len(padding)) : 0)));
-      
-      Object.keys(consoleHolder).forEach(function(key) {
-        if(consoleOverrides.indexOf(key) >= 0){
-          console[key] = (...args) => konsole[key](padded('      ', `[${key}]`).toUpperCase(), padded('00000000', ++logId), '| ', new Date().toUTCString(), ' | ', ' -', args);
-        } else {
-          console[key] = function() {};
-        }
-      });
-    }
-    else {
-      console = consoleHolder;
-    }
-  })();
-})(true);
+require('./utils/hijack.js')({
+  enabled: true, 
+  enabledTypes: {
+      log: true,
+      error: true,
+      debug: true,
+      trace: true,
+      warn: true,
+      info: false,
+  }
+});
 
 
 
@@ -113,20 +75,20 @@ const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
 router.use('/', async(req, res, next) => {
   
   try{
-    const subdomain = global.__getSubdomain(req.get('host'));
+    const subdomain = constants.getSubdomain(req.get('host'));
     if (req.url === '/driver.js' && subdomain !== undefined) {
       
       res.writeHead(200, {
         'Content-Type': 'application/javascript'
       });
       
-      let driver = await gameService.getGameEntityRecord(subdomain, 'driver', { version: global.__defaultGameVersion } );
+      let driver = await gameService.getGameEntityRecord(subdomain, 'driver', { version: constants.defaultGameVersion } );
       if(driver && driver.content) {
         res.end(driver.content);
       } else {
         next();
-        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! serving default driver');
-        // fs.readFile(global.__publicdir + "/driver.js", "utf8", function(err, defaultDriver) {
+        console.log('serving default driver');
+        // fs.readFile(global.__publicdir + "driver.js", "utf8", function(err, defaultDriver) {
         //   if(err) {
         //     console.log('error getting default driver');
         //     next();
@@ -175,14 +137,14 @@ const ormHelper = require('./utils/ormHelper.js')({
     ip: SECRETS.dbHost,
     user: SECRETS.dbUser,
     password: SECRETS.dbSecret,
-    database: global.__schema,
+    database: constants.schema,
     yourSql,
     entities,
     loadDefaultData: process.env.LOAD_DEFAULT_DATA || true
   });
 
 console.log('LOADING mysql. ');
-yourSql.createDatabase(global.__schema).then(() => {
+yourSql.createDatabase(constants.schema).then(() => {
   ormHelper.sync();
 }).catch((err) => {
   console.log(err);
@@ -219,9 +181,9 @@ const gameService = require('./utils/orm/services/gameService.js')({
 ////////////////////////////////////////////
 console.log('---Socket IO');
 let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
-  domain: global.__host,
+  domain: constants.host,
   secretOrKey: SECRETS.jwtSecret,
-  expiresIn: global.__sessionExpiration,
+  expiresIn: constants.sessionExpiration,
   useJsonOnLogin: false,
   useJsonOnLogout: false
 });
@@ -245,7 +207,7 @@ jwtCookiePasser.init({
 /////////////////////////////////////////
 
 
-
+const QUERY_ROWS_LIMIT = 10000;
 router.get('/api/roles', function(req, res) {
 
   let query = {};
@@ -297,8 +259,9 @@ router.get('/api/roles', function(req, res) {
     }
   });
 
-  if (limit === null || isNaN(limit) || limit > global.__QUERY_ROWS_LIMIT) {
-    limit = global.__QUERY_ROWS_LIMIT;
+
+  if (limit === null || isNaN(limit) || limit > QUERY_ROWS_LIMIT) {
+    limit = QUERY_ROWS_LIMIT;
   }
 
   model.find(query, options, limit, order,
@@ -396,12 +359,12 @@ router.get('/u/:name/:file', function(req, res) {
 
 
 
-
+const CAPTCHA_EXP_IN_MINUTES = 5;
 router.get('/api/captcha', function(req, res) {
 
   let number = parseInt(Math.random() * 900000 + 100000);
   let captchaId = uuidv4().substring(0, 4);
-  let expDate = new Date((new Date()).getTime() + global.__CAPTCHA_EXP_IN_MINUTES * 60000);
+  let expDate = new Date((new Date()).getTime() + CAPTCHA_EXP_IN_MINUTES * 60000);
 
   let captchaModel = ormHelper.getMap()['captcha'].model;
 
@@ -443,11 +406,11 @@ router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
       }
 
       let game;
-      const subdomain = global.__getSubdomain(req.get('host'));
+      const subdomain = constants.getSubdomain(req.get('host'));
       if (subdomain !== undefined) {
         
         try {
-          await gameService.updateGameDriver({ name: subdomain, userId: req.user.id, content, version: global.__defaultGameVersion });
+          await gameService.updateGameDriver({ name: subdomain, userId: req.user.id, content, version: constants.defaultGameVersion });
         } catch(err) {
           console.log('err persisting game driver: ', err);
           res.redirect('/');
@@ -477,7 +440,7 @@ router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, fun
     name: req.body.game, 
     userId: req.user.id,
   }).then(game => {
-    res.redirect(req.protocol + '://' + req.body.game + '.' + global.__host);
+    res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host);
   }).catch(err => {
     res.json(500, { err });
   });
@@ -537,7 +500,19 @@ if (server === undefined || server === null) {
 
 
 server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function() {
-  console.log('trying to listen...');
+  console.log('Starting ncidence server...');
   let addr = server.address();
-  console.log("Chat server listening at", addr.address + ":" + addr.port);
+  console.log("Ncidence server listening at", addr.address + ":" + addr.port);
 });
+
+
+
+function NCIDENCE_ASCII_ART() {
+  console.log('__________________________________________');
+  console.log('    _   __     _     __                   ');
+  console.log('   / | / /____(_)___/ /__  ____  ________ ');
+  console.log('  /  |/ / ___/ / __  / _ \\/ __ \\/ ___/ _ \\');
+  console.log(' / /|  / /__/ / /_/ /  __/ / / / /__/  __/');
+  console.log(`/_/ |_/\\___/_/\\__,_/\\___/_/ /_/\\___/\\___/`);
+  console.log('__________________________________________');
+}
