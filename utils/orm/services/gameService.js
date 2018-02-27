@@ -13,6 +13,7 @@ class GameService {
     
     getSubEntities() {
         return [
+            require(global.__rootdir + 'utils/orm/entities/gameModels/common.js')(),
             require(global.__rootdir + 'utils/orm/entities/gameModels/driver.js')(),
             require(global.__rootdir + 'utils/orm/entities/gameModels/backend.js')(),
             ];
@@ -178,31 +179,31 @@ class GameService {
 
     
     
-    getGameEntityRecord(gameName, entitiyName, filter) {
+    getGameEntityRecord(gameName, entityName, filter) {
         return new Promise((resolve, reject) => {
             this.fetchCachedGameOrmHelper(gameName, false)
             .then((gameOrmHelper) => {
                 try {
                 
                     if(!gameOrmHelper) {
-                        console.log(gameName, `Error fetching model '[${entitiyName}]'`);
+                        console.log(gameName, `Error fetching model '[${entityName}]'`);
                         resolve(false);
                         return;
                     }
                         
-                    if(!(gameOrmHelper.getMap()[entitiyName].model)) {
-                        console.log(gameName, `Error fetching model '[${entitiyName}]'`);
+                    if(!(gameOrmHelper.getMap()[entityName].model)) {
+                        console.log(gameName, `Error fetching model '[${entityName}]'`);
                         resolve(false);
                         return;
                     }
-                    gameOrmHelper.getMap()[entitiyName].model.find(filter, (err, entities) => {
+                    gameOrmHelper.getMap()[entityName].model.find(filter, (err, entities) => {
                         if (err) {
-                            console.log(`Game ${gameName}, Error fetching entity '[${entitiyName}]' with filter:`, filter, err);
+                            console.log(`Game ${gameName}, Error fetching entity '[${entityName}]' with filter:`, filter, err);
                             resolve(false);
                             return;
                         }
                         if (!entities[0]) {
-                            console.log(`Game: ${gameName}, Entity '[${entitiyName}]' not found after filter:`, filter);
+                            console.log(`Game: ${gameName}, Entity '[${entityName}]' not found after filter:`, filter);
                             resolve(false);
                             return;
                         }
@@ -210,7 +211,7 @@ class GameService {
                     });
                 }
                 catch(err) {
-                    console.log(gameName, `Exception fetching model for '[${entitiyName}]'`, err);
+                    console.log(gameName, `Exception fetching model for '[${entityName}]'`, err);
                     resolve(false);
                 }
             }).catch((err) => {

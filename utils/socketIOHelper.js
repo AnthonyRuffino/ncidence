@@ -1,10 +1,6 @@
 /* jshint node:true */ /* global define, escape, unescape */
 "use strict";
 
-const getHook = function(code) {
-	return new Function(['ctx'].join(','), code);
-}
-
 class SocketIOHelper {
 	constructor({ server, tokenUtil, gameService }) {
 		this.messages = {};
@@ -22,22 +18,23 @@ class SocketIOHelper {
 		this.tokenUtil = tokenUtil;
 		this.gameService = gameService;
 		this.requireFromString = require('require-from-string');
-		
+
 		this.subdomainCaches = {};
 		
+		this.backendCaches = {};
+
 		this.constants = require(global.__rootdir + 'constants.js');
 	}
-	
-	
+
 	logoutUserHook(req) {
 		const ncidenceCookie = req.cookies.ncidence;
-		if(ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
+		if (ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
 			this.socketNcidenceCookieMap[ncidenceCookie].forEach(socketId => {
 				if (this.socketIdMap[socketId] != undefined) {
 					const socket = this.socketIdMap[socketId];
 					socket.loggedOut = true;
 					socket.name = 'Anonymous';
-					socket.emit('whoami', 'Anonymous' );
+					socket.emit('whoami', 'Anonymous');
 					this.updateRoster(socket);
 				}
 			});
@@ -47,22 +44,22 @@ class SocketIOHelper {
 
 	loginUserHook(req, user, token) {
 		const ncidenceCookie = req.cookies.ncidence;
-		if(ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
+		if (ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
 			this.socketNcidenceCookieMap[ncidenceCookie].forEach(socketId => {
 				if (this.socketIdMap[socketId] !== undefined) {
 					const socket = this.socketIdMap[socketId];
 					socket.name = user.username;
 					socket.loggedOut = false;
 					socket.token = token;
-					socket.emit('whoami', user ? user.username : 'Anonymous' );
+					socket.emit('whoami', user ? user.username : 'Anonymous');
 					this.updateRoster(socket);
 				}
 			});
 		}
 	}
-	
-	
-	
+
+
+
 	updateRoster(socket) {
 		const foundNames = {};
 		this.async.map(
@@ -72,7 +69,7 @@ class SocketIOHelper {
 				callback(null, (socket.myParent === undefined && (socket.name === 'Anonymous' || foundNames[socket.name] === 1)) ? socket.name : null);
 			},
 			(err, names) => {
-				if(err) {
+				if (err) {
 					console.error('updateRoster err', err);
 				}
 				this.broadcast('roster', names, socket);
@@ -89,30 +86,30 @@ class SocketIOHelper {
 
 
 	init() {
-		this.io.on('connection', async (socket) => {
+		this.io.on('connection', async(socket) => {
 			//
 			// 1. Get ncidenceCookie (Unique per browser session);
 			//
 			const cookies = this.cookie.parse(socket.request.headers.cookie || '');
 			const ncidenceCookie = cookies.ncidence;
-			
-			
+
+
 			//
 			// 2. Create List of all sockets related to the curent user
 			//
-			if(this.socketNcidenceCookieMap[ncidenceCookie] === undefined) {
+			if (this.socketNcidenceCookieMap[ncidenceCookie] === undefined) {
 				this.socketNcidenceCookieMap[ncidenceCookie] = [];
 			}
 			this.socketNcidenceCookieMap[ncidenceCookie].push(socket.id);
-			
-			
+
+
 			//
 			// 3. Socket caching (per tab)
 			//
 			this.socketIdMap[socket.id] = socket;
 			this.sockets.push(socket);
-			
-			
+
+
 			//
 			// 4. Track life of socket.io cookies accross tabs
 			//
@@ -122,22 +119,22 @@ class SocketIOHelper {
 					socket.myParent.myChild = socket;
 				}
 			}
-			
-			
+
+
 			//
 			// 5. Get Subdomain
 			//
 			socket.subdomain = await ((host) => {
-				return new Promise(async (resolve, reject) => {
+				return new Promise(async(resolve, reject) => {
 					let subdomain = this.constants.getSubdomain(host);
 					subdomain = subdomain === undefined ? '#' : subdomain;
-					
-					if(!this.subdomainInfoMap[subdomain]) {
+
+					if (!this.subdomainInfoMap[subdomain]) {
 						let gameAndDatabaseTemp = await this.gameService.getGameAndDatabase(subdomain);
 						const game = gameAndDatabaseTemp && gameAndDatabaseTemp.game ? gameAndDatabaseTemp.game : null;
-						
+
 						this.subdomainInfoMap[subdomain] = {
-							subdomain : subdomain, 
+							subdomain: subdomain,
 							game,
 							owner: (game ? game.owner.username : null)
 						};
@@ -145,19 +142,19 @@ class SocketIOHelper {
 					if (this.messages[subdomain] === undefined) {
 						this.messages[subdomain] = [];
 					}
-				
+
 					resolve(subdomain);
 				});
-				
+
 			})(socket.request.headers.host);
-			
-			
+
+
 			// 
 			// 6. Inform client of connection
 			//
 			socket.emit('connected', this.subdomainInfoMap[socket.subdomain]);
-			
-			
+
+
 			//
 			// 7. Send user info to client
 			//
@@ -173,24 +170,24 @@ class SocketIOHelper {
 						this.updateRoster(socket);
 					}
 				}
-			}
+			};
 			(() => {
 				setUserInfo(socket);
 				this.updateRoster(socket);
-				socket.emit('whoami', socket.name );
+				socket.emit('whoami', socket.name);
 			})();
-			
-			
-			
+
+
+
 			//
 			// 8. Emit all stored messages for subdomain to client
 			//
 			this.messages[socket.subdomain].forEach((data) => {
 				socket.emit('message', data);
 			});
-			
-			
-			
+
+
+
 			//
 			// 9. Handle disconnect
 			//
@@ -201,14 +198,14 @@ class SocketIOHelper {
 				if (socket.myChild) {
 					socket.myChild.myParent = undefined;
 				}
-				this.socketNcidenceCookieMap[ncidenceCookie].splice(this.socketNcidenceCookieMap[ncidenceCookie].indexOf(socket.id), 1)
+				this.socketNcidenceCookieMap[ncidenceCookie].splice(this.socketNcidenceCookieMap[ncidenceCookie].indexOf(socket.id), 1);
 				this.socketIdMap[socket.id] = undefined;
 				this.sockets.splice(this.sockets.indexOf(socket), 1);
 				this.updateRoster(socket);
 			});
-			
-			
-			
+
+
+
 			//
 			// 10. Handle message
 			//
@@ -229,37 +226,59 @@ class SocketIOHelper {
 			});
 			
 			
+			try{
+				await this.setupBackend(socket);
+			} catch(err) {
+				console.error('Issue setting up backend');
+			}
 			
-			//
-			// 12. Set cache for subdomain
-			//
-			if(this.subdomainCaches[socket.subdomain] === undefined) {
+		});
+	}
+	
+	
+	
+	setupBackend(socket) {
+		return new Promise(async (resolve, reject) => {
+			
+			if (this.backendCaches[socket.subdomain] === undefined || this.backendCaches[socket.subdomain] === null) {
+				this.backendCaches[socket.subdomain] = {};
+			}else {
+				console.info(socket.subdomain, `[${socket.subdomain}] - Getting cached backend`);
+				resolve(this.backendCaches[socket.subdomain]);
+				return;
+			}
+			console.log(`[${socket.subdomain}] - Loading backend`);
+			
+			if (this.subdomainCaches[socket.subdomain] === undefined) {
 				this.subdomainCaches[socket.subdomain] = {};
 			}
-	        
-	        
-	        
-			//
-			// 13. Register backend socket.io endpoints
-			//
-			const driverExports = await this.getGameExports(socket.subdomain, 'driver', { version: this.constants.defaultGameVersion }) || {};
-			const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: this.constants.defaultGameVersion }) || {};
 			
-			const backend = new (backendExports.getBackend({
-				console: { 
-					log: (...args) =>  socket.emit('debug', args) }, 
-				global: {
-					
-				}
-			}))({
+			const dataSourcesAndServices = {
 				subdomain: socket.subdomain,
 				broadcast: (data) => this.broadcast('message', data, socket),
-				driverExports: driverExports,
 				cache: this.subdomainCaches[socket.subdomain]
-			});
+			};
 			
-			const socketIOHooks = backend.getSocketIOHooks();;
 			
+			// Register common and backend code
+			const commonExports = await this.getGameExports(socket.subdomain, 'common', { version: this.constants.defaultGameVersion }) || {};
+			const common = commonExports.upwrapExports(dataSourcesAndServices);
+			dataSourcesAndServices.common = common;
+			
+			
+			const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: this.constants.defaultGameVersion }) || {};
+			const backend = new(backendExports.upwrapExports({
+				common: common,
+				console: {
+					log: (...args) => socket.emit('debug', args)
+				},
+				global: {
+	
+				}
+			}))(dataSourcesAndServices);
+			this.backendCaches[socket.subdomain] = backend;
+	
+			const socketIOHooks = backend.getSocketIOHooks();
 			socketIOHooks.forEach((socketIOHook) => {
 				socket.on(socketIOHook.on, (dataIn) => {
 					try {
@@ -268,50 +287,90 @@ class SocketIOHelper {
 							dataIn,
 							username: socket.name
 						});
-				    }
-				    catch (err) {
-				      console.info('Error registering code hook: ', socketIOHook, err);
-				      socket.emit('debug', { socketIOHook, message: err && err.message ? err.message : err });
-				    }
+					} catch (err) {
+						console.info('Error registering code hook: ', socketIOHook, err);
+						socket.emit('debug', { socketIOHook, message: err && err.message ? err.message : err });
+					}
 				});
 			});
+			
+			
+			resolve(backend);
 		});
 	}
 	
-	
 	getGameExports(subdomain, type, filter) {
-		return new Promise(async (resolve, reject) =>{
+		return new Promise(async(resolve, reject) => {
 			let entity;
-			
-			if(this.subdomainInfoMap[subdomain].game) {
-				try{
+
+			if (this.subdomainInfoMap[subdomain].game) {
+				try {
 					entity = await this.gameService.getGameEntityRecord(subdomain, type, filter);
-				}catch(err) {
+				}
+				catch (err) {
 					console.error(`[${subdomain}] - Error getting game ${type}: `, err);
 				}
 			}
-			
+
 			let exportsForType = {
 				[`DEFAULT_EXPORTS_${type}`]: { subdomain, filter, type }
 			};
 			
-			if(entity && entity.content !== undefined) {
+			
+			const wrapExports = (code) => {
+				const wrappedExport =
+				`exports.upwrapExports = ({
+			    	console, 
+				    global,
+				    process = {},
+				    __dirname = '__dirname-not-supported', 
+				    __filename = '__filename-not-supported', 
+				    require = 'require-not-supported'
+				 }) => {
+					${code}
+					${type === 'common' ? 'return common' : ''}
+				 }`;
+				return wrappedExport;
+			};
+			
+
+			if (entity && entity.content !== undefined) {
 				try {
 					console.info(`[${subdomain}] - Loading custom exports for ${type}`);
-					exportsForType = this.requireFromString(entity.content.toString('utf8'));
-				} catch(err) {
-					console.error(`[${subdomain}] - Error loading exports for ${type}`, err);
+					exportsForType = this.requireFromString(wrapExports(entity.content.toString('utf8')));
 				}
-			} else {
-				const filePath = (type === 'driver' ? global.__publicdir : global.__rootdir) + type + '.js';
-				console.info(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
-				exportsForType = require(filePath);
+				catch (err) {
+					console.error(`[${subdomain}] - Error loading custom exports for ${type}`, err);
+				}
 			}
-			resolve(exportsForType);
+			else {
+				const filePath = (type === 'common' ? global.__publicdir : global.__rootdir) + type + '.js';
+				console.info(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
+				
+				try{
+					require('fs').readFile(filePath, "utf8", (err, codeContent) => {
+			          if(err) {
+			            console.error(`error getting default ${type}`);
+			            resolve(exportsForType);
+			          }
+			          try {
+							console.info(`[${subdomain}] - Loading default exports for ${type}`);
+							exportsForType = this.requireFromString(wrapExports(codeContent));
+							resolve(exportsForType);
+						}
+						catch (err) {
+							console.error(`[${subdomain}] - Error loading default exports for ${type}`, err);
+							resolve(exportsForType);
+						}
+			        });
+				} catch(err) {
+					resolve(exportsForType);
+				}
+			}
 		});
 	}
 }
 
-module.exports = function(configuration){
+module.exports = function(configuration) {
 	return new SocketIOHelper(configuration);
-}
+};

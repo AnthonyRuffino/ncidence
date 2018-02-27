@@ -1,4 +1,3 @@
-
 /*
     _   __     _     __                   
    / | / /____(_)___/ /__  ____  ________ 
@@ -6,13 +5,14 @@
  / /|  / /__/ / /_/ /  __/ / / / /__/  __/
 /_/ |_/\___/_/\__,_/\___/_/ /_/\___/\___/ 
 */
-NCIDENCE_ASCII_ART();
+//NCIDENCE_ASCII_ART();
 
 
 //CONSTANTS
 const constants = require('./constants');
 global.__rootdir = __dirname + '/';
 global.__publicdir = __dirname + '/client/';
+require(global.__publicdir + 'asciiArt.js')();
 
 
 // HI-JACK CONSOLE
@@ -24,7 +24,7 @@ require('./utils/hijack.js')({
       debug: true,
       trace: true,
       warn: true,
-      info: false,
+      info: true,
   }
 });
 
@@ -76,18 +76,24 @@ router.use('/', async(req, res, next) => {
   
   try{
     const subdomain = constants.getSubdomain(req.get('host'));
-    if (req.url === '/driver.js' && subdomain !== undefined) {
+    
+    const contentType = req.url === '/driver.js' ? 'driver' : (req.url === '/common.js' ? 'common' : null)
+    
+    if (contentType && subdomain !== undefined) {
       
-      res.writeHead(200, {
-        'Content-Type': 'application/javascript'
-      });
       
-      let driver = await gameService.getGameEntityRecord(subdomain, 'driver', { version: constants.defaultGameVersion } );
-      if(driver && driver.content) {
-        res.end(driver.content);
+      
+      let contentEntity = await gameService.getGameEntityRecord(subdomain, contentType, { version: constants.defaultGameVersion } );
+      if(contentEntity && contentEntity.content) {
+        
+        res.writeHead(200, {
+          'Content-Type': 'application/javascript'
+        });
+        
+        res.end(contentEntity.content);
       } else {
         next();
-        console.log('serving default driver');
+        console.log(`serving default ${contentType}`);
         // fs.readFile(global.__publicdir + "driver.js", "utf8", function(err, defaultDriver) {
         //   if(err) {
         //     console.log('error getting default driver');

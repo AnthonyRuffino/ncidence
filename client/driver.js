@@ -1184,19 +1184,3 @@ class GameDriver {
 	}
 
 }
-
-class Hello{
-	constructor(val){
-		this.val = 'Hello ' + val;
-		this.id = 999;
-		
-		if(val === 'fail') {
-			throw 'Hello failure';
-		}
-	}
-}
-
-
-if(typeof exports !== 'undefined'){
-    exports.Hello = Hello;
-}

@@ -20,7 +20,7 @@ module.exports = ({
                 if (consoleOverrides.indexOf(key) >= 0) {
                     console[key] = (...args) => {
                         if (enabledTypes[key]) {
-                            konsole[key](padded('      ', `[${key}]`).toUpperCase(), '|', padded('00000000', ++logId), '|', new Date().toUTCString(), '|', args);
+                            konsole[key](padded('           ', `[${key}]`).toUpperCase(), '|', padded('00000000', ++logId), '|', new Date().toUTCString(), '|', args);
                         }
                     };
                 }
