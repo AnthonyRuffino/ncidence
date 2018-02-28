@@ -8,7 +8,7 @@ return class Backend {
         this.broadcast = broadcast;
     }
     
-    getSocketIOHooks(){
+    getSocketIOHooks(console){
         const socketIOHooks = [];
         socketIOHooks.push({
             on: 'win',
@@ -34,7 +34,7 @@ return class Backend {
             	    require
             	});
             	console.log('dataIn', dataIn);
-            	emit('hi', new this.common.Hello('from back end'));
+            	emit('hi', new this.common.Hello(dataIn || 'from back end 3'));
             }
         });
         return socketIOHooks;

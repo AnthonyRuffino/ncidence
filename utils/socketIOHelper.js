@@ -21,7 +21,7 @@ class SocketIOHelper {
 
 		this.subdomainCaches = {};
 		
-		this.backendCaches = {};
+		this.cachedBackends = {};
 
 		this.constants = require(global.__rootdir + 'constants.js');
 	}
@@ -88,14 +88,14 @@ class SocketIOHelper {
 	init() {
 		this.io.on('connection', async(socket) => {
 			//
-			// 1. Get ncidenceCookie (Unique per browser session);
+			//  Get ncidenceCookie (Unique per browser session);
 			//
-			const cookies = this.cookie.parse(socket.request.headers.cookie || '');
-			const ncidenceCookie = cookies.ncidence;
+			socket.cookies = this.cookie.parse(socket.request.headers.cookie || '');
+			const ncidenceCookie = socket.cookies.ncidence;
 
 
 			//
-			// 2. Create List of all sockets related to the curent user
+			//  Create List of all sockets related to the curent user
 			//
 			if (this.socketNcidenceCookieMap[ncidenceCookie] === undefined) {
 				this.socketNcidenceCookieMap[ncidenceCookie] = [];
@@ -104,17 +104,17 @@ class SocketIOHelper {
 
 
 			//
-			// 3. Socket caching (per tab)
+			//  Socket caching (per tab)
 			//
 			this.socketIdMap[socket.id] = socket;
 			this.sockets.push(socket);
 
 
 			//
-			// 4. Track life of socket.io cookies accross tabs
+			//  Track life of socket.io cookies accross tabs
 			//
-			if (cookies.io) {
-				socket.myParent = this.socketIdMap[cookies.io];
+			if (socket.cookies.io) {
+				socket.myParent = this.socketIdMap[socket.cookies.io];
 				if (socket.myParent) {
 					socket.myParent.myChild = socket;
 				}
@@ -122,57 +122,25 @@ class SocketIOHelper {
 
 
 			//
-			// 5. Get Subdomain
+			//  Get Subdomain
 			//
-			socket.subdomain = await ((host) => {
-				return new Promise(async(resolve, reject) => {
-					let subdomain = this.constants.getSubdomain(host);
-					subdomain = subdomain === undefined ? '#' : subdomain;
-
-					if (!this.subdomainInfoMap[subdomain]) {
-						let gameAndDatabaseTemp = await this.gameService.getGameAndDatabase(subdomain);
-						const game = gameAndDatabaseTemp && gameAndDatabaseTemp.game ? gameAndDatabaseTemp.game : null;
-
-						this.subdomainInfoMap[subdomain] = {
-							subdomain: subdomain,
-							game,
-							owner: (game ? game.owner.username : null)
-						};
-					}
-					if (this.messages[subdomain] === undefined) {
-						this.messages[subdomain] = [];
-					}
-
-					resolve(subdomain);
-				});
-
-			})(socket.request.headers.host);
+			socket.subdomain = this.constants.getSubdomain(socket.request.headers.host);
+			socket.subdomain = socket.subdomain === undefined ? '#' : socket.subdomain;
+			await this.setSubdomainInfoMapAndMessages(socket.subdomain);
 
 
 			// 
-			// 6. Inform client of connection
+			//  Inform client of connection
 			//
 			socket.emit('connected', this.subdomainInfoMap[socket.subdomain]);
 
 
 			//
-			// 7. Send user info to client
+			//  Send user info to client
 			//
-			const setUserInfo = (socket) => {
-				if (socket.loggedOut) {
-					socket.name = 'Anonymous';
-				}
-				else {
-					let token = socket.token ? socket.token : this.tokenUtil.getTokenFromCookies(cookies);
-					let user = token ? this.tokenUtil.verifyToken(token) : null;
-					socket.name = String((user ? user.username : null) || 'Anonymous');
-					if (!user) {
-						this.updateRoster(socket);
-					}
-				}
-			};
+			
 			(() => {
-				setUserInfo(socket);
+				this.setUserInfo(socket);
 				this.updateRoster(socket);
 				socket.emit('whoami', socket.name);
 			})();
@@ -180,7 +148,7 @@ class SocketIOHelper {
 
 
 			//
-			// 8. Emit all stored messages for subdomain to client
+			//  Emit all stored messages for subdomain to client
 			//
 			this.messages[socket.subdomain].forEach((data) => {
 				socket.emit('message', data);
@@ -189,7 +157,7 @@ class SocketIOHelper {
 
 
 			//
-			// 9. Handle disconnect
+			//  Handle disconnect
 			//
 			socket.on('disconnect', () => {
 				if (socket.myParent) {
@@ -203,27 +171,13 @@ class SocketIOHelper {
 				this.sockets.splice(this.sockets.indexOf(socket), 1);
 				this.updateRoster(socket);
 			});
-
-
-
+			
+			
 			//
-			// 10. Handle message
+			//  built-in utils
 			//
-			socket.on('message', (msg) => {
-				setUserInfo(socket);
-				let text = String(msg || '');
-
-				if (!text)
-					return;
-
-				let data = {
-					name: socket.name,
-					text: text
-				};
-
-				this.broadcast('message', data, socket);
-				this.messages[socket.subdomain].push(data);
-			});
+			this.builtInOnMessage(socket);
+			this.builtInOnCommand(socket);
 			
 			
 			try{
@@ -236,49 +190,146 @@ class SocketIOHelper {
 	}
 	
 	
+	setSubdomainInfoMapAndMessages(subdomain) {
+		return new Promise(async(resolve, reject) => {
+			subdomain = subdomain === undefined ? '#' : subdomain;
+
+			if (!this.subdomainInfoMap[subdomain]) {
+				let gameAndDatabaseTemp = await this.gameService.getGameAndDatabase(subdomain);
+				const game = gameAndDatabaseTemp && gameAndDatabaseTemp.game ? gameAndDatabaseTemp.game : null;
+
+				this.subdomainInfoMap[subdomain] = {
+					subdomain: subdomain,
+					game,
+					owner: (game ? game.owner.username : 'admin')
+				};
+			}
+			if (this.messages[subdomain] === undefined) {
+				this.messages[subdomain] = [];
+			}
+			resolve(true);
+		});
+	}
+	
+	
+	
+	setUserInfo(socket) {
+		if (socket.loggedOut) {
+			socket.name = 'Anonymous';
+		}
+		else {
+			let token = socket.token ? socket.token : this.tokenUtil.getTokenFromCookies(socket.cookies);
+			let user = token ? this.tokenUtil.verifyToken(token) : null;
+			socket.name = String((user ? user.username : null) || 'Anonymous');
+			if (!user) {
+				this.updateRoster(socket);
+			}
+		}
+	};
+	
+	builtInOnMessage(socket) {
+		socket.on('message', (msg) => {
+			this.setUserInfo(socket);
+			let text = String(msg || '');
+
+			if (!text)
+				return;
+
+			let data = {
+				name: socket.name,
+				text: text
+			};
+
+			this.broadcast('message', data, socket);
+			this.messages[socket.subdomain].push(data);
+		});
+	}
+	
+	
+	builtInOnCommand(socket) {
+		
+		socket.on('command', (msg) => {
+			this.setUserInfo(socket);
+			let text = String(msg || '');
+
+			if (!text) {
+				return;
+			}
+			
+			const isOwner = socket.name === this.subdomainInfoMap[socket.subdomain].owner || socket.name === 'admin';
+			
+			if(!isOwner) {
+				return;
+			}
+			
+			// console.log('command', msg);
+			// if(isOwner && msg === 'refresh-backend'){
+			// 	if(socket.name === this.subdomainInfoMap[socket.subdomain].owner){
+			// 		console.log('REFRESH', this.subdomainInfoMap[socket.subdomain]);
+			// 		this.cachedBackends[socket.subdomain] = false;
+					
+			// 		socket.removeListener('hi', () => {
+			// 			this.setupBackend(socket);
+			// 		});
+			// 		socket.emit('debug', 'backend refreshed');
+			// 	} else {
+					
+			// 	}
+			// }
+		});
+	}
+	
+	
+	
+	
 	
 	setupBackend(socket) {
 		return new Promise(async (resolve, reject) => {
 			
-			if (this.backendCaches[socket.subdomain] === undefined || this.backendCaches[socket.subdomain] === null) {
-				this.backendCaches[socket.subdomain] = {};
-			}else {
+			let backend = false;
+			
+			if (this.cachedBackends[socket.subdomain]) {
 				console.info(socket.subdomain, `[${socket.subdomain}] - Getting cached backend`);
-				resolve(this.backendCaches[socket.subdomain]);
-				return;
+				backend = this.cachedBackends[socket.subdomain];
 			}
-			console.log(`[${socket.subdomain}] - Loading backend`);
+			
 			
 			if (this.subdomainCaches[socket.subdomain] === undefined) {
 				this.subdomainCaches[socket.subdomain] = {};
 			}
 			
-			const dataSourcesAndServices = {
-				subdomain: socket.subdomain,
-				broadcast: (data) => this.broadcast('message', data, socket),
-				cache: this.subdomainCaches[socket.subdomain]
-			};
+			if(!backend) {
+				console.log(`[${socket.subdomain}] - Loading backend`);
+				
+				const dataSourcesAndServices = {
+					subdomain: socket.subdomain,
+					broadcast: (data) => this.broadcast('message', data, socket),
+					cache: this.subdomainCaches[socket.subdomain]
+				};
+				
+				
+				// Register common and backend code
+				const commonExports = await this.getGameExports(socket.subdomain, 'common', { version: this.constants.defaultGameVersion }) || {};
+				const common = commonExports.upwrapExports(dataSourcesAndServices);
+				dataSourcesAndServices.common = common;
+				
+				
+				const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: this.constants.defaultGameVersion }) || {};
+				backend = new(backendExports.upwrapExports({
+					common: common,
+					console: {
+						log: () => {}
+					},
+					global: {
+		
+					}
+				}))(dataSourcesAndServices);
+				this.cachedBackends[socket.subdomain] = backend;
+			}
 			
 			
-			// Register common and backend code
-			const commonExports = await this.getGameExports(socket.subdomain, 'common', { version: this.constants.defaultGameVersion }) || {};
-			const common = commonExports.upwrapExports(dataSourcesAndServices);
-			dataSourcesAndServices.common = common;
-			
-			
-			const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: this.constants.defaultGameVersion }) || {};
-			const backend = new(backendExports.upwrapExports({
-				common: common,
-				console: {
-					log: (...args) => socket.emit('debug', args)
-				},
-				global: {
 	
-				}
-			}))(dataSourcesAndServices);
-			this.backendCaches[socket.subdomain] = backend;
-	
-			const socketIOHooks = backend.getSocketIOHooks();
+			const socketIOHooks = backend.getSocketIOHooks({ log: (...args) => socket.emit('debug', args) });
 			socketIOHooks.forEach((socketIOHook) => {
 				socket.on(socketIOHook.on, (dataIn) => {
 					try {
@@ -354,7 +405,6 @@ class SocketIOHelper {
 			            resolve(exportsForType);
 			          }
 			          try {
-							console.info(`[${subdomain}] - Loading default exports for ${type}`);
 							exportsForType = this.requireFromString(wrapExports(codeContent));
 							resolve(exportsForType);
 						}
