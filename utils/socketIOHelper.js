@@ -181,7 +181,22 @@ class SocketIOHelper {
 			
 			
 			try{
-				await this.setupBackend(socket);
+				const backend = await this.setupBackend(socket);
+				const socketIOHooks = backend.getSocketIOHooks({ log: (...args) => socket.emit('debug', args) });
+					socketIOHooks.forEach((socketIOHook) => {
+						socket.on(socketIOHook.on, (dataIn) => {
+							try {
+								socketIOHook.run({
+									emit: (message, data) => socket.emit(message, data),
+									dataIn,
+									username: socket.name
+								});
+							} catch (err) {
+								console.info('Error registering code hook: ', socketIOHook, err);
+								socket.emit('debug', { socketIOHook, message: err && err.message ? err.message : err });
+							}
+						});
+					});
 			} catch(err) {
 				console.error('Issue setting up backend');
 			}
@@ -262,20 +277,14 @@ class SocketIOHelper {
 				return;
 			}
 			
-			// console.log('command', msg);
-			// if(isOwner && msg === 'refresh-backend'){
-			// 	if(socket.name === this.subdomainInfoMap[socket.subdomain].owner){
-			// 		console.log('REFRESH', this.subdomainInfoMap[socket.subdomain]);
-			// 		this.cachedBackends[socket.subdomain] = false;
-					
-			// 		socket.removeListener('hi', () => {
-			// 			this.setupBackend(socket);
-			// 		});
-			// 		socket.emit('debug', 'backend refreshed');
-			// 	} else {
-					
-			// 	}
-			// }
+			console.log('command', msg);
+			if(isOwner && msg === 'refresh-backend'){
+				if(socket.name === this.subdomainInfoMap[socket.subdomain].owner){
+					console.log('REFRESH', this.subdomainInfoMap[socket.subdomain]);
+					this.cachedBackends[socket.subdomain] = false;
+					socket.emit('debug', 'backend refreshed');
+				}
+			}
 		});
 	}
 	
@@ -326,25 +335,6 @@ class SocketIOHelper {
 				}))(dataSourcesAndServices);
 				this.cachedBackends[socket.subdomain] = backend;
 			}
-			
-			
-	
-			const socketIOHooks = backend.getSocketIOHooks({ log: (...args) => socket.emit('debug', args) });
-			socketIOHooks.forEach((socketIOHook) => {
-				socket.on(socketIOHook.on, (dataIn) => {
-					try {
-						socketIOHook.run({
-							emit: (message, data) => socket.emit(message, data),
-							dataIn,
-							username: socket.name
-						});
-					} catch (err) {
-						console.info('Error registering code hook: ', socketIOHook, err);
-						socket.emit('debug', { socketIOHook, message: err && err.message ? err.message : err });
-					}
-				});
-			});
-			
 			
 			resolve(backend);
 		});

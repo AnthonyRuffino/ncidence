@@ -34,7 +34,7 @@ return class Backend {
             	    require
             	});
             	console.log('dataIn', dataIn);
-            	emit('hi', new this.common.Hello(dataIn || 'from back end 3'));
+            	emit('hi', new this.common.Hello(dataIn || 'from back end'));
             }
         });
         return socketIOHooks;
