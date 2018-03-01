@@ -281,11 +281,15 @@ class SocketIOHelper {
 			if(isOwner && msg === 'refresh-backend'){
 				if(socket.name === this.subdomainInfoMap[socket.subdomain].owner){
 					console.log('REFRESH', this.subdomainInfoMap[socket.subdomain]);
-					this.cachedBackends[socket.subdomain] = false;
+					this.refreshBackend(socket.subdomain);
 					socket.emit('debug', 'backend refreshed');
 				}
 			}
 		});
+	}
+	
+	refreshBackend(subdomain) {
+		this.cachedBackends[subdomain] = false;
 	}
 	
 	
@@ -311,7 +315,7 @@ class SocketIOHelper {
 			}
 			
 			if(!backend) {
-				console.log(`[${socket.subdomain}] - Loading backend`);
+				console.info(`[${socket.subdomain}] - Loading backend`);
 				
 				const dataSourcesAndServices = {
 					subdomain: socket.subdomain,
@@ -382,6 +386,8 @@ class SocketIOHelper {
 				try {
 					console.info(`[${subdomain}] - Loading custom exports for ${type}`);
 					exportsForType = this.requireFromString(wrapExports(entity.content.toString('utf8')));
+					resolve(exportsForType);
+					return;
 				}
 				catch (err) {
 					console.error(`[${subdomain}] - Error loading custom exports for ${type}`, err);
@@ -396,18 +402,22 @@ class SocketIOHelper {
 			          if(err) {
 			            console.error(`error getting default ${type}`);
 			            resolve(exportsForType);
+			            return;
 			          }
 			          try {
 							exportsForType = this.requireFromString(wrapExports(codeContent));
 							resolve(exportsForType);
+							return;
 						}
 						catch (err) {
 							console.error(`[${subdomain}] - Error loading default exports for ${type}`, err);
 							resolve(exportsForType);
+							return;
 						}
 			        });
 				} catch(err) {
 					resolve(exportsForType);
+					return;
 				}
 			}
 		});

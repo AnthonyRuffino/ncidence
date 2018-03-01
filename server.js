@@ -5,7 +5,6 @@
  / /|  / /__/ / /_/ /  __/ / / / /__/  __/
 /_/ |_/\___/_/\__,_/\___/_/ /_/\___/\___/ 
 */
-//NCIDENCE_ASCII_ART();
 
 
 //CONSTANTS
@@ -24,7 +23,7 @@ require('./utils/hijack.js')({
       debug: true,
       trace: true,
       warn: true,
-      info: true,
+      info: false,
   }
 });
 
@@ -200,6 +199,7 @@ let socketIOHelper = require('./utils/socketIOHelper.js')({
   gameService,
 });
 socketIOHelper.init();
+gameService.setSocketIOHelper(socketIOHelper);
 
 console.log('---JWT');
 jwtCookiePasser.init({
@@ -399,44 +399,61 @@ router.get('/api/captcha', function(req, res) {
 });
 
 
-router.post('/fileupload', jwtCookiePasser.authRequired(), (req, res) => {
-  let form = new formidable.IncomingForm();
-  form.parse(req, function(err, fields, files) {
-    let filePath = files.filetoupload.path;
-
-    fs.readFile(files.filetoupload.path, async(err, content) => {
-      if (err) {
-        console.log('err loading file: ', err);
-        res.redirect('/');
-        return;
-      }
-
-      let game;
-      const subdomain = constants.getSubdomain(req.get('host'));
-      if (subdomain !== undefined) {
-        
-        try {
-          await gameService.updateGameDriver({ name: subdomain, userId: req.user.id, content, version: constants.defaultGameVersion });
-        } catch(err) {
-          console.log('err persisting game driver: ', err);
+(() =>{
+  const processGameFile = (form, type, req, res) => {
+    form.parse(req, function(err, fields, files) {
+      let filePath = files.filetoupload.path;
+  
+      fs.readFile(files.filetoupload.path, async(err, content) => {
+        if (err) {
+          console.log('err loading file: ', err);
           res.redirect('/');
           return;
         }
-        
-        res.redirect('/play');
-        
-      }
-      else {
-        fileService.createFile(req.user.id, { name: files.filetoupload.name, content, content_type: 'text/html', game }, function(err) {
-          if (err) {
-            console.log('err persisting file: ', err);
+  
+        let game;
+        const subdomain = constants.getSubdomain(req.get('host'));
+        if (subdomain !== undefined) {
+          
+          try {
+            await gameService.updateGameFile({ name: subdomain, userId: req.user.id, content, version: constants.defaultGameVersion, type });
+          } catch(err) {
+            console.log('err persisting game driver: ', err);
+            res.redirect('/');
+            return;
           }
-          res.redirect('/');
-        });
-      }
+          
+          res.redirect('/play');
+          
+        }
+        else {
+          fileService.createFile(req.user.id, { name: files.filetoupload.name, content, content_type: 'text/html', game }, function(err) {
+            if (err) {
+              console.log('err persisting file: ', err);
+            }
+            res.redirect('/');
+          });
+        }
+      });
     });
+  };
+  
+  router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
+    let form = new formidable.IncomingForm();
+    processGameFile(form, 'driver', req, res);
   });
-});
+  
+  router.post('/uploadBackend', jwtCookiePasser.authRequired(), (req, res) => {
+    let form = new formidable.IncomingForm();
+    processGameFile(form, 'backend', req, res);
+  });
+  
+  router.post('/uploadCommon', jwtCookiePasser.authRequired(), (req, res) => {
+    let form = new formidable.IncomingForm();
+    processGameFile(form, 'common', req, res);
+  });
+})();
+
 
 
 
@@ -510,15 +527,3 @@ server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function() 
   let addr = server.address();
   console.log("Ncidence server listening at", addr.address + ":" + addr.port);
 });
-
-
-
-function NCIDENCE_ASCII_ART() {
-  console.log('__________________________________________');
-  console.log('    _   __     _     __                   ');
-  console.log('   / | / /____(_)___/ /__  ____  ________ ');
-  console.log('  /  |/ / ___/ / __  / _ \\/ __ \\/ ___/ _ \\');
-  console.log(' / /|  / /__/ / /_/ /  __/ / / / /__/  __/');
-  console.log(`/_/ |_/\\___/_/\\__,_/\\___/_/ /_/\\___/\\___/`);
-  console.log('__________________________________________');
-}

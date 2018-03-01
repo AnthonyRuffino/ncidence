@@ -805,11 +805,13 @@ class UniverseViewControls{
 		if(mouse.shiftKey){
 			scaler = scaler*10*this.driver.gameEngine.frimScaler;
 			
+			const speedScrollScaler = 20;
+			
 			if(mouse.deltaY<0){
-				this.driver.player.baseSpeed += scaler;
+				this.driver.player.baseSpeed += (scaler * speedScrollScaler);
 				console.log('+++', scaler);
 			}else if(mouse.deltaY>0){
-				this.driver.player.baseSpeed -= scaler;
+				this.driver.player.baseSpeed -= (scaler * speedScrollScaler);
 				console.log('---', scaler);
 			}
 			

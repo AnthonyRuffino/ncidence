@@ -1,6 +1,7 @@
 "use strict";
 
 class GameService {
+    
     constructor({ ormHelper, yourSql, debug, secrets }) {
         this.ormHelper = ormHelper;
         this.yourSql = yourSql;
@@ -9,6 +10,11 @@ class GameService {
         this.crc32 = require('fast-crc32c');
         this.gameOrmHelperMap = {};
         this.secrets = secrets;
+        this.socketIOHelper = { refreshBackend: () => { console.error('The socketIOHelper was never set correctly') } };
+    }
+    
+    setSocketIOHelper(socketIOHelper) {
+        this.socketIOHelper = !!socketIOHelper &&  !!socketIOHelper.refreshBackend ? socketIOHelper : () => { console.error('The socketIOHelper not set correctly') };
     }
     
     getSubEntities() {
@@ -115,18 +121,22 @@ class GameService {
     }
 
 
-    updateGameDriver({ name, userId, content, version }) {
+    updateGameFile({ name, userId, content, version, type }) {
         return new Promise(async(resolve, reject) => {
-            const driver = await this.getGameEntityRecord(name, 'driver', { version } );
-            if (driver) {
+            const gameFile = await this.getGameEntityRecord(name, type, { version } );
+            if (gameFile) {
                 const gameAndDatabase = await this.getGameAndDatabase(name);
                 if (userId !== gameAndDatabase.game.owner_id) {
-                    reject(`You are not the owner of this game and cannot edit the driver. userId: ${userId}, 'gameAndDriver.game.game.owner_id': ${gameAndDatabase.game.owner_id}`);
+                    reject(`You are not the owner of this game and cannot edit the ${type}. userId: ${userId}, 'gameAndDatabase.game.game.owner_id': ${gameAndDatabase.game.owner_id}`);
                     return;
                 }
                 else {
-                    driver.updateContent(driver, content);
-                    driver.save(resolve);
+                    gameFile.updateContent(gameFile, content);
+                    gameFile.save(resolve);
+                    if((type === 'common' || type === 'backend') && this.socketIOHelper) {
+                        console.info(`Refreshing ${type} for ${name} after new file upload.`);
+                        this.socketIOHelper.refreshBackend(name);
+                    }
                 }
             } else {
                 reject(`No game detected: ${name}`);
