@@ -83,8 +83,8 @@
                 <div class="float-right">
                     <p class="site-title" ng-bind="pageName"></p>
                 </div>
-                <form ng-show="!isLoggedIn" action="auth" method="post" class="float-right">
-                    <input type="text" placeholder="username" name="username" required>
+                <form id="login" ng-show="!isLoggedIn" action="auth" method="post" class="float-right">
+                    <input id="username" type="text" placeholder="username" name="username" required>
                     <br/>
                     <input type="password" placeholder="password" name="password" required>
                     <br/>
@@ -93,8 +93,8 @@
                 <br/>
                 <div ng-show="!isLoggedIn" class="float-left">
                     <h3 class="hand" ng-click="showSignup=!showSignup"><a>Create an account</a></h3>
-                    <form ng-show="showSignup" action="signup" method="post">
-                        <input type="text" name="newUserName" placeholder="Choose a username" required />
+                    <form id="signup" ng-show="showSignup" action="signup" method="post">
+                        <input id="newUsername" type="text" name="newUserName" placeholder="Choose a username" required />
                         <br/>
                         <input type="password" placeholder="password" name="password" required>
                         <br/>
@@ -145,6 +145,11 @@
                         <p>Navigate to a worldy.io subdomain (e.g. <a ng-click="clickRandomWord()">{{randomWord}}.worldy.io</a>) to see if it can be yours.</p>
                         <p>If someone else has claimed it, maybe they are building something cool there.  Check it out.</p>
                         
+                        <div ng-show="!isLoggedIn">
+                            <br />
+                            <h3><a href="#login" ng-click="showSignup=false;">Login</a> or <a href="#signup" ng-click="showSignup=true;" >signup</a> now</h3>
+                            <br />
+                        </div>
                         
                         <div ng-show="isLoggedIn">
                             <p><button ng-click="clickRandomWord()">Randomize</button></p>
@@ -153,8 +158,6 @@
                                 <button type="submit">Claim it now</button>
                             </form>
                         </div>
-                        
-                        <h2 ng-bind="mode"></h2>
                     </div>
                         
                 </div>
