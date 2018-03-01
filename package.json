@@ -37,6 +37,7 @@
     "no-extension": "^1.0.2",
     "nodemailer": "^2.7.2",
     "nodemailer-ses-transport": "^1.5.1",
+    "object-sizeof": "^1.2.0",
     "orm": "^3.2.4",
     "passport": "^0.4.0",
     "passport-jwt": "^3.0.1",

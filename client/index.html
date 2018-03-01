@@ -1,102 +1,220 @@
 <!doctype html>
-<html lang="en" ng-app>
-  <head>
-    <title>Ncidence</title>
+<html lang="en" ng-app ng-controller="ChatController">
+
+<head>
+    <title ng-bind="pageName"></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/css/site.css">
-    <link rel="shortcut icon" type="image/x-icon" href="/img/space/blueships1.png"/>
+    <link rel="shortcut icon" type="image/x-icon" href="/img/space/blueships1.png" />
     <script src="/js/modernizr-2.6.2.js"></script>
     <style>
-      body {
-        padding-top: 60px;
-      }
+        body {
+            padding-top: 60px;
+        }
+        
+        .hand {
+            cursor: pointer;
+        }
     </style>
-  </head>
-  <body>
-  <header>
+
+    <script src="/controller.js"></script>
+    <script>
+        function ChatController($scope) {
+            socket = (new Controller({ name: 'Chat' })).connect({ io, $scope });
+            
+            socket.hooks.whoami = (msg) => {
+                const pageDetails = $scope.pageDetails || {};
+                console.log('CONNECTED', msg);
+                $scope.welcomeMessage = 'Hi,' + ($scope.me || 'Anonomous');
+                
+                $scope.ownershipMessage = pageDetails.subdomain === '#' ? '' : 
+                ('This subdomain ' + ($scope.isMySubdomain ? 'is yours' : ($scope.isSubdomainTaken ? "belongs to " + pageDetails.owner: 'available') + '.'));
+                
+                $scope.playOthersMessage = $scope.isSubdomainTaken && !$scope.isMySubdomain ? 'Play ' + $scope.pageName + ' now' : '';
+                $scope.$apply();
+            };
+            
+            
+            
+            $scope.testSubdomain = '';
+            $scope.randomWord = '';
+            
+            $scope.clickRandomWord = () => {
+                $scope.testSubdomain = $scope.randomWord;
+                var vowels = ['a', 'e', 'i', 'o', 'u'];
+                var consts =  ['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'qu', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z', 'tt', 'ch', 'sh'];
+                var len = 3 + Math.floor((Math.random()*8));
+                var word = '';
+                var is_vowel = false;
+                var arr;
+                for (var i = 0; i < len; i++) {
+                  if (is_vowel) arr = vowels
+                  else arr = consts
+                  is_vowel = !is_vowel;
+                
+                  word += arr[Math.round(Math.random()*(arr.length-1))];
+                }
+                $scope.randomWord = word;
+            };
+            
+            $scope.clickRandomWord();
+            
+        }
+    </script>
+</head>
+
+<body>
+    <header>
         <div class="content-wrapper">
-            <div class="float-left">
-                <p class="site-title"><a href="#">ncidence.org</a></p>
-            </div>
+            
+            <br/>
             <div class="float-right">
-                <nav>
-                    <ul id="menu">
-                        <li><a href="/">Home</a></li>
-			            <li><a href="/app/mysticSquare">MysticSquare</a></li>
-			            <li><a href="/app/chat">Chat</a></li>
-			            <li><a href="//space.ncidence-aruffino.c9users.io/play">Space</a></li>
-			            <li><a href="/logout">Logout</a></li>
-                    </ul>
-                </nav>
+                <div class="float-right" ng-show="isLoggedIn">
+                    <nav>
+                        <ul id="menu">
+                            <li ng-show="isLoggedIn"><a href="/play">play</a></li>
+                            <li ng-show="isLoggedIn"><a href="/chat">chat</a></li>
+                            <li ng-show="isLoggedIn"><a href="/me" ng-bind="me"></a></li>
+                            <li ng-show="isLoggedIn"><a href="/logout">logout</a></li>
+                        </ul>
+                        
+                    </nav>
+                </div>
+                <div class="float-right">
+                    <p class="site-title" ng-bind="pageName"></p>
+                </div>
+                <form ng-show="!isLoggedIn" action="auth" method="post">
+                    <input type="text" placeholder="username" name="username" required>
+                    <br/>
+                    <input type="password" placeholder="password" name="password" required>
+                    <br/>
+                    <p class="float-right" type="submit"><button type="submit">login</button></p>
+                    <p class="float-right" type="submit"><button type="submit" value="signup">signup</button></p>
+                    <br/>
+                    
+                </form>
             </div>
         </div>
     </header>
-    
+
     <div id="body">
         <section class="content-wrapper main-content clear-fix">
-    
             <section class="featured">
                 <div class="content-wrapper">
-                    <hgroup class="title">
-                        <h1>Welcome</h1>
-                        <h2>This is your sandbox!</h2>
-                        <form action="fileupload" method="post" enctype="multipart/form-data">
-                            <input type="file" name="filetoupload"><br>
-                            <input type="submit">
-                        </form>
+                    <hgroup class="title"> 
+                        <h1><span class="hand" ng-click="mode = 'create';">Create</span> - <span class="hand" ng-click="mode = 'explore';">Explore</span> - <span class="hand" ng-click="mode = 'play';">Play</span></h1>
+                        <br/>
+                        <h2 ng-bind="ownershipMessage" ></h2>
+                        <div ng-show="playOthersMessage">
+                            <br/>
+                            <h2 ng-bind="playOthersMessage" ></h2>
+                            <a href="/play"><button>Play</button></a>
+                            <br />
+                            <p><b>{{pageName}} was built on the <a href="//worldy.io">worldy.io</a> platform</b></p>
+                        </div>
+                        
                     </hgroup>
-                    <p>If you are reading this chances are you want an easy place to create JavaScript prototypes.<p />
-                    <p>Awesome. You are in the right place. Join us today.</p>
-                    <form action="auth" method="post">
-                        <label for="username"><b>Username</b></label>
-                        <input type="text" placeholder="Enter Username" name="username" value="user" required>
                     
-                        <label for="password"><b>Password</b></label>
-                        <input type="password" placeholder="Enter Password" name="password" required>
-                    
-                        <button type="submit">Login</button>
-                    </form>
-                    <form action="createGame" method="post">
-                        <label for="username"><b>New Game Name</b></label>
-                        <input type="text" placeholder="Enter Gamename" name="game" value="user" required>
-                        <button type="submit">Submit</button>
-                    </form>
+                    <div ng-show="!isMySubdomain">
+                        <p>Wordly.io is a platform with an open subdomain model.
+                        <br/>An infinite amount of subdomains have yet to be claimed</p>
+                        
+                        <p>Once you claim one, it is yours.  You can use the frameworks provided
+                        to create HTML5 Canvas + socket.io games (and much more)</p>
+                        
+                        <p>The platform also provides pragrammable hooks into the node.js backend
+                        so that you can truely build multi-user experiences</p>
+                        
+                        <p>Any domain that is not already claimed, simply serves up the default
+                        <a href="//worldy.io/play">worldy.io</a> game.  </p>
+                        
+                        <p>The default game is meant to serve as working example of the platform 
+                        and the frameworks it provides.  It is also a fun game in its own right.
+                        
+                        <p>Navigate to a worldy.io subdomain (e.g. <a ng-click="clickRandomWord()">{{randomWord}}.worldy.io</a>) to see if it can be yours.</p>
+                        <p>If someone else has claimed it, maybe they are building something cool</p>
+                        
+                        
+                        <div ng-show="isLoggedIn">
+                            <p><button ng-click="clickRandomWord()">Randomize</button></p>
+                            <form action="createGame" method="post">
+                                <input type="text" name="game" value="{{testSubdomain}}" required />
+                                <button type="submit">Claim it now</button>
+                            </form>
+                        </div>
+                        
+                        <div ng-show="!isLoggedIn">
+                            <h3>Create an account</h3>
+                            <form action="signup" method="post">
+                                <input type="text" name="newUserName" placeholder="Choose a username" required />
+                                <br/>
+                                <input type="password" placeholder="password" name="password" required>
+                                <br/>
+                                <input type="password" placeholder="confirm password" name="confirmPassword" required>
+                                <br/>
+                                <button type="submit">Signup</button>
+                            </form>
+                        </div>
+                        
+                        
+                        
+                        <h2 ng-bind="mode"></h2>
+                    </div>
+                        
                 </div>
             </section>
-        
-        
-            <h3>What can I do with ncidence.org: </h3>
-            <ol class="round">
-                <li class="one">
-                    <h5>As a user you can: </h5>
-                    <br />
-                    <strong>1.</strong>  Create HTML and Javascript powered <a href="/u/aruffino84@gmail.com/mysticsquare">pages</a>
-                    <br />
-                    <strong>2.</strong>  Create back-end datatables and RESTful endpoints
-                    <br />
-                    <strong>3.</strong>  ???
-                    <br />
-                    <strong>4.</strong>  Profit
-                </li>
-                
-                <br />
-                <br />
             
-                <li class="two">
-                    <h5>If you have any suggestions for how to improve the site you should: </h5>
+            <div ng-show="isMySubdomain">
+                <h3>Upload Frontend Code: </h3>
+                <form action="uploadFrontEnd" method="post" enctype="multipart/form-data">
+                    <input type="file" name="filetoupload"><br>
+                    <input type="submit">
+                </form>
+                <br/>
+                <h3>Upload Common: </h3>
+                <form action="uploadCommon" method="post" enctype="multipart/form-data">
+                    <input type="file" name="filetoupload"><br>
+                    <input type="submit">
+                </form>
+                <h3>Upload Backend Code: </h3>
+                <form action="uploadBackend" method="post" enctype="multipart/form-data">
+                    <input type="file" name="filetoupload"><br>
+                    <input type="submit">
+                </form>
+            </div>
+            <div ng-show="!isMySubdomain">
+                <h3>What can I do with ncidence.org: </h3>
+                <ol class="round">
+                    <li class="one">
+                        <h5>As a user you can: </h5>
+                        <br />
+                        <strong>1.</strong> Create HTML and Javascript powered <a href="/u/aruffino84@gmail.com/mysticsquare">pages</a>
+                        <br />
+                        <strong>2.</strong> Create back-end datatables and RESTful endpoints
+                        <br />
+                        <strong>3.</strong> ???
+                        <br />
+                        <strong>4.</strong> Profit
+                    </li>
+    
                     <br />
-                    <strong>1.</strong> Checkout the git page: <a href="https://github.com/AnthonyRuffino/ncidence">github.com/AnthonyRuffino/ncidence</a>
                     <br />
-                    <strong>2.</strong>  Send me a pull request.
-                    <br />
-                    <strong>3.</strong>  Send me an email (aruffino84@gmail.com).
-                </li>
-            
-            </ol>
-            <br />
+    
+                    <li class="two">
+                        <h5>If you have any suggestions for how to improve the site you should: </h5>
+                        <br />
+                        <strong>1.</strong> Checkout the git page: <a href="https://github.com/AnthonyRuffino/ncidence">github.com/AnthonyRuffino/ncidence</a>
+                        <br />
+                        <strong>2.</strong> Send me a pull request.
+                        <br />
+                        <strong>3.</strong> Send me an email (aruffino84@gmail.com).
+                    </li>
+    
+                </ol>
+            </div>
         </section>
     </div>
-    
+
     <footer>
         <div class="content-wrapper">
             <div class="float-left">
@@ -104,9 +222,10 @@
             </div>
         </div>
     </footer>
-    
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/jquery.min.js"></script>
     <script src="/js/angular.min.js"></script>
-  </body>
+</body>
+
 </html>

@@ -298,8 +298,11 @@ class SocketIOHelper {
 			let backend = false;
 			
 			if (this.cachedBackends[socket.subdomain]) {
-				console.info(socket.subdomain, `[${socket.subdomain}] - Getting cached backend`);
+				//console.info(socket.subdomain, `[${socket.subdomain}] - Getting cached backend`);
 				backend = this.cachedBackends[socket.subdomain];
+				
+				//let objectSizeof = require("object-sizeof");
+				//console.info('BACKEND SIZE: ', objectSizeof(backend));
 			}
 			
 			

@@ -1,5 +1,7 @@
 'use strict'
 
+let pageDetails = {};
+
 class Controller {
     constructor({ name }) {
         this.name = name;
@@ -8,12 +10,24 @@ class Controller {
     connect({ io, $scope }) {
         const socket = io.connect();
 
+        $scope.pageName = 'worldy.io';
         $scope.messages = [];
         $scope.roster = [];
         $scope.name = '';
         $scope.text = '';
         $scope.title = '';
         $scope.owner = '';
+        $scope.logoutText = '';
+        $scope.me = '';
+        $scope.isMySubdomain = false;
+        $scope.pageDetails = {};
+        $scope.isSubdomainTaken = false;
+        
+        
+        
+        
+        
+        $scope.isLoggedIn = false;
         
         const hooks = {
           connect: () => {},
@@ -27,9 +41,26 @@ class Controller {
         	hooks.connect();
         });
         
+        socket.on('connected', (data) => {
+          console.log('connected-data:', data);
+          this.subdomain = data.subdomain;
+          $scope.title = this.name + ' ' + data.subdomain;
+          hooks.connected(data);
+          $scope.pageDetails = data;
+          $scope.pageName = (data.subdomain ? (data.subdomain == '#' ? '' : data.subdomain + '.') : '') + 'worldy.io';
+          $scope.$apply();
+        });
+        
         socket.on('whoami', (me) => {
         	console.log('whoami:', me);
         	hooks.whoami(me);
+        	$scope.logoutText = me !== 'Anonymous' ? 'Logout' : null;
+        	$scope.isLoggedIn = !!$scope.logoutText;
+        	$scope.me = me;
+        	$scope.isSubdomainTaken = !!$scope.pageDetails.owner;
+        	$scope.isMySubdomain = $scope.isSubdomainTaken && $scope.isLoggedIn && $scope.me === $scope.pageDetails.owner;
+        	hooks.whoami(me);
+        	$scope.$apply();
         });
 
         socket.on('message', (msg) => {
@@ -42,12 +73,7 @@ class Controller {
           console.log('[DEBUG]', msg);
         });
         
-        socket.on('connected', (data) => {
-          this.subdomain = data.subdomain;
-          $scope.title = this.name + ' ' + data.subdomain;
-          $scope.$apply();
-          hooks.connected(data);
-        });
+        
 
         socket.on('roster', (names) => {
           $scope.roster = names;
