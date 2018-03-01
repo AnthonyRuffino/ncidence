@@ -83,16 +83,27 @@
                 <div class="float-right">
                     <p class="site-title" ng-bind="pageName"></p>
                 </div>
-                <form ng-show="!isLoggedIn" action="auth" method="post">
+                <form ng-show="!isLoggedIn" action="auth" method="post" class="float-right">
                     <input type="text" placeholder="username" name="username" required>
                     <br/>
                     <input type="password" placeholder="password" name="password" required>
                     <br/>
                     <p class="float-right" type="submit"><button type="submit">login</button></p>
-                    <p class="float-right" type="submit"><button type="submit" value="signup">signup</button></p>
-                    <br/>
-                    
                 </form>
+                <br/>
+                <div ng-show="!isLoggedIn" class="float-left">
+                    <h3 class="hand" ng-click="showSignup=!showSignup"><a>Create an account</a></h3>
+                    <form ng-show="showSignup" action="signup" method="post">
+                        <input type="text" name="newUserName" placeholder="Choose a username" required />
+                        <br/>
+                        <input type="password" placeholder="password" name="password" required>
+                        <br/>
+                        <input type="password" placeholder="confirm password" name="confirmPassword" required>
+                        <br/>
+                        <button type="submit">Signup</button>
+                    </form>
+                    <br/>
+                </div>
             </div>
         </div>
     </header>
@@ -132,7 +143,7 @@
                         and the frameworks it provides.  It is also a fun game in its own right.
                         
                         <p>Navigate to a worldy.io subdomain (e.g. <a ng-click="clickRandomWord()">{{randomWord}}.worldy.io</a>) to see if it can be yours.</p>
-                        <p>If someone else has claimed it, maybe they are building something cool</p>
+                        <p>If someone else has claimed it, maybe they are building something cool there.  Check it out.</p>
                         
                         
                         <div ng-show="isLoggedIn">
@@ -142,21 +153,6 @@
                                 <button type="submit">Claim it now</button>
                             </form>
                         </div>
-                        
-                        <div ng-show="!isLoggedIn">
-                            <h3>Create an account</h3>
-                            <form action="signup" method="post">
-                                <input type="text" name="newUserName" placeholder="Choose a username" required />
-                                <br/>
-                                <input type="password" placeholder="password" name="password" required>
-                                <br/>
-                                <input type="password" placeholder="confirm password" name="confirmPassword" required>
-                                <br/>
-                                <button type="submit">Signup</button>
-                            </form>
-                        </div>
-                        
-                        
                         
                         <h2 ng-bind="mode"></h2>
                     </div>
