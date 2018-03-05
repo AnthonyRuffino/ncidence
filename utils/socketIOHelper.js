@@ -21,7 +21,11 @@ class SocketIOHelper {
 
 		this.subdomainCaches = {};
 		
+		this.backendLogs = {}
 		this.cachedBackends = {};
+		
+		this.gameloop = require('node-gameloop');
+		this.cachedGameLoops = {};
 
 		this.constants = require(global.__rootdir + 'constants.js');
 	}
@@ -240,7 +244,7 @@ class SocketIOHelper {
 				this.updateRoster(socket);
 			}
 		}
-	};
+	}
 	
 	builtInOnMessage(socket) {
 		socket.on('message', (msg) => {
@@ -261,6 +265,68 @@ class SocketIOHelper {
 	}
 	
 	
+	startGameLoop(subdomain, tag) {
+		if(!tag) {
+			return { success: false, args: [subdomain, 'no tag provided'] };
+		} else if(!this.cachedBackends[subdomain]) {
+			return { success: false, args: [subdomain, 'no backend loaded. Game loop: ', tag] };
+		} else if(!this.cachedBackends[subdomain].update) {
+			return { success: false, args: [subdomain, 'backend does not have update method. Game loop: ', tag] };
+		} else {
+			
+			if(!this.cachedGameLoops[subdomain]) {
+				this.cachedGameLoops[subdomain] = [];
+			}
+			if(this.cachedGameLoops[subdomain][tag]) {
+				this.cachedGameLoops[subdomain][tag] = undefined;
+			}
+			
+			const updateMethod = this.cachedBackends[subdomain].update;
+			
+			if(!updateMethod) {
+				return { success: false, args: [subdomain, 'no update method found', tag] };
+			}
+			
+			
+			// start the loop at 30 fps (1000/30ms per frame) and grab its id 
+	        const gameLoopId = this.gameloop.setGameLoop((delta) => {
+	        	
+	        	try {
+	        		updateMethod(delta, tag);
+	        	} catch (err) {
+	        		console.log('GAMELOOP ERROR: ' + err, updateMethod);
+	        		throw err;
+	        	}
+	        	
+	        	
+	        }, 1000 / 30);
+	        this.cachedGameLoops[subdomain][tag] = gameLoopId;
+	        return { success: true, args: [subdomain, 'game loop started', tag] };
+		}
+	}
+	
+	
+	stopGameLoop(subdomain, tag) {
+		if(this.cachedGameLoops[subdomain] && this.cachedGameLoops[subdomain][tag] !== undefined) {
+			this.gameloop.clearGameLoop(this.cachedGameLoops[subdomain][tag]);
+			this.cachedGameLoops[subdomain][tag] = undefined;
+			//console.log(socket.subdomain, 'game loop cleared', tag);
+			return { success: true, args: [subdomain, 'game loop cleared', tag] };
+		}else {
+			return { success: false, args: [subdomain, 'no such game loop', tag] };
+		}
+		
+		// if(this.cachedGameLoops[subdomain]) {
+			
+		// 	Object.keys(this.cachedGameLoops[subdomain]).forEach((tag) => {
+		// 		if(this.cachedGameLoops[subdomain][tag] !== undefined) {
+		// 			this.gameloop.clearGameLoop(this.cachedGameLoops[subdomain][tag]);
+		// 			this.cachedGameLoops[subdomain][tag] = undefined;
+		// 		}
+		// 	});
+		// }
+	}
+	
 	builtInOnCommand(socket) {
 		
 		socket.on('command', (msg) => {
@@ -268,6 +334,12 @@ class SocketIOHelper {
 			let text = String(msg || '');
 
 			if (!text) {
+				socket.emit('debug', 'missing command');
+				return;
+			}
+			
+			if(msg.name === undefined) {
+				socket.emit('debug', 'missing command name');
 				return;
 			}
 			
@@ -278,11 +350,24 @@ class SocketIOHelper {
 			}
 			
 			console.log('command', msg);
-			if(isOwner && msg === 'refresh-backend'){
-				if(socket.name === this.subdomainInfoMap[socket.subdomain].owner){
-					console.log('REFRESH', this.subdomainInfoMap[socket.subdomain]);
-					this.refreshBackend(socket.subdomain);
-					socket.emit('debug', 'backend refreshed');
+			if(isOwner && msg.name === 'refresh-backend'){
+				//TODO: Make this code more robust (reset active socketio sessions, cleanup old gameloops, etc.)
+				console.log(`[${socket.subdomain}] - REFRESH`);
+				this.refreshBackend(socket.subdomain);
+				this.setupBackend(socket);
+				socket.emit('debug', 'backend refreshed');
+			} else if(isOwner && msg.name === 'start-game-loop'){
+				console.log(`[${socket.subdomain}] - START-GAME-LOOP`, msg.tag);
+				socket.emit('debug', this.startGameLoop(socket.subdomain, msg.tag));
+			} else if(isOwner && msg.name === 'stop-game-loop'){
+				console.log(`[${socket.subdomain}] - STOP-GAME-LOOP`, msg.tag);
+				socket.emit('debug', this.stopGameLoop(socket.subdomain, msg.tag));
+			}  else if(isOwner && msg.name === 'game-logs'){
+				console.log(`[${socket.subdomain}] - GAME LOGS`, msg.tag);
+				if(!this.backendLogs || !this.backendLogs[socket.subdomain]) {
+					socket.emit('debug', 'no logs found');
+				}else {
+					socket.emit('debug', this.backendLogs[socket.subdomain]);
 				}
 			}
 		});
@@ -291,10 +376,6 @@ class SocketIOHelper {
 	refreshBackend(subdomain) {
 		this.cachedBackends[subdomain] = false;
 	}
-	
-	
-	
-	
 	
 	setupBackend(socket) {
 		return new Promise(async (resolve, reject) => {
@@ -320,7 +401,15 @@ class SocketIOHelper {
 				const dataSourcesAndServices = {
 					subdomain: socket.subdomain,
 					broadcast: (data) => this.broadcast('message', data, socket),
-					cache: this.subdomainCaches[socket.subdomain]
+					cache: this.subdomainCaches[socket.subdomain],
+					gameloop: {
+						start: () => {
+							this.startGameLoop(socket.subdomain, 'main');
+						},
+						stop: () => {
+							this.stopGameLoop(socket.subdomain, 'main');
+						}
+					}
 				};
 				
 				
@@ -329,18 +418,28 @@ class SocketIOHelper {
 				const common = commonExports.upwrapExports(dataSourcesAndServices);
 				dataSourcesAndServices.common = common;
 				
-				
+				if(!this.backendLogs[socket.subdomain]) {
+					this.backendLogs[socket.subdomain] = [];
+				}
 				const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: this.constants.defaultGameVersion }) || {};
 				backend = new(backendExports.upwrapExports({
-					common: common,
-					console: {
-						log: () => {}
-					},
+					console: { log: (args) => {
+						this.backendLogs[socket.subdomain].splice(0,0, args);
+						this.backendLogs[socket.subdomain] = this.backendLogs[socket.subdomain].slice(0,1000);
+					}},
 					global: {
-		
+						
 					}
 				}))(dataSourcesAndServices);
+				
+				console.log(`[${socket.subdomain}] - Back-end loaded`);
+				
 				this.cachedBackends[socket.subdomain] = backend;
+				
+				if(backend.startGameLoopImmediately) {
+					console.log(`[${socket.subdomain}] - startGameLoopImmediately`);
+					backend.gameloop.start();
+				}
 			}
 			
 			resolve(backend);
@@ -365,8 +464,7 @@ class SocketIOHelper {
 			};
 			
 			
-			const wrapExports = (code) => {
-				const wrappedExport =
+			const wrapExports = (code) => 
 				`exports.upwrapExports = ({
 			    	console, 
 				    global,
@@ -378,8 +476,6 @@ class SocketIOHelper {
 					${code}
 					${type === 'common' ? 'return common' : ''}
 				 }`;
-				return wrappedExport;
-			};
 			
 
 			if (entity && entity.content !== undefined) {

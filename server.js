@@ -23,7 +23,7 @@ require('./utils/hijack.js')({
       debug: true,
       trace: true,
       warn: true,
-      info: false,
+      info: true,
   }
 });
 

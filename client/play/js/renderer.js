@@ -1,4 +1,5 @@
 "use strict";
+/*global CommonMath */
 
 class Renderer {
     constructor(window, document, targetElementName, scale) {
@@ -162,7 +163,7 @@ class Renderer {
         
         if(rotationAngle !== undefined && rotationAngle !== null){
         	context.translate(x, y);
-        	context.rotate(this.degreesToRadians(rotationAngle));
+        	context.rotate(CommonMath.degreesToRadians(rotationAngle));
         	context.translate(-x, -y);
     	}
 
@@ -222,7 +223,7 @@ class Renderer {
 
         if (rotationAngle !== undefined && rotationAngle !== null) {
         	context.translate(x, y);
-        	context.rotate(this.degreesToRadians(rotationAngle));
+        	context.rotate(CommonMath.degreesToRadians(rotationAngle));
         	context.translate(-x, -y);
         }
 
@@ -247,11 +248,11 @@ class Renderer {
         }
 
         if (fillGap && endAngle - startAngle < 360) {
-        	context.arc(x, y, radius, this.degreesToRadians(endAngle), this.degreesToRadians(endAngle - startAngle));
+        	context.arc(x, y, radius, CommonMath.degreesToRadians(endAngle), CommonMath.degreesToRadians(endAngle - startAngle));
         }
 
 
-        context.arc(x, y, radius, this.degreesToRadians(startAngle), this.degreesToRadians(endAngle));
+        context.arc(x, y, radius, CommonMath.degreesToRadians(startAngle), CommonMath.degreesToRadians(endAngle));
 
         if (lineWidth !== undefined) {
             if (fillStyle !== undefined && fillStyle != null) {
@@ -324,15 +325,6 @@ class Renderer {
 
         this._ctx.restore();
     }
-
-    //UTILITIES
-    degreesToRadians(angle){
-		return angle * Math.PI / 180;
-	}
-
-	radiansToDegrees(angle){
-		return angle / (Math.PI / 180);
-	}
 
 
     // BINDER

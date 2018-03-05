@@ -18,9 +18,8 @@
 <script>
 </script>
 
-
-<script src="js/renderer.js"></script>
 <script src="/common.js"></script>
+<script src="js/renderer.js"></script>
 <script src="/driver.js"></script>
 <script src="js/gameEngine.js"></script>
 
@@ -91,7 +90,7 @@
 			window.location.replace("/");
 		});
 		gameEngine.start();
-	}
+	};
 
 	function ChatController($scope) {
 		const socket = (new Controller({ name: 'Play' })).connect({ io, $scope });
