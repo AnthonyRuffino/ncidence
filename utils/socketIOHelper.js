@@ -209,7 +209,7 @@ class SocketIOHelper {
 	}
 
 
-    clearSubdomainFromSubdomainInfoMap(subdomain) {
+    clearFromSubdomainInfoMap(subdomain) {
         this.subdomainInfoMap[subdomain] = undefined;
     }
 	setSubdomainInfoMapAndMessages(subdomain) {

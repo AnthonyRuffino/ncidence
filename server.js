@@ -202,7 +202,7 @@ router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, fun
     let port = constants.getPort(req.get('host'));
     port = port === '80' || !port ? '' : `:${port}`;
     res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host + port);
-    socketIOHelper.clearSubdomainFromSubdomainInfoMap(req.body.game);
+    socketIOHelper.clearFromSubdomainInfoMap(req.body.game);
   }).catch(err => {
     res.json(500, { err });
   });
