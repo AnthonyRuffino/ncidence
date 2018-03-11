@@ -42,10 +42,8 @@ const SECRETS = {
 let http = require('http');
 let express = require('express');
 let fs = require('fs');
-let uuidv4 = require('uuid/v4');
 let yourSql = require('your-sql')();
 let formidable = require('formidable');
-let captchapng = require('captchapng');
 
 
 // ROUTER AND SERVER
