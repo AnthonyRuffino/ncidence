@@ -70,51 +70,7 @@ router.use(require('./utils/middleware/hostCookie.js')('ncidence', (1000 * 60 * 
 const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
 
 
-// Driver middleware
-router.use('/', async(req, res, next) => {
-  
-  try{
-    const subdomain = constants.getSubdomain(req.get('host'));
-    
-    const contentType = req.url === '/driver.js' ? 'driver' : (req.url === '/common.js' ? 'common' : null)
-    
-    if (contentType && subdomain !== undefined) {
-      
-      
-      
-      let contentEntity = await gameService.getGameEntityRecord(subdomain, contentType, { version: constants.defaultGameVersion } );
-      if(contentEntity && contentEntity.content) {
-        
-        res.writeHead(200, {
-          'Content-Type': 'application/javascript'
-        });
-        
-        res.end(contentEntity.content);
-      } else {
-        next();
-        console.log(`serving default ${contentType}`);
-        // fs.readFile(global.__publicdir + "driver.js", "utf8", function(err, defaultDriver) {
-        //   if(err) {
-        //     console.log('error getting default driver');
-        //     next();
-        //   }
-        //   res.end(defaultDriver);
-        // });
-      }
-    }
-    else {
-      next();
-    }
-  } catch(err) {
-    console.log('driver redirect bug err: ', err);
-    next();
-  }
 
-});
-
-// File system middleware
-router.use(require('no-extension')(global.__publicdir));
-router.use(express.static(global.__publicdir));
 
 
 
@@ -176,7 +132,13 @@ const gameService = require('./utils/orm/services/gameService.js')({
 
 
 
+// Driver middleware
+const contentFromDb = new (require('./utils/middleware/contentFromDb.js'))(constants, gameService, {['/driver.js']: 'driver', ['/common.js']: 'common'});
+router.use('/', (req, res, next) => { contentFromDb.handle(req, res, next); });
 
+// File system middleware
+router.use(require('no-extension')(global.__publicdir));
+router.use(express.static(global.__publicdir));
 
 
 
@@ -213,246 +175,20 @@ jwtCookiePasser.init({
 /////////////////////////////////////////
 
 
-const QUERY_ROWS_LIMIT = 10000;
-router.get('/api/roles', function(req, res) {
-
-  let query = {};
-  let options = {};
-  let limit = null;
-  let order = [];
-  let isIdSearch = false;
-
-  let role = ormHelper.getMap()['role'];
-  let entity = role.entity;
-  let definition = entity.definition;
-  let model = role.model;
-
-  Object.keys(req.query).forEach(function(key) {
-    if (key === '_limit') {
-      limit = Number(req.query[key]);
-    }
-    else if (key === '_asc') {
-      if (definition.hasOwnProperty(req.query[key])) {
-        order = req.query[key];
-      }
-    }
-    else if (key === '_desc') {
-      if (definition.hasOwnProperty(req.query[key])) {
-        order.push(req.query[key]);
-        order.push("Z");
-      }
-    }
-    else if (key === '_offset') {
-      let offset = Number(req.query[key]);
-      if (offset != null && !isNaN(offset))
-        options.offset = offset;
-    }
-    else if (definition.hasOwnProperty(key)) {
-      if (key === 'id')
-        isIdSearch = true;
-      query[key] = req.query[key];
-    }
-    else if (key.startsWith("__") && key.length > 2 && key !== '__proto__') {
-      /*
-      let fieldName = key.substr(2);
-      
-      if (entity.hasOne !== undefined && entity.hasOne !== null && entity.hasOne.length > 0) {
-				entity.hasOne.forEach(function(owner) {
-					
-				});
-			}
-			*/
-    }
-  });
-
-
-  if (limit === null || isNaN(limit) || limit > QUERY_ROWS_LIMIT) {
-    limit = QUERY_ROWS_LIMIT;
-  }
-
-  model.find(query, options, limit, order,
-    function(err, rows) {
-      if (err) {
-        res.json(500, {
-          err: err
-        });
-      }
-      else if (rows !== undefined && rows !== undefined && rows.length > 0) {
-        if (isIdSearch) {
-          rows[0].getUsers(function(err, users) {
-            rows[0].users = users;
-            let resObj = {
-              data: rows
-            };
-            if (err) resObj.errorGettingUsers = err;
-            res.json(200, resObj);
-          });
-        }
-        else {
-          res.json(200, {
-            data: rows
-          });
-        }
-
-
-      }
-      else {
-        res.json(200, {
-          data: []
-        });
-      }
-    });
+router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
+    let form = new formidable.IncomingForm();
+    contentFromDb.updateGameFile(form, 'driver', req, res);
 });
 
-
-router.get('/u/:name/:file', function(req, res) {
-  let name = req.params.name;
-  let file = req.params.file;
-
-  ormHelper.getMap()['user'].model.find({ username: name }, function(err, users) {
-    if (err || users === undefined || users == null || users.length < 1 || users[0] === undefined || users[0] === null) {
-
-      console.log('test param: ', req.query.ex !== undefined);
-      if (req.query.ex !== undefined) {
-        let code = '((ctx) => { console.log("testValue: ", ctx.testValue); ctx.res.writeHead(200, {"Content-Type": "text/html"}); ctx.res.end("<h1>LOLZ - "+ctx.testValue+"</h1>"); })(ctx);';
-        let your_code = new Function(['ctx'].join(','), code);
-
-        try {
-          your_code({ req, res, testValue: 'trster' });
-        }
-        catch (executionException) {
-          res.writeHead(200, {
-            'Content-Type': 'text/html'
-          });
-          res.end('<h1>Error executing lambda expression: ' + executionException + '</h2>');
-        }
-
-      }
-      else {
-        res.writeHead(200, {
-          'Content-Type': 'text/html'
-        });
-        res.end('<h1>Error finding content for user: ' + name + '</h1><br/><h2>Err:' + (err || 'no such user') + '</h2>');
-      }
-
-    }
-    else {
-      ormHelper.getMap()['file'].model.find({ user_id: users[0].id, name: file }, function(err, files) {
-        if (err || files === undefined || files == null || files.length < 1 || files[0] === undefined || files[0] === null) {
-          res.writeHead(200, {
-            'Content-Type': 'text/html'
-          });
-          res.end('<h1>Error finding file for user: ' + name + '. ile: ' + file + '</h1><br/><h2>Err :' + (err || 'no such file') + '</h2>');
-        }
-        else {
-          if (files[0].content_type === 'lambda') {
-            let code = '((req, res) => { ' + files[0].content + ' })(req, res);';
-            let your_code = new Function(['req', 'res'].join(','), code);
-            your_code(req, res);
-          }
-          else {
-            res.writeHead(200, {
-              'Content-Type': files[0].content_type
-            });
-            res.end(files[0].content);
-          }
-        }
-      });
-    }
-  });
-
+router.post('/uploadBackend', jwtCookiePasser.authRequired(), (req, res) => {
+    let form = new formidable.IncomingForm();
+    contentFromDb.updateGameFile(form, 'backend', req, res);
 });
 
-
-
-const CAPTCHA_EXP_IN_MINUTES = 5;
-router.get('/api/captcha', function(req, res) {
-
-  let number = parseInt(Math.random() * 900000 + 100000);
-  let captchaId = uuidv4().substring(0, 4);
-  let expDate = new Date((new Date()).getTime() + CAPTCHA_EXP_IN_MINUTES * 60000);
-
-  let captchaModel = ormHelper.getMap()['captcha'].model;
-
-  captchaModel.create({ guid: captchaId, answer: number + '', expiration_date: expDate }, function(err) {
-    if (err) {
-      res.json(500, {
-        err: 'Error creating CAPTCHA: ' + err
-      });
-    }
-    else {
-      let p = new captchapng(80, 30, number); // width,height,numeric captcha 
-      p.color(0, 0, 0, 0); // First color: background (red, green, blue, alpha) 
-      p.color(80, 80, 80, 255); // Second color: paint (red, green, blue, alpha)
-
-      let img = p.getBase64();
-      let imgbase64 = new Buffer(img, 'base64');
-      res.writeHead(200, {
-        'Content-Type': 'image/png',
-        'captcha-id': captchaId
-      });
-      res.end(imgbase64);
-    }
-
-  });
-
+router.post('/uploadCommon', jwtCookiePasser.authRequired(), (req, res) => {
+    let form = new formidable.IncomingForm();
+    contentFromDb.updateGameFile(form, 'common', req, res);
 });
-
-
-(() =>{
-  const processGameFile = (form, type, req, res) => {
-    form.parse(req, function(err, fields, files) {
-      let filePath = files.filetoupload.path;
-  
-      fs.readFile(files.filetoupload.path, async(err, content) => {
-        if (err) {
-          console.log('err loading file: ', err);
-          res.redirect('/');
-          return;
-        }
-  
-        let game;
-        const subdomain = constants.getSubdomain(req.get('host'));
-        if (subdomain !== undefined) {
-          
-          try {
-            await gameService.updateGameFile({ name: subdomain, userId: req.user.id, content, version: constants.defaultGameVersion, type });
-          } catch(err) {
-            console.log('err persisting game driver: ', err);
-            res.redirect('/');
-            return;
-          }
-          
-          res.redirect('/play');
-          
-        }
-        else {
-          fileService.createFile(req.user.id, { name: files.filetoupload.name, content, content_type: 'text/html', game }, function(err) {
-            if (err) {
-              console.log('err persisting file: ', err);
-            }
-            res.redirect('/');
-          });
-        }
-      });
-    });
-  };
-  
-  router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
-    let form = new formidable.IncomingForm();
-    processGameFile(form, 'driver', req, res);
-  });
-  
-  router.post('/uploadBackend', jwtCookiePasser.authRequired(), (req, res) => {
-    let form = new formidable.IncomingForm();
-    processGameFile(form, 'backend', req, res);
-  });
-  
-  router.post('/uploadCommon', jwtCookiePasser.authRequired(), (req, res) => {
-    let form = new formidable.IncomingForm();
-    processGameFile(form, 'common', req, res);
-  });
-})();
 
 
 
