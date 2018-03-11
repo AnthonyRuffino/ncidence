@@ -2,9 +2,10 @@ var argv = require('minimist')(process.argv.slice(2));
 
 let yourSql = require('your-sql')();
 
-let mySqlIp = argv.MYSQL_PORT_3306_TCP_ADDR || 'localhost';
+let mySqlIp = argv.MYSQL_PORT_3306_TCP_ADDR || '127.0.0.1';
 let mySqlUser = argv.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
 let mySqlPassword = argv.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
+let database = argv.DATABASE || 'worldy_io';
 
 yourSql.init({
     host: mySqlIp,
@@ -37,7 +38,7 @@ const main = () => {
 
 const deleteGames = () => {
     return new Promise((resolve, reject) => {
-        yourSql.query(`DELETE FROM ncidence__aruffino_c9users_io.game_database`, (error, databases) => {
+        yourSql.query(`DELETE FROM ${database}.game_database`, (error, databases) => {
             if (error) {
                 console.log('ISSUE DELETING GAME_DATABASE DEFINITIONS:', error);
                 resolve();
@@ -46,14 +47,14 @@ const deleteGames = () => {
             
             console.log('GAMES DATABASE DEFINITIONS DELETED');
             
-            yourSql.query(`DELETE FROM ncidence__aruffino_c9users_io.game`, (error, databases) => {
+            yourSql.query(`DELETE FROM ${database}.game`, (error) => {
                 if (error) {
                     console.log('ISSUE DELETING GAMES:', error);
                     resolve();
                     return;
                 }
                 console.log('GAMES DELETED');
-                resolve();;
+                resolve();
             });
             
         });
@@ -72,7 +73,7 @@ const processDatabase = (database) => {
                 console.log(droppingDatabase);
             }
             
-            yourSql.query(`DROP USER '${database}'@'localhost'`, async(dropUserError, rows) => {
+            yourSql.query(`DROP USER '${database}'@'%'`, async(dropUserError, rows) => {
                 if (error) {
                     console.log(`Error ${droppingUser}!!!`, dropUserError);
                 }else if(rows){

@@ -65,7 +65,7 @@ class Backend {
         //////////////////////
         this.defaultData = [];
         ((defaultData) => {
-            const backendJavascript = `console.log('default backend')`;
+            const backendJavascript = `return class Backend{update(){} getSocketIOHooks(){return [];}}`;
             defaultData.push({
                 values:{
                     id: 1,

@@ -34,7 +34,7 @@ const SECRETS = {
   jwtSecret: process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp',
   dbUser: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
   dbSecret: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb',
-  dbHost: process.env.MYSQL_PORT_3306_TCP_ADDR || 'localhost'
+  dbHost: process.env.MYSQL_PORT_3306_TCP_ADDR || '127.0.0.1'
 };
 
 
@@ -463,7 +463,10 @@ router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, fun
     name: req.body.game, 
     userId: req.user.id,
   }).then(game => {
-    res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host);
+    let port = constants.getPort(req.get('host'));
+    port = port === '80' || !port ? '' : `:${port}`;
+    res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host + port);
+    socketIOHelper.clearSubdomainFromSubdomainInfoMap(req.body.game);
   }).catch(err => {
     res.json(500, { err });
   });

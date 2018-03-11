@@ -65,7 +65,22 @@ class Common {
         //////////////////////
         this.defaultData = [];
         ((defaultData) => {
-            const commonJavascript = `log('default common')`;
+            const commonJavascript = `
+            class Hello{
+                constructor(val){
+                    this.val = 'Hello ' + val;
+                    this.id = 999;
+                    
+                    if(val === 'fail') {
+                        throw 'Hello failure';
+                    }
+                }
+            }
+            
+            
+            const common = {
+                Hello: Hello,
+            }`;
             defaultData.push({
                 values:{
                     id: 1,

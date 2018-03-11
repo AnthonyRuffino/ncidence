@@ -207,8 +207,11 @@ class SocketIOHelper {
 			
 		});
 	}
-	
-	
+
+
+    clearSubdomainFromSubdomainInfoMap(subdomain) {
+        this.subdomainInfoMap[subdomain] = undefined;
+    }
 	setSubdomainInfoMapAndMessages(subdomain) {
 		return new Promise(async(resolve, reject) => {
 			subdomain = subdomain === undefined ? '#' : subdomain;
@@ -415,8 +418,19 @@ class SocketIOHelper {
 				
 				// Register common and backend code
 				const commonExports = await this.getGameExports(socket.subdomain, 'common', { version: this.constants.defaultGameVersion }) || {};
-				const common = commonExports.upwrapExports(dataSourcesAndServices);
-				dataSourcesAndServices.common = common;
+
+				const common = (() => {
+
+                    let commonTemp = {};
+                    try{
+                        commonTemp = commonExports.upwrapExports(dataSourcesAndServices);
+					}catch(err) {
+						console.error('Exception while unwrapping common exports', err);
+					}
+					return commonTemp;
+				})()
+
+                dataSourcesAndServices.common = common;
 				
 				if(!this.backendLogs[socket.subdomain]) {
 					this.backendLogs[socket.subdomain] = [];
@@ -482,11 +496,14 @@ class SocketIOHelper {
 				try {
 					console.info(`[${subdomain}] - Loading custom exports for ${type}`);
 					exportsForType = this.requireFromString(wrapExports(entity.content.toString('utf8')));
+                    console.info(`[${subdomain}] - Done Loading custom exports for ${type}`);
 					resolve(exportsForType);
 					return;
 				}
 				catch (err) {
 					console.error(`[${subdomain}] - Error loading custom exports for ${type}`, err);
+                    resolve(exportsForType);
+                    return;
 				}
 			}
 			else {

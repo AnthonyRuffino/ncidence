@@ -81,7 +81,7 @@ class GameService {
                 this.log(`Game created: ${name}`);
 
                 const userAndSchemaName = 'game_' + name;
-                await this.yourSql.createUser(userAndSchemaName, 'localhost', newGame.database.password);
+                await this.yourSql.createUser(userAndSchemaName, '%', newGame.database.password);
                 this.log(`User created: ${userAndSchemaName}`);
 
                 await this.yourSql.createDatabase(userAndSchemaName);
@@ -103,7 +103,7 @@ class GameService {
                     } else {
                         this.log(`Schema synced: ${userAndSchemaName}`);
 
-                        await this.yourSql.grantAllCrudRightsToUserOnDatabase(userAndSchemaName, 'localhost', userAndSchemaName);
+                        await this.yourSql.grantAllCrudRightsToUserOnDatabase(userAndSchemaName, '%', userAndSchemaName);
                         this.log(`CRUD rights grated on schema: ${userAndSchemaName}`);
         
                         await this.fetchCachedGameOrmHelper(name, true);

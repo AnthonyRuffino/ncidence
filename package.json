@@ -47,6 +47,6 @@
     "require-from-string": "^2.0.1",
     "socket.io": "^2.0.4",
     "uuid": "^3.2.1",
-    "your-sql": "^1.0.4"
+    "your-sql": "^1.0.6"
   }
 }
