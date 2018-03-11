@@ -118,7 +118,6 @@ yourSql.createDatabase(constants.schema).then(() => {
 // BEGIN SERVICES
 //////////////////////
 const userService = require('./utils/orm/services/userService.js')(ormHelper);
-const fileService = require('./utils/orm/services/fileService.js')(ormHelper);
 const gameService = require('./utils/orm/services/gameService.js')({ 
   ormHelper,
   yourSql,
