@@ -111,7 +111,6 @@ return class Backend {
                 	        
                 	    },
                 	    gameEngine: this,
-                	    angleChangeSpeed: 2,
                 	    speedOfLight: 4479900
                 	    
                 	};

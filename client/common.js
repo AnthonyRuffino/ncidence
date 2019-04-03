@@ -256,6 +256,7 @@ class Player extends Entity {
 		this.lastLeftTurnTime = null;
 		this._spaceMovement = false;
 		this.vectorSpeed = 0;
+		this.angleChangeSpeed = 6;
 
 		this.heightToWidthRatio = height / width;
 
@@ -403,7 +404,7 @@ class Player extends Entity {
 					this.lastRightTurnTime = Date.now();
 				}
 				if (true || Date.now() - this.lastRightTurnTime > 50) {
-					this._angle += (this.driver.angleChangeSpeed * this.driver.gameEngine.frimScaler);
+					this._angle += (this.driver.player.angleChangeSpeed * this.driver.gameEngine.frimScaler);
 					this.lastRightTurnTime = Date.now();
 				}
 			}
@@ -412,7 +413,7 @@ class Player extends Entity {
 					this.lastLeftTurnTime = Date.now();
 				}
 				if (true || Date.now() - this.lastLeftTurnTime > 50) {
-					this._angle -= (this.driver.angleChangeSpeed * this.driver.gameEngine.frimScaler);
+					this._angle -= (this.driver.player.angleChangeSpeed * this.driver.gameEngine.frimScaler);
 					this.lastLeftTurnTime = Date.now();
 				}
 			}
