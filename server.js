@@ -107,159 +107,172 @@ yourSql.createDatabase(constants.schema).then(() => {
   ormHelper.sync();
 }).catch((err) => {
   console.log(err);
-  ormHelper.sync();
+  ormHelper.sync(() => {
+    start()
+  });
 });
 //////////////////////
 // END MYSQL CONFIG
 //////////////////////
 
-
-//////////////////////
-// BEGIN SERVICES
-//////////////////////
-const userService = require('./utils/orm/services/userService.js')(ormHelper);
-const gameService = require('./utils/orm/services/gameService.js')({ 
-  ormHelper,
-  yourSql,
-  secrets: SECRETS 
-});
-//////////////////////
-// END SERVICES
-//////////////////////
-
-
-
-// Driver middleware
-const contentFromDb = new (require('./utils/middleware/contentFromDb.js'))(constants, gameService, {['/driver.js']: 'driver', ['/common.js']: 'common'});
-router.use('/', (req, res, next) => { contentFromDb.handle(req, res, next); });
-
-// File system middleware
-router.use(require('no-extension')(global.__publicdir));
-router.use(express.static(global.__publicdir));
-
-
-
-
-///////////////////////////////////////////
-// BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
-////////////////////////////////////////////
-console.log('---Socket IO');
-let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
-  domain: constants.host,
-  secretOrKey: SECRETS.jwtSecret,
-  expiresIn: constants.sessionExpiration,
-  useJsonOnLogin: false,
-  useJsonOnLogout: false
-});
-
-let socketIOHelper = require('./utils/socketIOHelper.js')({ 
-  server: secureServer !== null ? secureServer : server,
-  tokenUtil: jwtCookiePasser,
-  gameService,
-});
-socketIOHelper.init();
-gameService.setSocketIOHelper(socketIOHelper);
-
-console.log('---JWT');
-jwtCookiePasser.init({
-  router,
-  urlencodedParser,
-  userService,
-  loginLogoutHooks: socketIOHelper
-});
-/////////////////////////////////////////
-// END SOCKET IO SETUP & JWT AUTH SETUP///
-/////////////////////////////////////////
-
-
-router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
-    let form = new formidable.IncomingForm();
-    contentFromDb.updateGameFile(form, 'driver', req, res);
-});
-
-router.post('/uploadBackend', jwtCookiePasser.authRequired(), (req, res) => {
-    let form = new formidable.IncomingForm();
-    contentFromDb.updateGameFile(form, 'backend', req, res);
-});
-
-router.post('/uploadCommon', jwtCookiePasser.authRequired(), (req, res) => {
-    let form = new formidable.IncomingForm();
-    contentFromDb.updateGameFile(form, 'common', req, res);
-});
-
-
-
-
-
-router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, function(req, res) {
-  gameService.createGameAndSchema({ 
-    name: req.body.game, 
-    userId: req.user.id,
-  }).then(game => {
-    let port = constants.getPort(req.get('host'));
-    port = port === '80' || !port ? '' : `:${port}`;
-    res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host + port);
-    socketIOHelper.clearFromSubdomainInfoMap(req.body.game);
-  }).catch(err => {
-    res.json(500, { err });
+const start = () => {
+  //////////////////////
+  // BEGIN SERVICES
+  //////////////////////
+  const userService = require('./utils/orm/services/userService.js')(ormHelper);
+  const gameService = require('./utils/orm/services/gameService.js')({ 
+    ormHelper,
+    yourSql,
+    secrets: SECRETS 
   });
-});
-
-
-
-
-
-router.get('/api/login', function(req, res) {
-  userService.login(req, res);
-});
-
-router.get('/api/addUser', function(req, res) {
-  userService.createUser(req, res);
-});
-
-
-router.get("/public", function(req, res) {
-  res.json({ message: "Public Success!", user: req.user });
-});
-
-router.get("/secret", jwtCookiePasser.authRequired(), function(req, res) {
-  res.json({ message: "Secret Success!", user: req.user });
-});
-
-
-
-
-
-
-
-
-
-//////////////////////////
-//START UP SERVER(S)//////
-//////////////////////////
-
-//HTTPS
-if (secureServer != null) {
-  try {
-    secureServer.listen(process.env.SECURE_PORT || 443, process.env.SECURE_IP || "0.0.0.0", function() {
-      let addr = secureServer.address();
-      console.log("Secure server listening at", addr.address + ":" + addr.port);
+  userService.getUserByUsername('admin', adminUser => {
+    gameService.createGameAndSchema({ 
+      name: 'test', 
+      userId: adminUser.id,
     });
+  })
+  
+  //////////////////////
+  // END SERVICES
+  //////////////////////
+  
+  
+  
+  // Driver middleware
+  const contentFromDb = new (require('./utils/middleware/contentFromDb.js'))(constants, gameService, {['/driver.js']: 'driver', ['/common.js']: 'common'});
+  router.use('/', (req, res, next) => { contentFromDb.handle(req, res, next); });
+  
+  // File system middleware
+  router.use(require('no-extension')(global.__publicdir));
+  router.use(express.static(global.__publicdir));
+  
+  
+  
+  
+  ///////////////////////////////////////////
+  // BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
+  ////////////////////////////////////////////
+  console.log('---Socket IO');
+  let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
+    domain: constants.host,
+    secretOrKey: SECRETS.jwtSecret,
+    expiresIn: constants.sessionExpiration,
+    useJsonOnLogin: false,
+    useJsonOnLogout: false
+  });
+  
+  let socketIOHelper = require('./utils/socketIOHelper.js')({ 
+    server: secureServer !== null ? secureServer : server,
+    tokenUtil: jwtCookiePasser,
+    gameService,
+  });
+  socketIOHelper.init();
+  gameService.setSocketIOHelper(socketIOHelper);
+  
+  console.log('---JWT');
+  jwtCookiePasser.init({
+    router,
+    urlencodedParser,
+    userService,
+    loginLogoutHooks: socketIOHelper
+  });
+  /////////////////////////////////////////
+  // END SOCKET IO SETUP & JWT AUTH SETUP///
+  /////////////////////////////////////////
+  
+  
+  router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
+      let form = new formidable.IncomingForm();
+      contentFromDb.updateGameFile(form, 'driver', req, res);
+  });
+  
+  router.post('/uploadBackend', jwtCookiePasser.authRequired(), (req, res) => {
+      let form = new formidable.IncomingForm();
+      contentFromDb.updateGameFile(form, 'backend', req, res);
+  });
+  
+  router.post('/uploadCommon', jwtCookiePasser.authRequired(), (req, res) => {
+      let form = new formidable.IncomingForm();
+      contentFromDb.updateGameFile(form, 'common', req, res);
+  });
+  
+  
+  
+  
+  
+  router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, function(req, res) {
+    gameService.createGameAndSchema({ 
+      name: req.body.game, 
+      userId: req.user.id,
+    }).then(game => {
+      let port = constants.getPort(req.get('host'));
+      port = port === '80' || !port ? '' : `:${port}`;
+      res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host + port);
+      socketIOHelper.clearFromSubdomainInfoMap(req.body.game);
+    }).catch(err => {
+      res.json(500, { err });
+    });
+  });
+  
+  
+  
+  
+  
+  router.get('/api/login', function(req, res) {
+    userService.login(req, res);
+  });
+  
+  router.get('/api/addUser', function(req, res) {
+    userService.createUser(req, res);
+  });
+  
+  
+  router.get("/public", function(req, res) {
+    res.json({ message: "Public Success!", user: req.user });
+  });
+  
+  router.get("/secret", jwtCookiePasser.authRequired(), function(req, res) {
+    res.json({ message: "Secret Success!", user: req.user });
+  });
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  //////////////////////////
+  //START UP SERVER(S)//////
+  //////////////////////////
+  
+  //HTTPS
+  if (secureServer != null) {
+    try {
+      secureServer.listen(process.env.SECURE_PORT || 443, process.env.SECURE_IP || "0.0.0.0", function() {
+        let addr = secureServer.address();
+        console.log("Secure server listening at", addr.address + ":" + addr.port);
+      });
+    }
+    catch (err2) {
+      console.log("Err: " + err2);
+      //secureServerErr = "Err: " + err2;
+    }
   }
-  catch (err2) {
-    console.log("Err: " + err2);
-    //secureServerErr = "Err: " + err2;
+  
+  
+  if (server === undefined || server === null) {
+    server = http.createServer(router);
   }
+  
+  
+  server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function() {
+    console.log('Starting ncidence server...');
+    console.log('process.env.IP: ' + process.env.IP);
+    console.log('process.env.PORT: ' + process.env.PORT);
+    let addr = server.address();
+    console.log("Ncidence server listening at", addr.address + ":" + addr.port);
+  });
 }
 
-
-if (server === undefined || server === null) {
-  server = http.createServer(router);
-}
-
-
-server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function() {
-  console.log('Starting ncidence server...');
-  let addr = server.address();
-  console.log("Ncidence server listening at", addr.address + ":" + addr.port);
-});

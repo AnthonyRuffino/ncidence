@@ -57,7 +57,7 @@ class Controller {
         	$scope.logoutText = me !== 'Anonymous' ? 'Logout' : null;
         	$scope.isLoggedIn = !!$scope.logoutText;
         	$scope.me = me;
-        	$scope.isSubdomainTaken = !!$scope.pageDetails.owner;
+        	$scope.isSubdomainTaken = !!$scope.pageDetails.game;
         	$scope.isMySubdomain = $scope.isSubdomainTaken && $scope.isLoggedIn && $scope.me === $scope.pageDetails.owner;
         	hooks.whoami(me);
         	$scope.$apply();
@@ -73,14 +73,12 @@ class Controller {
           console.log('[DEBUG]', msg);
         });
         
-        
-
         socket.on('roster', (names) => {
           $scope.roster = names;
           $scope.$apply();
           hooks.roster(names);
         });
-
+        
         $scope.send = () => {
           socket.emit('message', $scope.text);
           $scope.text = '';

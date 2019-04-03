@@ -68,11 +68,15 @@ class GameService {
     
     
 
-    createGameAndSchema({ name, userId }) {
+    createGameAndSchema({ name, userId, ignoreTestExists }) {
         return new Promise(async(resolve, reject) => {
             try {
                 this.log(`createGame: ${name}`);
-                if (await this.getGameAndDatabase(name, false)) {
+                const existingGame = await this.getGameAndDatabase(name, false);
+                if (existingGame) {
+                    if(name === 'test' && ignoreTestExists) {
+                        return existingGame;
+                    }
                     throw `A game name '${name}' already exists`;
                 }
 

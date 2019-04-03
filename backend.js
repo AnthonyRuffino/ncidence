@@ -9,33 +9,54 @@ return class Backend {
         this.subdomain = subdomain;
         this.broadcast = broadcast;
         this.gameloop = gameloop;
+        this.frimScaler = .5;
+        this.targetTickDelta = 0.0666;
         
         this.startGameLoopImmediately = true;
         
-        this.playersConnected = [];
+        this.connections = [];
         this.setPlayerControl = this.setPlayerControl.bind(this);
         this.update = this.update.bind(this);
     }
     
     update(delta, tag) {
         //if(updatePosition)
-        if(this.playersConnected && this.playersConnected.length > 0) {
-            this.playersConnected.forEach((player) => {
-                if(!player.updatePosition) {
-                    console.log('no updatePosition method on player object');
-                } else {
-                    player.updatePosition();
+        //console.log('delta: ' + delta);
+        this.frimScaler = delta/this.targetTickDelta;
+        const updatedPlayers = [];
+        if(this.connections && this.connections.length > 0) {
+            this.connections.forEach((connection) => {
+                const player = connection.player;
+                player.updatePosition();
+                if(player.motionDetected) {
+                    updatedPlayers.push(player);
+                    connection.emit('my-motion', {
+                        x: player.x,
+                        y: player.y,
+                        angle: player.angle,
+                    });
                 }
             });
+            if(updatedPlayers && updatedPlayers.length > 0) {
+                updatedPlayers.forEach((other) => {
+                    this.connections.forEach((connection) => {
+                        if(connection.player.id !== other.id) {
+                            connection.emit('other-motion', {
+                                x: other.x,
+                                y: other.y,
+                                angle: other.angle,
+                                id: other.id
+                            });
+                        }
+                    });
+                });
+            }
         }
     }
     
     setPlayerControl(player, control, socketDebug) {
-        console.log(`This will go to server logs and not socket.`);
-        console.log(`TODO: Decide if I like the ability to pass the socket bound console logging (socketDebug)`);
-        if(socketDebug) {
-            socketDebug(`Your controls were not really set, but we got so close.  TODO)`);
-        }
+        player.controls[control.name](control.value)
+        
     }
     
     getSocketIOHooks(console) {
@@ -56,14 +77,15 @@ return class Backend {
         socketIOHooks.push({
             on: 'control',
             run: ({ emit, dataIn, username }) => { 
-            	if(this.playersConnected && this.playersConnected.length > 0) {
-            	    const playerOptional = this.playersConnected.filter((player) => player.id == username);
+                //console.log('Control: ' + JSON.stringify(dataIn));
+            	if(this.connections && this.connections.length > 0) {
+            	    const playerOptional = this.connections.filter((player) => player.player.id == username);
             	    //TODO: what to do for anonymous?
             	    if(!playerOptional || !playerOptional[0]) {
             	        console.log('Who are you?'); 
             	    } else {
-            	        console.log('Setting player control', playerOptional[0].id, dataIn);
-            	        this.setPlayerControl(playerOptional[0].id, dataIn, console.log);
+            	        //console.log('Setting player control', playerOptional[0].player.id, dataIn);
+            	        this.setPlayerControl(playerOptional[0], dataIn, console.log);
             	    }
             	}
             }
@@ -71,34 +93,64 @@ return class Backend {
         socketIOHooks.push({
             on: 'hi',
             run: ({ emit, dataIn, username }) => {
-                console.log('hi');
-            	console.log('process.title', process.title);
-            	console.log('GLOBALS', {
-            	    __dirname,
-            	    __filename,
-            	    require
-            	});
-            	console.log('dataIn', dataIn);
-            	//emit('hi', new this.common.Hello(dataIn || 'from back end'));
+                console.log(`hi ${username}`);
+            // 	console.log('process.title', process.title);
+            // 	console.log('GLOBALS', {
+            // 	    __dirname,
+            // 	    __filename,
+            // 	    require
+            // 	});
+            // 	console.log('dataIn', dataIn);
             	
-            	const driver = {
-            	    renderer: {
-            	        
-            	    },
-            	    gameEngine: {
-            	        frimScaler: 1
-            	    },
-            	    angleChangeSpeed: 2
-            	    
-            	};
-            	const Image = {};
+            	let player = null;
+            	const connectionOptional = this.connections && this.connections.length > 0 ? this.connections.filter((player) => player.player.id == username) : null;
+        	    //TODO: what to do for anonymous?
+        	    if(!connectionOptional || !connectionOptional[0]) {
+        	        const driver = {
+                	    renderer: {
+                	        
+                	    },
+                	    gameEngine: this,
+                	    angleChangeSpeed: 2,
+                	    speedOfLight: 4479900
+                	    
+                	};
+                	
+                	player = new this.common.Player({
+                	    driver: driver,
+                	    id: username,
+                	    x: 1000,
+                	    y: 1000,
+                	    width: 160,
+                	    height: 80,
+                	    angle: 90,
+                	    startAngle: 90,
+                	    movementSpeed: 360,
+                	    img: {}
+                	});
+                	driver.player = player;
+                	const controls = new this.common.Controls(driver);
+                	
+                	const baseInfo = player.baseInfo();
+                	this.connections.forEach((connection) => {
+                	    connection.emit('joiner', {...baseInfo, driver: null, img: null});
+                	    emit('joiner', {...connection.player.baseInfo(), driver: null, img: null});
+                	});
+                	this.connections.push({ player, emit, controls } );
+                	
+        	    } else {
+        	        player = connectionOptional[0].player;
+        	        connectionOptional[0].emit = emit;
+        	        
+        	        this.connections.forEach((connection) => {
+        	            if(connection.player.id !== player.id) {
+        	                emit('joiner', {...connection.player.baseInfo(), driver: null, img: null});
+        	            }
+                	});
+        	    }
+        	    
+        	    emit('hi', {...player.baseInfo(), driver: null, img: null});
             	
-            	//constructor(driver, id, x, y, width, height, angle, movementSpeed, img) {
-            	const player = new this.common.Player(driver, username, 0, 0, 160, 80, 90, 30, Image);
-            	driver.player = player;
-            	this.playersConnected.push(player);
-            	
-            	console.log('Connecting player: ', username);
             	
             }
         });

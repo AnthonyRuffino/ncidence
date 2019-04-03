@@ -53,6 +53,8 @@ class GameEngine {
 		var now = Date.now();
 		this.tickDelta = (now - (this.lastTickTime == null ? now : this.lastTickTime)); // ms since last frame
 		this.frimScaler = this.tickDelta / this.targetTickDelta;
+		
+		//console.log(this.tickDelta, 'tickDelta');
 
 		if (this.tickDelta != 0 && (this.fps === null || this.frameCount % 12 === 0)) {
 			this.fps = 1000 / this.tickDelta;

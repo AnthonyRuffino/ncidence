@@ -406,11 +406,11 @@ class SocketIOHelper {
 					broadcast: (data) => this.broadcast('message', data, socket),
 					cache: this.subdomainCaches[socket.subdomain],
 					gameloop: {
-						start: () => {
-							this.startGameLoop(socket.subdomain, 'main');
+						start: (tag) => {
+							this.startGameLoop(socket.subdomain, tag);
 						},
-						stop: () => {
-							this.stopGameLoop(socket.subdomain, 'main');
+						stop: (tag) => {
+							this.stopGameLoop(socket.subdomain, tag);
 						}
 					}
 				};
@@ -452,7 +452,7 @@ class SocketIOHelper {
 				
 				if(backend.startGameLoopImmediately) {
 					console.log(`[${socket.subdomain}] - startGameLoopImmediately`);
-					backend.gameloop.start();
+					backend.gameloop.start('main');
 				}
 			}
 			

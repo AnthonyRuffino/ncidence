@@ -271,6 +271,24 @@ class UserService {
         });
     }
     
+    getUserByUsername(username, callback) {
+        let ormHelper = this.ormHelper;
+        let userModel = ormHelper.getMap()['user'].model;
+            
+        userModel.find({
+            username: username
+        }, (err, users) => {
+            if (err) throw err;
+
+            if (users.length < 1 || users[0] === undefined || users[0] === null) {
+                callback(null);
+            }
+            else {
+                callback(this.mapUserForJwtToken(users[0]));
+            }
+        });
+    }
+    
     login(username, password, callback) {
         if(username === undefined || username === null || username.length < 1){
             callback('email is required');

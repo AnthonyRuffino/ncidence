@@ -5,7 +5,7 @@ let yourSql = require('your-sql')();
 let mySqlIp = argv.MYSQL_PORT_3306_TCP_ADDR || '127.0.0.1';
 let mySqlUser = argv.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root';
 let mySqlPassword = argv.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb';
-let database = argv.DATABASE || 'worldy_io';
+let database = argv.DATABASE || 'ncidence__aruffino_c9users_io';
 
 yourSql.init({
     host: mySqlIp,

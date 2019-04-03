@@ -60,21 +60,21 @@ class Game {
         //DEFAULT DATA////////
         //////////////////////
         this.defaultData = [];
-        this.defaultData.push({
-            values: {
-                id: 1,
-                name: 'test',
-            },
-            hasOne: {
-                owner: { id: 1 }
-            },
-            extendsTo: {
-                database: {
-                    password: 'test',
-                    mb: 0
-                }
-            }
-        });
+        // this.defaultData.push({
+        //     values: {
+        //         id: 1,
+        //         name: 'test',
+        //     },
+        //     hasOne: {
+        //         owner: { id: 1 }
+        //     },
+        //     extendsTo: {
+        //         database: {
+        //             password: 'test',
+        //             mb: 0
+        //         }
+        //     }
+        // });
     }
 }
 
