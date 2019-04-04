@@ -6,7 +6,6 @@ class SocketIOHelper {
 		this.messages = {};
 		this.sockets = [];
 		this.socketNcidenceCookieMap = {};
-		this.socketUserNameMap = {};
 		this.socketIdMap = {};
 		this.subdomainInfoMap = {};
 
@@ -28,6 +27,16 @@ class SocketIOHelper {
 		this.cachedGameLoops = {};
 
 		this.constants = require(global.__rootdir + 'constants.js');
+		
+		this.anonymousPrefix = '?_Anonymous-';
+	}
+	
+	getAnonymousUserName(ncidenceCookie) {
+		return `${this.anonymousPrefix}${ncidenceCookie}`;
+	}
+	
+	isAnonymousUserName(username) {
+		return username.indexOf(this.anonymousPrefix) === 0;
 	}
 
 	logoutUserHook(req) {
@@ -35,10 +44,11 @@ class SocketIOHelper {
 		if (ncidenceCookie && this.socketNcidenceCookieMap[ncidenceCookie] !== undefined) {
 			this.socketNcidenceCookieMap[ncidenceCookie].forEach(socketId => {
 				if (this.socketIdMap[socketId] != undefined) {
+					const anonymousUserName = this.getAnonymousUserName(ncidenceCookie);
 					const socket = this.socketIdMap[socketId];
 					socket.loggedOut = true;
-					socket.name = 'Anonymous';
-					socket.emit('whoami', 'Anonymous');
+					socket.name = anonymousUserName;
+					socket.emit('whoami', anonymousUserName);
 					this.updateRoster(socket);
 				}
 			});
@@ -55,7 +65,7 @@ class SocketIOHelper {
 					socket.name = user.username;
 					socket.loggedOut = false;
 					socket.token = token;
-					socket.emit('whoami', user ? user.username : 'Anonymous');
+					socket.emit('whoami', user.username);
 					this.updateRoster(socket);
 				}
 			});
@@ -70,7 +80,7 @@ class SocketIOHelper {
 			this.sockets.filter(s => s.subdomain === socket.subdomain),
 			(socket, callback) => {
 				foundNames[socket.name] = foundNames[socket.name] ? foundNames[socket.name] + 1 : 1;
-				callback(null, (socket.myParent === undefined && (socket.name === 'Anonymous' || foundNames[socket.name] === 1)) ? socket.name : null);
+				callback(null, (socket.myParent === undefined && (this.isAnonymousUserName(socket.name) || foundNames[socket.name] === 1)) ? socket.name : null);
 			},
 			(err, names) => {
 				if (err) {
@@ -237,12 +247,12 @@ class SocketIOHelper {
 	
 	setUserInfo(socket) {
 		if (socket.loggedOut) {
-			socket.name = 'Anonymous';
+			socket.name = this.getAnonymousUserName(socket.cookies.ncidence);
 		}
 		else {
 			let token = socket.token ? socket.token : this.tokenUtil.getTokenFromCookies(socket.cookies);
 			let user = token ? this.tokenUtil.verifyToken(token) : null;
-			socket.name = String((user ? user.username : null) || 'Anonymous');
+			socket.name = String((user ? user.username : null) || this.getAnonymousUserName(socket.cookies.ncidence));
 			if (!user) {
 				this.updateRoster(socket);
 			}
