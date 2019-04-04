@@ -17,6 +17,32 @@ return class Backend {
         this.connections = [];
         this.setPlayerControl = this.setPlayerControl.bind(this);
         this.update = this.update.bind(this);
+        
+        this.enemies = {};
+		for (var i = 1; i <= 100; i++) {
+			var enemyX = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1);
+			var enemyY = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1);
+			var enemyW = (Math.random() * 25) + 5;
+			var enemyH = (Math.random() * 25) + 5;
+			var enemyShape = Math.random() > .5 ? 'circle' : 'rectangle';
+			var lineWidth = 3;
+			this.enemies['enemy' + i] = new this.common.Entity({
+				driver: this, 
+				type: 'enemy', 
+				id: 'enemy' + i, 
+				x: enemyX, 
+				y: enemyY, 
+				width: enemyW, 
+				height: enemyShape === 'circle' ? enemyW : enemyH, 
+				angle: 15, 
+				movementSpeed: 10, 
+				shape: enemyShape, 
+				fillStyle: this.common.CommonMath.getRandomColor(), 
+				lineWidth, 
+				strokeStyle: this.common.CommonMath.getRandomColor(), 
+				image: null
+			});
+		}
     }
     
     update(delta, tag) {
@@ -147,6 +173,13 @@ return class Backend {
         	            }
                 	});
         	    }
+        	    
+        	    const enemies = {}
+        	    Object.entries(this.enemies).forEach((enemy) => {
+    	            enemies[enemy[0]] = {...enemy[1].baseInfo(), driver: null }
+            	});
+        	    emit('enemies', enemies);
+        	    
         	    
         	    emit('hi', {...player.baseInfo(), driver: null, img: null});
             	

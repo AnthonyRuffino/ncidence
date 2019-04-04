@@ -19,11 +19,20 @@ class CommonMath {
 	static radiansToDegrees(angle){
 		return angle / (Math.PI / 180);
 	}
+	
+	static getRandomColor() {
+		var letters = '0123456789ABCDEF'.split('');
+		var color = '#';
+		for (var i = 0; i < 6; i++) {
+			color += letters[Math.floor(Math.random() * 16)];
+		}
+		return color;
+	}
 }
 
 
 class Entity {
-	constructor(driver, type, id, x, y, width, height, angle, movementSpeed, shape, fillStyle, lineWidth, strokeStyle, image) {
+	constructor({driver, type, id, x, y, width, height, angle, movementSpeed, shape, fillStyle, lineWidth, strokeStyle, image}) {
 		this.driver = driver;
 		this.type = type;
 		this.id = id;
@@ -46,7 +55,7 @@ class Entity {
 
 
 
-		if (this.image === undefined || this.image === null) {
+		if (this.driver.renderer && (this.image === undefined || this.image === null)) {
 			var shapeImage = {};
 
 			var shape_canvas = this.driver.renderer.document.createElement('canvas');
@@ -104,7 +113,26 @@ class Entity {
 	set y(y) {
 		this._y = y;
 	}
-
+	
+	
+	baseInfo() {
+		return {
+			driver: this.driver, 
+			type: this.type, 
+			id: this.id, 
+			x: this._x, 
+			y: this._y, 
+			width: this.baseWidth, 
+			height: this.baseHeight, 
+			angle: this._angle, 
+			movementSpeed: this.movementSpeed, 
+			shape: this.shape, 
+			fillStyle: this.fillStyle, 
+			lineWidth: this.lineWidth, 
+			strokeStyle: this.strokeStyle, 
+			image: this.image
+		}
+	}
 
 
 	updatePosition() {
@@ -248,9 +276,23 @@ class Player extends Entity {
 			playerImage = img;
 		}
 
-		//constructor(driver,type,id,x,y,width,height,angle,movementSpeed,shape,fillStyle,lineWidth,strokeStyle,image)
-		super(driver, 'player', id, x, y, width, height, angle, movementSpeed, 'rectangle', 'red', 'green', null, playerImage);
-
+		super({
+			driver,
+			type: 'player',
+			id,
+			x,
+			y,
+			width,
+			height,
+			angle,
+			movementSpeed,
+			shape: 'rectangle',
+			fillStyle: 'red',
+			lineWidth: 'green',
+			strokeStyle: null,
+			image:playerImage
+		})
+		
 		this.startAngle = startAngle;
 		this.lastRightTurnTime = null;
 		this.lastLeftTurnTime = null;
@@ -852,4 +894,5 @@ const common = {
     Entity: Entity,
     Player: Player,
     Controls: Controls,
+    CommonMath: CommonMath
 }

@@ -58,8 +58,6 @@ let emit = () => {
 class GameDriver {
 	constructor(socket, renderer, body, log, alert) {
 		this._gameStartTime = Date.now();
-
-		this.numberOfEnemies = 1000;
 		this._controls = null;
 		this._renderer = renderer;
 		this._angleChangeSpeed = 2;
@@ -103,14 +101,29 @@ class GameDriver {
 
 		//enemies
 		this.enemies = {};
-		for (var i = 1; i <= this.numberOfEnemies; i++) {
+		for (var i = 1; i <= 100; i++) {
 			var enemyX = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1);
 			var enemyY = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1);
 			var enemyW = (Math.random() * 25) + 5;
 			var enemyH = (Math.random() * 25) + 5;
 			var enemyShape = Math.random() > .5 ? 'circle' : 'rectangle';
 			var lineWidth = 3;
-			this.enemies['enemy' + i] = new Entity(this, 'enemy', 'enemy' + i, enemyX, enemyY, enemyW, enemyShape === 'circle' ? enemyW : enemyH, 15, 10, enemyShape, this.getRandomColor(), lineWidth, this.getRandomColor(), null);
+			this.enemies['enemy' + i] = new Entity({
+				driver: this, 
+				type: 'enemy', 
+				id: 'enemy' + i, 
+				x: enemyX, 
+				y: enemyY, 
+				width: enemyW, 
+				height: enemyShape === 'circle' ? enemyW : enemyH, 
+				angle: 15, 
+				movementSpeed: 10, 
+				shape: enemyShape, 
+				fillStyle: CommonMath.getRandomColor(), 
+				lineWidth, 
+				strokeStyle: CommonMath.getRandomColor(), 
+				image: null
+			});
 		}
 
 
@@ -135,6 +148,13 @@ class GameDriver {
 			const other = new Player({...playerData, driver: this });
 			this.others.push(other);
 			this.othersMap[other.id] = other;
+		})
+		
+		this.socket.on('enemies', (enemies) => {
+			console.log('enemies!', enemies);
+			Object.entries(enemies).forEach(enemy => {
+				this.enemies[enemy[0]] = new Entity({... enemy[1], driver: this,});
+			});
 		})
 		
 		this.socket.on('other-motion', (motion) => {
@@ -196,10 +216,10 @@ class GameDriver {
 
 	render() {
 		this._player.draw();
-
-		for (var i = 1; i <= this.numberOfEnemies; i++) {
-			this.enemies['enemy' + i].draw();
-		}
+		
+		Object.values(this.enemies).forEach(enemy => {
+			enemy.draw();
+		});
 		
 		this.others.forEach((other) => {
 			other.draw(true);
@@ -210,18 +230,18 @@ class GameDriver {
 		var textSize = 35;
 		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
 		this._renderer.ctx.fillStyle = 'white';
-		this._renderer.ctx.fillText('player(x,y): (' + this.round(this._player.x) + "," + this.round(this._player.y) + ")", 0, (textSize * 1) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('player angle: ' + this.round(this._player.angle), 0, (textSize * 2) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('player(x,y): (' + CommonMath.round(this._player.x) + "," + CommonMath.round(this._player.y) + ")", 0, (textSize * 1) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('player angle: ' + CommonMath.round(this._player.angle), 0, (textSize * 2) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillText('scale: ' + this._renderer.scale, 0, (textSize * 3) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('base accelleration: ' + this.round(this._player.baseSpeed), 0, (textSize * 4) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('current accelleration: ' + this.round(this._player.movementSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('base accelleration: ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 4) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('current accelleration: ' + CommonMath.round(this._player.movementSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillText('current speed: ' + this._player.vectorSpeed / this.speedOfLight + 'c', 0, (textSize * 6) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('vx: ' + this.round((this._player.vx / this.speedOfLight), 4) + 'c - vy:' + this.round((this._player.vy / this.speedOfLight), 4) + 'c', 0, (textSize * 7) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('vx: ' + CommonMath.round((this._player.vx / this.speedOfLight), 4) + 'c - vy:' + CommonMath.round((this._player.vy / this.speedOfLight), 4) + 'c', 0, (textSize * 7) * this._renderer.viewPortScaler);
 		var fps = this._gameEngine !== null ? this._gameEngine.fps : 0;
-		this._renderer.ctx.fillText('fps: ' + this.round(fps, 0), 0, (textSize * 8) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('fps: ' + CommonMath.round(fps, 0), 0, (textSize * 8) * this._renderer.viewPortScaler);
 		var speedSnapshot = this._gameEngine !== null ? this._gameEngine.speedSnapshot : 0;
-		this._renderer.ctx.fillText('speedSnapshot: ' + this.round(speedSnapshot, 0) + ' units/sec', 0, (textSize * 9) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('elapsedTime: ' + this.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('speedSnapshot: ' + CommonMath.round(speedSnapshot, 0) + ' units/sec', 0, (textSize * 9) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 
 		this._renderer.ctx.restore();
 	}
@@ -232,12 +252,11 @@ class GameDriver {
 		this.others.forEach((other) => {
 			other.updatePosition(true);
 		});
-
-		for (var i = 1; i <= this.numberOfEnemies; i++) {
-			//this.enemies['enemy' + i].x += 1;
-			this.enemies['enemy' + i].updatePosition();
-			this.enemies['enemy' + i].doDraw = true;
-		}
+		
+		Object.values(this.enemies).forEach(enemy => {
+			enemy.updatePosition();
+			enemy.doDraw = true;
+		});
 	}
 
 
@@ -259,29 +278,5 @@ class GameDriver {
 		this._player.spaceMovement = false;
 	}
 	//END CONTROLS
-
-
-
-
-	//UTILITY METHODS
-	getRandomColor() {
-		var letters = '0123456789ABCDEF'.split('');
-		var color = '#';
-		for (var i = 0; i < 6; i++) {
-			color += letters[Math.floor(Math.random() * 16)];
-		}
-		return color;
-	}
-
-	round(num, sigDigits) {
-		if (sigDigits === undefined || sigDigits === null) {
-			sigDigits = 2;
-		}
-
-		var powerOfTen = Math.pow(10, sigDigits);
-		var inversePowerOfTen = sigDigits === 0 ? 0 : Math.pow(10, (-100 * sigDigits));
-
-		return Math.round((num + inversePowerOfTen) * powerOfTen) / powerOfTen;
-	}
 
 }
