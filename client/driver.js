@@ -76,6 +76,8 @@ class GameDriver {
 
 		this.socket.hooks.whoami = (me) => {
 			this.me = me;
+			console.log("Client: saying 'hi'");
+			emit('hi');
 		};
 
 		this.socket.hooks.message = (msg) => {
@@ -116,21 +118,13 @@ class GameDriver {
 		this.controls = new Controls(this);
 		ControlsBinder.bind(this, document);
 
-
-
-
-		this.socket.on('load', (msg) => {
-			console.log('load recieved from server', msg);
-		});
-		this.socket.emit('load');
-
 		this.socket.on('beep', (msg) => {
 			console.log('beep', msg, this.me);
 			//alert('Beep! ' + this.me);
 		});
 
 		this.socket.on('hi', (playerData) => {
-			console.log('hi!', playerData);
+			console.log("Server: 'hi'", playerData);
 			this._player = new Player({...playerData, driver: this });
 		})
 		
@@ -144,7 +138,7 @@ class GameDriver {
 		})
 		
 		this.socket.on('other-motion', (motion) => {
-			console.log('other-motion: ', motion);
+			//console.log('other-motion: ', motion);
 			const other = this.othersMap[motion.id];
 			other.x = motion.x;
 			other.y = motion.y;
@@ -152,13 +146,13 @@ class GameDriver {
 		});
 		
 		this.socket.on('my-motion', (motion) => {
-			console.log('my-motion: ', motion);
+			//console.log('my-motion: ', motion);
 			this.player.x = motion.x;
 			this.player.y = motion.y;
 			this.player.angle = motion.angle;
 		});
 		
-		emit('hi');
+		
 	}
 
 	//GETTERS AND SETTERS

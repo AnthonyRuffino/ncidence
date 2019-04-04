@@ -93,7 +93,7 @@ return class Backend {
         socketIOHooks.push({
             on: 'hi',
             run: ({ emit, dataIn, username }) => {
-                console.log(`hi ${username}`);
+                console.log(`${username}: 'hi'`);
             // 	console.log('process.title', process.title);
             // 	console.log('GLOBALS', {
             // 	    __dirname,

@@ -708,9 +708,7 @@ class Controls {
 	}
 
 	onwheel(mouse) {
-
-		mouse.preventDefault();
-
+		//mouse.preventDefault();
 		this.driver.previousScale = null;
 		var zoomingIn = (mouse.shiftKey !== true && mouse.deltaY < 0) || (mouse.shiftKey && mouse.deltaX < 0);
 

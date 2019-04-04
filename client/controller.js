@@ -52,8 +52,7 @@ class Controller {
         });
         
         socket.on('whoami', (me) => {
-        	console.log('whoami:', me);
-        	hooks.whoami(me);
+        	console.log("Server: 'whoami'", me);
         	$scope.logoutText = me !== 'Anonymous' ? 'Logout' : null;
         	$scope.isLoggedIn = !!$scope.logoutText;
         	$scope.me = me;
