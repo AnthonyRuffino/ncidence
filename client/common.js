@@ -180,13 +180,13 @@ class Entity {
 			if ((this.driver.preRender || this.baseImageHeight === undefined) && (this.image !== undefined && this.image !== null)) {
 				var imageHeight = this.imageHeight !== undefined ? this.imageHeight : this.height;
 				var imageWidth = this.imageWidth !== undefined ? this.imageWidth : this.width;
-				this.driver.renderer.drawRealImage(true, this.image, x, y, imageWidth, imageHeight, angle, this.shape === 'circle');
+				this.driver.renderer.drawRealImage(true, this.image, x, y, imageWidth, imageHeight, angle, true);
 			}
 			else if (this.shape === 'circle') {
 				this.driver.renderer.drawRealCircle(true, x, y, this.width, null, this.fillStyle, this.lineWidth, this.strokeStyle);
 			}
 			else if (this.shape === 'rectangle') {
-				this.driver.renderer.drawRealRectangle(true, x, y, this.width, this.height, angle, this.fillStyle, this.lineWidth, this.strokeStyle);
+				this.driver.renderer.drawRealRectangle(true, x, y, this.width, this.height, angle, this.fillStyle, this.lineWidth, this.strokeStyle, true);
 			}
 		}
 

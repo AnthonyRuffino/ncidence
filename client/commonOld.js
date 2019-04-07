@@ -321,7 +321,7 @@ class Player extends Entity {
 
 		var speed = 0;
 
-		if (false && !this.driver.player.spaceMovement) {
+		if (!this.driver.player.spaceMovement) {
 			this.movementSpeed = this.baseSpeed / (this.driver.renderer.scale * 10);
 			this.movementSpeed = this.movementSpeed > 0 ? this.movementSpeed : .01;
 		}

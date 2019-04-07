@@ -30,6 +30,7 @@
     "fs": "0.0.2",
     "jsonwebtoken": "^8.5.1",
     "jwt-cookie-passer": "^2.0.0",
+    "lazy-namer": "^1.0.1",
     "mapplied": "^1.0.0",
     "minimist": "^1.2.0",
     "mkpath": "^1.0.0",

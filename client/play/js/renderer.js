@@ -135,7 +135,7 @@ class Renderer {
 
 
     // RECTANGLE
-    drawRealRectangle(beginPath, x, y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle) {
+    drawRealRectangle(beginPath, x, y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle, doShift) {
         var canvasCoords = this.getCanvasCoords(x, y);
         var biggestDimention = width > height ? width : height;
 
@@ -146,15 +146,15 @@ class Renderer {
             doDraw = false;
         }
         if (doDraw) {
-            this.drawRectangle(beginPath, canvasCoords.x, canvasCoords.y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle);
+            this.drawRectangle(beginPath, canvasCoords.x, canvasCoords.y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle, doShift);
         }
     }
 
-    drawRectangle(beginPath, x, y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle) {
-    	this.drawRectangleFromContext(this.ctx, beginPath, x, y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle);
+    drawRectangle(beginPath, x, y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle, doShift) {
+    	this.drawRectangleFromContext(this.ctx, beginPath, x, y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle, doShift);
     }
     
-    drawRectangleFromContext(context, beginPath, x, y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle) {
+    drawRectangleFromContext(context, beginPath, x, y, width, height, rotationAngle, fillStyle, lineWidth, strokeStyle, doShift) {
     	context.save();
 
         if (beginPath) {
@@ -178,8 +178,10 @@ class Renderer {
         if (strokeStyle !== undefined && strokeStyle !== null) {
         	context.strokeStyle = strokeStyle;
         }
+        
+        const shiftCoords = this.getShift(x, y, width, height, doShift)
 
-        context.rect(x, y, width, height, 20);
+        context.rect(shiftCoords.x, shiftCoords.y, width, height, 20);
 
         if (lineWidth !== undefined) {
             if (fillStyle !== undefined && fillStyle != null) {
@@ -311,6 +313,16 @@ class Renderer {
         var xShift = 0;
         var yShift = 0;
 
+        const shiftCoords = this.getShift(x, y, width, height, doShift);
+        
+        this._ctx.drawImage(image.img, 0, 0, image.img.width, image.img.height, shiftCoords.x, shiftCoords.y, width, height);
+
+        this._ctx.restore();
+    }
+    
+    getShift(x, y, width, height, doShift) {
+        let xShift = 0;
+        let yShift = 0;
         if (doShift) {
             if (width > 1) {
                 xShift = width / 2;
@@ -320,10 +332,7 @@ class Renderer {
                 yShift = height / 2;
             }
         }
-
-        this._ctx.drawImage(image.img, 0, 0, image.img.width, image.img.height, x - xShift, y - yShift, width, height);
-
-        this._ctx.restore();
+        return {x: x - xShift, y: y - yShift};
     }
 
 

@@ -8,6 +8,7 @@ class SocketIOHelper {
 		this.socketNcidenceCookieMap = {};
 		this.socketIdMap = {};
 		this.subdomainInfoMap = {};
+		this.lazyNamer = require("lazy-namer");
 
 
 		let socketio = require('socket.io');
@@ -28,15 +29,29 @@ class SocketIOHelper {
 
 		this.constants = require(global.__rootdir + 'constants.js');
 		
-		this.anonymousPrefix = '?_Anonymous-';
+		this.anonymousSuffix = '_?';
+		this.anonymousNamesFromCookie = {};
+		this.anonymousNamesInUse = {};
 	}
 	
-	getAnonymousUserName(ncidenceCookie) {
-		return `${this.anonymousPrefix}${ncidenceCookie}`;
+	getAnonymousUserName(ncidenceCookie, callCount) {
+		callCount = callCount || 1; 
+		if(!this.anonymousNamesFromCookie[ncidenceCookie]) {
+			const anonymousName = `${this.lazyNamer.getName(2)}${this.anonymousSuffix}`;
+			if(this.anonymousNamesInUse[anonymousName]) {
+				if(callCount > 10) {
+					return `${ncidenceCookie}${this.anonymousSuffix}`;
+				}
+				return this.getAnonymousUserName(ncidenceCookie, callCount++);
+			}
+			this.anonymousNamesFromCookie[ncidenceCookie] = anonymousName;
+			this.anonymousNamesInUse[anonymousName] = true; 
+		}
+		return this.anonymousNamesFromCookie[ncidenceCookie];
 	}
 	
 	isAnonymousUserName(username) {
-		return username.indexOf(this.anonymousPrefix) === 0;
+		return username.endsWith(this.anonymousSuffix);
 	}
 
 	logoutUserHook(req) {
