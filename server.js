@@ -91,7 +91,7 @@ entities.push(require('./utils/orm/entities/file.js')());
 entities.push(require('./utils/orm/entities/token.js')());
 entities.push(require('./utils/orm/entities/captcha.js')());
 entities.push(require('./utils/orm/entities/game.js')());
-//entities.push(require('./utils/orm/entities/gameModels/character.js')());
+entities.push(require('./utils/orm/entities/gameModels/character.js')());
 
 const ormHelper = require('./utils/ormHelper.js')({
     ip: SECRETS.dbHost,
@@ -130,6 +130,7 @@ const start = () => {
     gameService.createGameAndSchema({ 
       name: 'test', 
       userId: adminUser.id,
+      ignoreTestExists: true
     });
   })
   

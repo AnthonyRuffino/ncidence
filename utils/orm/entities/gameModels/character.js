@@ -1,7 +1,7 @@
 "use strict";
 class Character {
     constructor() {
-        this.name = 'backend'
+        this.name = 'character'
         
         this.definition = {
             name: {
@@ -9,9 +9,9 @@ class Character {
                 size: 16,
                 required: true
             },
-            name: {
-                type: "user",
-                size: 16,
+            user: {
+                type: "text",
+                size: 256,
                 required: true
             },
             data: {

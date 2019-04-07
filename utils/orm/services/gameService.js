@@ -22,6 +22,7 @@ class GameService {
             require(global.__rootdir + 'utils/orm/entities/gameModels/common.js')(),
             require(global.__rootdir + 'utils/orm/entities/gameModels/driver.js')(),
             require(global.__rootdir + 'utils/orm/entities/gameModels/backend.js')(),
+            require(global.__rootdir + 'utils/orm/entities/gameModels/character.js')(),
             ];
     }
 
@@ -72,24 +73,25 @@ class GameService {
         return new Promise(async(resolve, reject) => {
             try {
                 this.log(`createGame: ${name}`);
-                const existingGame = await this.getGameAndDatabase(name, false);
-                if (existingGame) {
-                    if(name === 'test' && ignoreTestExists) {
-                        return existingGame;
-                    }
-                    throw `A game name '${name}' already exists`;
-                }
-
-                this.log(`Creating new game: ${name}`);
-                const newGame = await this.createGame(name, userId);
-                this.log(`Game created: ${name}`);
-
+                
                 const userAndSchemaName = 'game_' + name;
-                await this.yourSql.createUser(userAndSchemaName, '%', newGame.database.password);
-                this.log(`User created: ${userAndSchemaName}`);
-
-                await this.yourSql.createDatabase(userAndSchemaName);
-                this.log(`Schema created: ${userAndSchemaName}`);
+                let game = await this.getGameAndDatabase(name, false);
+                
+                if (game) {
+                    if(name !== 'test' && !ignoreTestExists) {
+                        throw `A game name '${name}' already exists`;
+                    }
+                } else {
+                    this.log(`Creating new game: ${name}`);
+                    game = await this.createGame(name, userId);
+                    this.log(`Game created: ${name}`);
+                    
+                    await this.yourSql.createUser(userAndSchemaName, '%', game.database.password);
+                    this.log(`User created: ${userAndSchemaName}`);
+                    
+                    await this.yourSql.createDatabase(userAndSchemaName);
+                    this.log(`Schema created: ${userAndSchemaName}`);
+                }
 
                 const ormHelperTemp = require(global.__rootdir + 'utils/ormHelper.js')({
                     ip: this.secrets.dbHost,
@@ -112,7 +114,7 @@ class GameService {
         
                         await this.fetchCachedGameOrmHelper(name, true);
         
-                        resolve(newGame);
+                        resolve(game);
                     }
                     
                 });
