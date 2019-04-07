@@ -53,7 +53,7 @@ class Controller {
         
         socket.on('whoami', (me) => {
         	console.log("Server: 'whoami'", me);
-        	$scope.logoutText = me !== 'Anonymous' ? 'Logout' : null;
+        	$scope.logoutText = me.endsWith('_?') ? null : 'Logout';
         	$scope.isLoggedIn = !!$scope.logoutText;
         	$scope.me = me;
         	$scope.isSubdomainTaken = !!$scope.pageDetails.game;
