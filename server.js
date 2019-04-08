@@ -11,6 +11,7 @@
 const constants = require('./constants');
 global.__rootdir = __dirname + '/';
 global.__publicdir = __dirname + '/client/';
+global.now = () => new Date().toJSON().slice(0, 19).replace('T', ' ');
 require(global.__publicdir + 'asciiArt.js')();
 
 

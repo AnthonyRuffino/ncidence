@@ -116,7 +116,7 @@ class UserService {
                 let tokenModel = ormHelper.getMap()['token'].model;
                 tokenModel.create({
                     val: tokenVal,
-                    expriration_date: new Date(),
+                    expriration_date: global.now(),
                     type: 'Signup',
                     client: 'Browser',
                     user: users[0]
@@ -157,7 +157,7 @@ class UserService {
                     email: email,
                     password: bcrypt.hashSync(password, bcrypt.genSaltSync(8), null),
                     status: "User",
-                    signup_time: new Date(),
+                    signup_time: global.now(),
                     role: roles[0]
                 };
 
@@ -201,7 +201,7 @@ class UserService {
                     captchaNeedsUpdate = false;
                 }else if(captchas[0].answer !== captchaAnswer){
                     captchaIsInvalidValidMessage = 'captcha incorrect';
-                }else if((new Date()) > captchas[0].expiration_date){
+                }else if((new Date(global.now())) > new Date(captchas[0].expiration_date)){
                     captchaIsInvalidValidMessage = 'captcha expired';
                 }
                 

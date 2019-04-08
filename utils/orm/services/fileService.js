@@ -16,7 +16,7 @@ class FileService {
             name: file.name,
             content_type: file.content_type,
             content: file.content,
-            last_modified: new Date(),
+            last_modified: global.now(),
             user_id: userId
         };
 

@@ -29,7 +29,7 @@ class Driver {
         this.helpers = {
             methods: {
                 updateContent: (entity, content) => {
-                    entity.last_modified = Date.now();
+                    entity.last_modified = global.now();
                     entity.content = content;
                     entity.etag = crc32c.calculate(content);
                 }
@@ -71,7 +71,7 @@ class Driver {
                     id: 1,
                     version: 'test',
                     content: driverJavascript,
-                    last_modified: Date.now(),
+                    last_modified: global.now(),
                     etag : require('fast-crc32c').calculate(driverJavascript)
                 },
                 extendsTo: {

@@ -136,9 +136,9 @@ class User {
                     is_locked: false,
                     is_confirmed: true,
                     login_attempts_since_last_success: 0,
-                    last_login_time: new Date(),
+                    last_login_time: global.now(),
                     status: 'Admin',
-                    signup_time: new Date(),
+                    signup_time: global.now(),
                     lock_date: null
                 },
                 hasMany: {
@@ -168,9 +168,9 @@ class User {
                     is_locked: false,
                     is_confirmed: true,
                     login_attempts_since_last_success: 0,
-                    last_login_time: new Date(),
+                    last_login_time: global.now(),
                     status: 'Rep',
-                    signup_time: new Date(),
+                    signup_time: global.now(),
                     lock_date: null
                 },
                 hasMany: {
@@ -193,9 +193,9 @@ class User {
                     is_locked: false,
                     is_confirmed: true,
                     login_attempts_since_last_success: 0,
-                    last_login_time: new Date(),
+                    last_login_time: global.now(),
                     status: 'User',
-                    signup_time: new Date(),
+                    signup_time: global.now(),
                     lock_date: null
                 },
                 hasMany: {
@@ -218,9 +218,9 @@ class User {
                     is_locked: false,
                     is_confirmed: true,
                     login_attempts_since_last_success: 0,
-                    last_login_time: new Date(),
+                    last_login_time: global.now(),
                     status: 'Client',
-                    signup_time: new Date(),
+                    signup_time: global.now(),
                     lock_date: null
                 },
                 hasMany: {
