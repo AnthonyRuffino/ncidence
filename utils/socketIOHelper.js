@@ -9,6 +9,7 @@ class SocketIOHelper {
 		this.socketIdMap = {};
 		this.subdomainInfoMap = {};
 		this.lazyNamer = require("lazy-namer");
+		this.ofValue = require("of-value");
 
 
 		let socketio = require('socket.io');
@@ -218,7 +219,9 @@ class SocketIOHelper {
 								socketIOHook.run({
 									emit: (message, data) => socket.emit(message, data),
 									dataIn,
-									username: socket.name
+									username: socket.name,
+									isAnonymous: this.isAnonymousUserName(socket.name),
+									sessionId: ncidenceCookie
 								});
 							} catch (err) {
 								console.info('Error registering code hook: ', socketIOHook, err);
@@ -436,6 +439,29 @@ class SocketIOHelper {
 						},
 						stop: (tag) => {
 							this.stopGameLoop(socket.subdomain, tag);
+						}
+					},
+					characterHelper: {
+						find: ({name, user}) => {
+							return new Promise(async (resolve, reject) => {
+								let characters = await this.gameService.getGameEntityRecord(
+									socket.subdomain,
+									'character', this.ofValue.stripUndefined({name, user}));
+								if(!characters) {
+									resolve([]);
+								} else {
+									const returnList = [];
+									characters.forEach((character) => {
+										returnList.push({...character,
+										data: () => {
+											let buffer = Buffer.from(JSON.parse(JSON.stringify(character.data)).data).toString();
+											//console.log('Character data loaded: ' + buffer);
+											return JSON.parse(buffer.toString());
+										}});
+									});
+									resolve(returnList);
+								}
+							});
 						}
 					}
 				};

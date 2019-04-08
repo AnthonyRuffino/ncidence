@@ -59,11 +59,11 @@ class Character {
                     id: 1,
                     name: 'admin',
                     user: 'admin',
-                    data: `{x:-500, y:-500}`
+                    data: `{"x":-500, "y":-500}`
                 },
                 extendsTo: {
                     extension: {
-                        data: `{x:500, y:500}`
+                        data: `{"x":500, "y":500}`
                     }
                 }
             });

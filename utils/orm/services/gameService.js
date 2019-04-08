@@ -8,7 +8,7 @@ class GameService {
         this.debug = debug;
         this.uuidv4 = require('uuid/v4');
         this.crc32 = require('fast-crc32c');
-        this.gameOrmHelperMap = {};
+        this.gameOrmHelperMap = {'#': ormHelper};
         this.secrets = secrets;
         this.socketIOHelper = { refreshBackend: () => { console.error('The socketIOHelper was never set correctly') } };
     }
@@ -130,7 +130,7 @@ class GameService {
     updateGameFile({ name, userId, content, version, type }) {
         return new Promise(async(resolve, reject) => {
             const gameFile = await this.getGameEntityRecord(name, type, { version } );
-            if (gameFile) {
+            if (gameFile && gameFile.length > 0 && gameFile[0]) {
                 const gameAndDatabase = await this.getGameAndDatabase(name);
                 if (userId !== gameAndDatabase.game.owner_id) {
                     reject(`You are not the owner of this game and cannot edit the ${type}. userId: ${userId}, 'gameAndDatabase.game.game.owner_id': ${gameAndDatabase.game.owner_id}`);
@@ -223,7 +223,7 @@ class GameService {
                             resolve(false);
                             return;
                         }
-                        resolve(entities[0]);
+                        resolve(entities);
                     });
                 }
                 catch(err) {

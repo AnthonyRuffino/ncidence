@@ -1,6 +1,6 @@
 return class Backend {
     
-    constructor({ common, cache, subdomain, broadcast, gameloop }) {
+    constructor({ common, cache, subdomain, broadcast, gameloop, characterHelper }) {
         console.log('---- common', common);
         this._gameStartTime = Date.now();
         console.log(`[${subdomain}] Start game`, this._gameStartTime);
@@ -9,6 +9,7 @@ return class Backend {
         this.subdomain = subdomain;
         this.broadcast = broadcast;
         this.gameloop = gameloop;
+        this.characterHelper = characterHelper;
         this.frimScaler = .5;
         this.targetTickDelta = 0.0666;
         
@@ -88,21 +89,8 @@ return class Backend {
     getSocketIOHooks(console) {
         const socketIOHooks = [];
         socketIOHooks.push({
-            on: 'win',
-            run: ({ emit, dataIn, username }) => {
-            	this.broadcast({name: this.subdomain + '-Admin', text: "Win confirmed: " + username });
-            }
-        });
-        socketIOHooks.push({
-            on: 'beep',
-            run: ({ emit, dataIn, username }) => {
-            	console.log('Logging from server - beep'); 
-            	emit('beep', {text: 'beep', from: this.subdomain + '-Admin', username: username });
-            }
-        });
-        socketIOHooks.push({
             on: 'control',
-            run: ({ emit, dataIn, username }) => { 
+            run: ({ emit, dataIn, username, isAnonymous, sessionId }) => { 
                 //console.log('Control: ' + JSON.stringify(dataIn));
             	if(this.connections && this.connections.length > 0) {
             	    const playerOptional = this.connections.filter((player) => player.player.id == username);
@@ -118,8 +106,8 @@ return class Backend {
         });
         socketIOHooks.push({
             on: 'hi',
-            run: ({ emit, dataIn, username }) => {
-                console.log(`${username}: 'hi'`);
+            run: async({ emit, dataIn, username, isAnonymous, sessionId }) => {
+                console.log(`${username}: 'hi' - isAnonymous: ${isAnonymous} - ncidenceCookie:${sessionId}`);
             // 	console.log('process.title', process.title);
             // 	console.log('GLOBALS', {
             // 	    __dirname,
@@ -141,11 +129,23 @@ return class Backend {
                 	    
                 	};
                 	
+                	let characters= await this.characterHelper.find({user: username});
+                	
+                	const character = {
+                	    x: 1000,
+                	    y: 1000
+                	};
+                	if(characters.length > 0) {
+                	    const characterData = characters[0].data();
+                	    character.x = characterData.x;
+                	    character.y = characterData.y;
+                	}
+                	
                 	player = new this.common.Player({
                 	    driver: driver,
                 	    id: username,
-                	    x: 1000,
-                	    y: 1000,
+                	    x: character.x,
+                	    y: character.y,
                 	    width: 160,
                 	    height: 80,
                 	    angle: 90,
