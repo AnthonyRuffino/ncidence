@@ -15,7 +15,7 @@ require(global.__publicdir + 'asciiArt.js')();
 
 
 // HI-JACK CONSOLE
-require('./utils/hijack.js')({
+require('logger-plus-plus')({
   enabled: true, 
   enabledTypes: {
       log: true,
