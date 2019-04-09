@@ -137,8 +137,8 @@ class GameService {
                     return;
                 }
                 else {
-                    gameFile.updateContent(gameFile, content);
-                    gameFile.save(resolve);
+                    gameFile[0].updateContent(gameFile[0], content);
+                    gameFile[0].save(resolve);
                     if((type === 'common' || type === 'backend') && this.socketIOHelper) {
                         console.info(`Refreshing ${type} for ${name} after new file upload.`);
                         this.socketIOHelper.refreshBackend(name);
