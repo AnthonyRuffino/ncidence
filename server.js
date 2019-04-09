@@ -101,23 +101,24 @@ const ormHelper = require('./utils/ormHelper.js')({
     database: constants.schema,
     yourSql,
     entities,
-    loadDefaultData: process.env.LOAD_DEFAULT_DATA || true
+    loadDefaultData: process.env.LOAD_DEFAULT_DATA
   });
 
 console.log('LOADING mysql. ');
+
+
 yourSql.createDatabase(constants.schema).then(() => {
-  ormHelper.sync();
+  ormHelper.sync(start);
 }).catch((err) => {
   console.log(err);
-  ormHelper.sync(() => {
-    start()
-  });
+  ormHelper.sync(start);
 });
 //////////////////////
 // END MYSQL CONFIG
 //////////////////////
 
-const start = () => {
+const start = (err) => {
+  console.log('ERROR passed to start method: ' + err);
   //////////////////////
   // BEGIN SERVICES
   //////////////////////
@@ -127,13 +128,22 @@ const start = () => {
     yourSql,
     secrets: SECRETS 
   });
-  userService.getUserByUsername('admin', adminUser => {
-    gameService.createGameAndSchema({ 
-      name: 'test', 
-      userId: adminUser.id,
-      ignoreTestExists: true
+  setTimeout(() => {
+    //TODO: FIx ORM helper so this data is here by now on first start-up
+    userService.getUserByUsername('admin', adminUser => {
+      if(adminUser) {
+        console.info("Creating Test Game");
+        gameService.createGameAndSchema({ 
+          name: 'test', 
+          userId: adminUser.id,
+          ignoreTestExists: true
+        });
+      } else {
+        console.error("ADMIN USER MISSING!!");
+      }
     });
-  })
+  }, 10000);
+  
   
   //////////////////////
   // END SERVICES

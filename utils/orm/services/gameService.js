@@ -105,6 +105,7 @@ class GameService {
 
                 ormHelperTemp.sync(async (err) => {
                     if(err) {
+                        console.error('Game sync error:' + err);
                         reject(err);
                     } else {
                         this.log(`Schema synced: ${userAndSchemaName}`);

@@ -11,7 +11,11 @@ class OrmHelper {
 		this.yourSql = yourSql;
 		this.entities = entities;
 		this.map = {};
-		this.loadDefaultData = loadDefaultData;
+		this.loadDefaultData = loadDefaultData === undefined
+			|| loadDefaultData === null
+			|| loadDefaultData === true
+			|| (loadDefaultData.toLowerCase && loadDefaultData.toLocaleLowerCase() === 'true');
+			
 	}
 
 	getMap() {
@@ -89,21 +93,23 @@ class OrmHelper {
 
 				map[entity.name] = { entity: entity, model: model, extensions: extensions };
 			});
-
-			if(this.loadDefaultData) {
-				console.log('Loading default data...');
-			}
-			if(!this.loadDefaultData) {
-				console.log('Skipping default data loading...')
-				if(callback) {
-					console.log('finishing sync')
-					callback();
-				}
-				return;
-			}
-			db.sync(function(err) {
+			
+			db.sync((err) => {
 				if (err) {
 					console.log('Sync err: ' + err);
+					callback(err);
+					return;
+				}
+				
+				if(this.loadDefaultData) {
+					console.log('Loading default data...');
+				} else {
+					console.log('Skipping default data loading...')
+					if(callback) {
+						console.log('finishing sync')
+						callback();
+					}
+					return;
 				}
 
 				const processDatum = (entity, defaultDatum) => {
@@ -259,10 +265,8 @@ class OrmHelper {
 					});
 				});
 				
-				if(callback) {
-					console.log('finishing sync after attempted db sync')
-					callback(err);
-				};
+				console.log('finishing sync after attempted db sync');
+				callback(err);
 			});
 		});
 	}
