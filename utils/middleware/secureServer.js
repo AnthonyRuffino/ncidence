@@ -22,7 +22,12 @@ module.exports = function(fs, router) {
     
     console.log('Enable Middleware');
     if (useHttps === true) {
-      router.use('redirect-secure');
+      router.use((req, res, next) => {
+        if(!req.secure) {
+          return res.redirect(['https://', req.get('Host'), req.url].join(''));
+        }
+        next();
+      });
     }
     
     return secureServer;
