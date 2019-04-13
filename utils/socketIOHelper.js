@@ -18,21 +18,20 @@ class SocketIOHelper {
 		this.tokenUtil = tokenUtil;
 		this.gameService = gameService;
 		
-
-		this.subdomainCaches = {};
+		this.backendLogs = {};
 		
-		this.backendLogs = {}
-		this.cachedBackends = {};
-		
-		this.gameloop = require('node-gameloop');
-		this.cachedGameLoops = {};
-
 		this.constants = require(global.__rootdir + 'constants.js');
 		
 		this.anonymousSuffix = '_?';
 		this.anonymousNamesFromCookie = {};
 		this.anonymousNamesInUse = {};
-		this.backendBuilder = require(global.__rootdir + 'utils/backendBuilder.js')({socketIOHelper: this});
+		
+		this.backendBuilder = require(global.__rootdir + 'utils/backendBuilder.js')({
+			backendLogs: this.backendLogs,
+			constants: this.constants,
+			gameService: this.gameService,
+			broadcast: this.broadcast
+		});
 	}
 	
 	getAnonymousUserName(ncidenceCookie, callCount) {
@@ -201,7 +200,7 @@ class SocketIOHelper {
 				this.sockets.splice(this.sockets.indexOf(socket), 1);
 				this.updateRoster(socket);
 				
-				const backend = this.cachedBackends[socket.subdomain];
+				const backend = this.backendBuilder.fetchFromCache(socket.subdomain);
 				if(backend && backend.disconnectSocket) {
 					backend.disconnectSocket({ncidenceCookie: ncidenceCookie, socketId: socket.id});
 				}
@@ -305,65 +304,12 @@ class SocketIOHelper {
 	
 	
 	startGameLoop(subdomain, tag) {
-		if(!tag) {
-			return { success: false, args: [subdomain, 'no tag provided'] };
-		} else if(!this.cachedBackends[subdomain]) {
-			return { success: false, args: [subdomain, 'no backend loaded. Game loop: ', tag] };
-		} else if(!this.cachedBackends[subdomain].update) {
-			return { success: false, args: [subdomain, 'backend does not have update method. Game loop: ', tag] };
-		} else {
-			
-			if(!this.cachedGameLoops[subdomain]) {
-				this.cachedGameLoops[subdomain] = [];
-			}
-			if(this.cachedGameLoops[subdomain][tag]) {
-				this.cachedGameLoops[subdomain][tag] = undefined;
-			}
-			
-			const updateMethod = this.cachedBackends[subdomain].update;
-			
-			if(!updateMethod) {
-				return { success: false, args: [subdomain, 'no update method found', tag] };
-			}
-			
-			
-			// start the loop at 30 fps (1000/30ms per frame) and grab its id 
-	        const gameLoopId = this.gameloop.setGameLoop((delta) => {
-	        	
-	        	try {
-	        		updateMethod(delta, tag);
-	        	} catch (err) {
-	        		console.log('GAMELOOP ERROR: ' + err, updateMethod);
-	        		throw err;
-	        	}
-	        	
-	        	
-	        }, 1000 / 30);
-	        this.cachedGameLoops[subdomain][tag] = gameLoopId;
-	        return { success: true, args: [subdomain, 'game loop started', tag] };
-		}
+		this.backendBuilder.startGameLoop(subdomain, tag);
 	}
 	
 	
 	stopGameLoop(subdomain, tag) {
-		if(this.cachedGameLoops[subdomain] && this.cachedGameLoops[subdomain][tag] !== undefined) {
-			this.gameloop.clearGameLoop(this.cachedGameLoops[subdomain][tag]);
-			this.cachedGameLoops[subdomain][tag] = undefined;
-			//console.log(socket.subdomain, 'game loop cleared', tag);
-			return { success: true, args: [subdomain, 'game loop cleared', tag] };
-		}else {
-			return { success: false, args: [subdomain, 'no such game loop', tag] };
-		}
-		
-		// if(this.cachedGameLoops[subdomain]) {
-			
-		// 	Object.keys(this.cachedGameLoops[subdomain]).forEach((tag) => {
-		// 		if(this.cachedGameLoops[subdomain][tag] !== undefined) {
-		// 			this.gameloop.clearGameLoop(this.cachedGameLoops[subdomain][tag]);
-		// 			this.cachedGameLoops[subdomain][tag] = undefined;
-		// 		}
-		// 	});
-		// }
+		this.backendBuilder.stopGameLoop(subdomain, tag);
 	}
 	
 	builtInOnCommand(socket) {
@@ -392,7 +338,6 @@ class SocketIOHelper {
 			if(isOwner && msg.name === 'refresh-backend'){
 				//TODO: Make this code more robust (reset active socketio sessions, cleanup old gameloops, etc.)
 				console.log(`[${socket.subdomain}] - REFRESH`);
-				this.refreshBackend(socket.subdomain);
 				this.backendBuilder.build(socket.subdomain, false);
 				socket.emit('debug', 'backend refreshed');
 			} else if(isOwner && msg.name === 'start-game-loop'){
@@ -410,10 +355,6 @@ class SocketIOHelper {
 				}
 			}
 		});
-	}
-	
-	refreshBackend(subdomain) {
-		this.cachedBackends[subdomain] = false;
 	}
 }
 
