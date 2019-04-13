@@ -9,7 +9,6 @@ class SocketIOHelper {
 		this.socketIdMap = {};
 		this.subdomainInfoMap = {};
 		this.lazyNamer = require("lazy-namer");
-		this.ofValue = require("of-value");
 
 
 		let socketio = require('socket.io');
@@ -18,7 +17,7 @@ class SocketIOHelper {
 		this.cookie = require('cookie');
 		this.tokenUtil = tokenUtil;
 		this.gameService = gameService;
-		this.requireFromString = require('require-from-string');
+		
 
 		this.subdomainCaches = {};
 		
@@ -33,6 +32,7 @@ class SocketIOHelper {
 		this.anonymousSuffix = '_?';
 		this.anonymousNamesFromCookie = {};
 		this.anonymousNamesInUse = {};
+		this.backendBuilder = require(global.__rootdir + 'utils/backendBuilder.js')({socketIOHelper: this});
 	}
 	
 	getAnonymousUserName(ncidenceCookie, callCount) {
@@ -102,14 +102,14 @@ class SocketIOHelper {
 				if (err) {
 					console.error('updateRoster err', err);
 				}
-				this.broadcast('roster', names, socket);
+				this.broadcast('roster', names, socket.subdomain);
 			}
 		);
 	}
 
 
-	broadcast(event, data, socket) {
-		this.sockets.filter(s => s.subdomain === socket.subdomain).forEach((socket) => {
+	broadcast(event, data, subdomain) {
+		this.sockets.filter(s => s.subdomain === subdomain).forEach((socket) => {
 			socket.emit(event, data);
 		});
 	}
@@ -200,6 +200,11 @@ class SocketIOHelper {
 				this.socketIdMap[socket.id] = undefined;
 				this.sockets.splice(this.sockets.indexOf(socket), 1);
 				this.updateRoster(socket);
+				
+				const backend = this.cachedBackends[socket.subdomain];
+				if(backend && backend.disconnectSocket) {
+					backend.disconnectSocket({ncidenceCookie: ncidenceCookie, socketId: socket.id});
+				}
 			});
 			
 			
@@ -211,7 +216,7 @@ class SocketIOHelper {
 			
 			
 			try{
-				const backend = await this.setupBackend(socket);
+				const backend = await this.backendBuilder.build(socket.subdomain, true);
 				const socketIOHooks = backend.getSocketIOHooks({ log: (...args) => socket.emit('debug', args) });
 					socketIOHooks.forEach((socketIOHook) => {
 						socket.on(socketIOHook.on, (dataIn) => {
@@ -219,9 +224,12 @@ class SocketIOHelper {
 								socketIOHook.run({
 									emit: (message, data) => socket.emit(message, data),
 									dataIn,
-									username: socket.name,
-									isAnonymous: this.isAnonymousUserName(socket.name),
-									sessionId: ncidenceCookie
+									socketId: socket.id,
+									user: {
+										username: socket.name,
+										isAnonymous: this.isAnonymousUserName(socket.name),
+										sessionId: ncidenceCookie
+									}
 								});
 							} catch (err) {
 								console.info('Error registering code hook: ', socketIOHook, err);
@@ -230,7 +238,7 @@ class SocketIOHelper {
 						});
 					});
 			} catch(err) {
-				console.error('Issue setting up backend');
+				console.error('Issue setting up backend' + err);
 			}
 			
 		});
@@ -290,7 +298,7 @@ class SocketIOHelper {
 				text: text
 			};
 
-			this.broadcast('message', data, socket);
+			this.broadcast('message', data, socket.subdomain);
 			this.messages[socket.subdomain].push(data);
 		});
 	}
@@ -385,7 +393,7 @@ class SocketIOHelper {
 				//TODO: Make this code more robust (reset active socketio sessions, cleanup old gameloops, etc.)
 				console.log(`[${socket.subdomain}] - REFRESH`);
 				this.refreshBackend(socket.subdomain);
-				this.setupBackend(socket);
+				this.backendBuilder.build(socket.subdomain, false);
 				socket.emit('debug', 'backend refreshed');
 			} else if(isOwner && msg.name === 'start-game-loop'){
 				console.log(`[${socket.subdomain}] - START-GAME-LOOP`, msg.tag);
@@ -406,185 +414,6 @@ class SocketIOHelper {
 	
 	refreshBackend(subdomain) {
 		this.cachedBackends[subdomain] = false;
-	}
-	
-	setupBackend(socket) {
-		return new Promise(async (resolve, reject) => {
-			
-			let backend = false;
-			
-			if (this.cachedBackends[socket.subdomain]) {
-				//console.info(socket.subdomain, `[${socket.subdomain}] - Getting cached backend`);
-				backend = this.cachedBackends[socket.subdomain];
-				
-				//let objectSizeof = require("object-sizeof");
-				//console.info('BACKEND SIZE: ', objectSizeof(backend));
-			}
-			
-			
-			if (this.subdomainCaches[socket.subdomain] === undefined) {
-				this.subdomainCaches[socket.subdomain] = {};
-			}
-			
-			if(!backend) {
-				console.info(`[${socket.subdomain}] - Loading backend`);
-				
-				const dataSourcesAndServices = {
-					subdomain: socket.subdomain,
-					broadcast: (data) => this.broadcast('message', data, socket),
-					cache: this.subdomainCaches[socket.subdomain],
-					gameloop: {
-						start: (tag) => {
-							this.startGameLoop(socket.subdomain, tag);
-						},
-						stop: (tag) => {
-							this.stopGameLoop(socket.subdomain, tag);
-						}
-					},
-					characterHelper: {
-						find: ({name, user}) => {
-							return new Promise(async (resolve, reject) => {
-								let characters = await this.gameService.getGameEntityRecord(
-									socket.subdomain,
-									'character', this.ofValue.stripUndefined({name, user}));
-								if(!characters) {
-									resolve([]);
-								} else {
-									const returnList = [];
-									characters.forEach((character) => {
-										returnList.push({...character,
-										data: () => {
-											let buffer = Buffer.from(JSON.parse(JSON.stringify(character.data)).data).toString();
-											//console.log('Character data loaded: ' + buffer);
-											return JSON.parse(buffer.toString());
-										}});
-									});
-									resolve(returnList);
-								}
-							});
-						}
-					}
-				};
-				
-				
-				// Register common and backend code
-				const commonExports = await this.getGameExports(socket.subdomain, 'common', { version: this.constants.defaultGameVersion }) || {};
-
-				const common = (() => {
-
-                    let commonTemp = {};
-                    try{
-                        commonTemp = commonExports.upwrapExports(dataSourcesAndServices);
-					}catch(err) {
-						console.error('Exception while unwrapping common exports', err);
-					}
-					return commonTemp;
-				})()
-
-                dataSourcesAndServices.common = common;
-				
-				if(!this.backendLogs[socket.subdomain]) {
-					this.backendLogs[socket.subdomain] = [];
-				}
-				const backendExports = await this.getGameExports(socket.subdomain, 'backend', { version: this.constants.defaultGameVersion }) || {};
-				backend = new(backendExports.upwrapExports({
-					console: { log: (args) => {
-						this.backendLogs[socket.subdomain].splice(0,0, args);
-						this.backendLogs[socket.subdomain] = this.backendLogs[socket.subdomain].slice(0,1000);
-					}},
-					global: {
-						
-					}
-				}))(dataSourcesAndServices);
-				
-				console.log(`[${socket.subdomain}] - Back-end loaded`);
-				
-				this.cachedBackends[socket.subdomain] = backend;
-				
-				if(backend.startGameLoopImmediately) {
-					console.log(`[${socket.subdomain}] - startGameLoopImmediately`);
-					backend.gameloop.start('main');
-				}
-			}
-			
-			resolve(backend);
-		});
-	}
-	
-	getGameExports(subdomain, type, filter) {
-		return new Promise(async(resolve, reject) => {
-			let entity;
-
-			if (this.subdomainInfoMap[subdomain].game) {
-				try {
-					entity = await this.gameService.getGameEntityRecord(subdomain, type, filter);
-				}
-				catch (err) {
-					console.error(`[${subdomain}] - Error getting game ${type}: `, err);
-				}
-			}
-
-			let exportsForType = {
-				[`DEFAULT_EXPORTS_${type}`]: { subdomain, filter, type }
-			};
-			
-			
-			const wrapExports = (code) => 
-				`exports.upwrapExports = ({
-			    	console, 
-				    global,
-				    process = {},
-				    __dirname = '__dirname-not-supported', 
-				    __filename = '__filename-not-supported', 
-				    require = 'require-not-supported'
-				 }) => {
-					${code}
-					${type === 'common' ? 'return common' : ''}
-				 }`;
-			
-
-			if (entity && entity.content !== undefined) {
-				try {
-					console.info(`[${subdomain}] - Loading custom exports for ${type}`);
-					exportsForType = this.requireFromString(wrapExports(entity.content.toString('utf8')));
-                    console.info(`[${subdomain}] - Done Loading custom exports for ${type}`);
-					resolve(exportsForType);
-					return;
-				}
-				catch (err) {
-					console.error(`[${subdomain}] - Error loading custom exports for ${type}`, err);
-                    resolve(exportsForType);
-                    return;
-				}
-			}
-			else {
-				const filePath = (type === 'common' ? global.__publicdir : global.__rootdir) + type + '.js';
-				console.info(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
-				
-				try{
-					require('fs').readFile(filePath, "utf8", (err, codeContent) => {
-			          if(err) {
-			            console.error(`error getting default ${type}`);
-			            resolve(exportsForType);
-			            return;
-			          }
-			          try {
-							exportsForType = this.requireFromString(wrapExports(codeContent));
-							resolve(exportsForType);
-							return;
-						}
-						catch (err) {
-							console.error(`[${subdomain}] - Error loading default exports for ${type}`, err);
-							resolve(exportsForType);
-							return;
-						}
-			        });
-				} catch(err) {
-					resolve(exportsForType);
-					return;
-				}
-			}
-		});
 	}
 }
 

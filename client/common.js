@@ -606,6 +606,8 @@ class Controls {
 
 	onkeydown(event) {
 		
+		console.log('Key: ' + event.keyCode);
+		
 		if(this.driver.socket) {
 			//this.driver.log(event.keyCode);
 			this.driver.socket.emit('control', {

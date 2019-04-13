@@ -15,7 +15,8 @@ return class Backend {
         
         this.startGameLoopImmediately = true;
         
-        this.connections = [];
+        this.connections = {};
+        this.userNameSessionMap = {};
         this.setPlayerControl = this.setPlayerControl.bind(this);
         this.update = this.update.bind(this);
         
@@ -46,18 +47,26 @@ return class Backend {
 		}
     }
     
+    sessionKey(user) {
+        return `${user.username}-${user.sessionId}`;
+    }
+    
+    disconnectSocket({ ncidenceCookie, socketId }) {
+        console.log('Socket disconnected: ' + socketId + ' - ' + ncidenceCookie);
+    }
+    
     update(delta, tag) {
         //if(updatePosition)
         //console.log('delta: ' + delta);
         this.frimScaler = delta/this.targetTickDelta;
         const updatedPlayers = [];
-        if(this.connections && this.connections.length > 0) {
-            this.connections.forEach((connection) => {
-                const player = connection.player;
+        if(this.connections) {
+            Object.entries(this.connections).forEach((connection) => {
+                const player = connection[1].player;
                 player.updatePosition();
                 if(player.motionDetected) {
                     updatedPlayers.push(player);
-                    connection.emit('my-motion', {
+                    connection[1].emit('my-motion', {
                         x: player.x,
                         y: player.y,
                         angle: player.angle,
@@ -66,9 +75,9 @@ return class Backend {
             });
             if(updatedPlayers && updatedPlayers.length > 0) {
                 updatedPlayers.forEach((other) => {
-                    this.connections.forEach((connection) => {
-                        if(connection.player.id !== other.id) {
-                            connection.emit('other-motion', {
+                    Object.entries(this.connections).forEach((connection) => {
+                        if(connection[1].player.id !== other.id) {
+                            connection[1].emit('other-motion', {
                                 x: other.x,
                                 y: other.y,
                                 angle: other.angle,
@@ -90,24 +99,24 @@ return class Backend {
         const socketIOHooks = [];
         socketIOHooks.push({
             on: 'control',
-            run: ({ emit, dataIn, username, isAnonymous, sessionId }) => { 
+            run: ({ emit, dataIn, user }) => { 
                 //console.log('Control: ' + JSON.stringify(dataIn));
-            	if(this.connections && this.connections.length > 0) {
-            	    const playerOptional = this.connections.filter((player) => player.player.id == username);
+            	if(this.connections) {
+            	    const playerOptional = this.connections[this.sessionKey(user)];
             	    //TODO: what to do for anonymous?
-            	    if(!playerOptional || !playerOptional[0]) {
+            	    if(!playerOptional) {
             	        console.log('Who are you?'); 
             	    } else {
             	        //console.log('Setting player control', playerOptional[0].player.id, dataIn);
-            	        this.setPlayerControl(playerOptional[0], dataIn, console.log);
+            	        this.setPlayerControl(playerOptional, dataIn, console.log);
             	    }
             	}
             }
         });
         socketIOHooks.push({
             on: 'hi',
-            run: async({ emit, dataIn, username, isAnonymous, sessionId }) => {
-                console.log(`${username}: 'hi' - isAnonymous: ${isAnonymous} - ncidenceCookie:${sessionId}`);
+            run: async({ emit, dataIn, user }) => {
+                console.log(`${user.username}: 'hi' - isAnonymous: ${user.isAnonymous} - ncidenceCookie:${user.sessionId}`);
             // 	console.log('process.title', process.title);
             // 	console.log('GLOBALS', {
             // 	    __dirname,
@@ -117,9 +126,9 @@ return class Backend {
             // 	console.log('dataIn', dataIn);
             	
             	let player = null;
-            	const connectionOptional = this.connections && this.connections.length > 0 ? this.connections.filter((player) => player.player.id == username) : null;
+            	const connectionOptional = this.connections[this.sessionKey(user)];
         	    //TODO: what to do for anonymous?
-        	    if(!connectionOptional || !connectionOptional[0]) {
+        	    if(!connectionOptional) {
         	        const driver = {
                 	    renderer: {
                 	        
@@ -129,7 +138,7 @@ return class Backend {
                 	    
                 	};
                 	
-                	let characters= await this.characterHelper.find({user: username});
+                	let characters= await this.characterHelper.find({user: user.username});
                 	
                 	const character = {
                 	    x: 1000,
@@ -143,7 +152,7 @@ return class Backend {
                 	
                 	player = new this.common.Player({
                 	    driver: driver,
-                	    id: username,
+                	    id: user.username,
                 	    x: character.x,
                 	    y: character.y,
                 	    width: 160,
@@ -157,19 +166,20 @@ return class Backend {
                 	const controls = new this.common.Controls(driver);
                 	
                 	const baseInfo = player.baseInfo();
-                	this.connections.forEach((connection) => {
-                	    connection.emit('joiner', {...baseInfo, driver: null, img: null});
-                	    emit('joiner', {...connection.player.baseInfo(), driver: null, img: null});
+                	Object.entries(this.connections).forEach((connection) => {
+                	    connection[1].emit('joiner', {...baseInfo, driver: null, img: null});
+                	    emit('joiner', {...connection[1].player.baseInfo(), driver: null, img: null});
                 	});
-                	this.connections.push({ player, emit, controls } );
+                	this.connections[this.sessionKey(user)] = { player, emit, controls };
+                	
                 	
         	    } else {
-        	        player = connectionOptional[0].player;
-        	        connectionOptional[0].emit = emit;
+        	        player = connectionOptional.player;
+        	        connectionOptional.emit = emit;
         	        
-        	        this.connections.forEach((connection) => {
-        	            if(connection.player.id !== player.id) {
-        	                emit('joiner', {...connection.player.baseInfo(), driver: null, img: null});
+        	        Object.entries(this.connections).forEach((connection) => {
+        	            if(connection[1].player.id !== player.id) {
+        	                emit('joiner', {...connection[1].player.baseInfo(), driver: null, img: null});
         	            }
                 	});
         	    }
