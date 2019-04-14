@@ -16,11 +16,11 @@ module.exports = class ContentFromDb {
             const contentType = this.fileNamesMap[req.url];
             if (contentType && subdomain !== undefined) {
                 let contentEntity = await this.gameService.getGameEntityRecord(subdomain, contentType, { version: this.constants.defaultGameVersion } );
-                if(contentEntity && contentEntity.content) {
+                if(contentEntity && contentEntity.length > 0 && contentEntity[0].content) {
                     res.writeHead(200, {
                         'Content-Type': 'application/javascript'
                     });
-                    res.end(contentEntity.content);
+                    res.end(contentEntity[0].content);
                 } else {
                     next();
                     console.log(`serving default ${contentType}`);
