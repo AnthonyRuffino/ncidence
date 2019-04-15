@@ -14,7 +14,7 @@ module.exports = class ContentFromDb {
             const subdomain = this.constants.getSubdomain(req.get('host'));
 
             const contentType = this.fileNamesMap[req.url];
-            if (contentType && subdomain !== undefined) {
+            if (contentType && subdomain !== undefined && subdomain !== '#') {
                 let contentEntity = await this.gameService.getGameEntityRecord(subdomain, contentType, { version: this.constants.defaultGameVersion } );
                 if(contentEntity && contentEntity.length > 0 && contentEntity[0].content) {
                     res.writeHead(200, {

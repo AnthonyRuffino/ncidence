@@ -207,6 +207,8 @@ class GameService {
                         resolve(false);
                         return;
                     }
+                    
+                    console.log('Getting game entity: ' + entityName + ' - [' + this.ormHelper.database + ']');
                         
                     if(!(gameOrmHelper.getMap()[entityName].model)) {
                         console.log(gameName, `Error fetching model '[${entityName}]'`);

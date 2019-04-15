@@ -134,18 +134,19 @@ class BackendBuilder {
 	getGameExports(subdomain, type, filter) {
 		return new Promise(async(resolve, reject) => {
 			let entity;
-
-			try {
-				entity = await this.gameService.getGameEntityRecord(subdomain, type, filter);
+			
+			if(subdomain !== '#') {
+				try {
+					entity = await this.gameService.getGameEntityRecord(subdomain, type, filter);
+				}
+				catch (err) {
+					console.error(`[${subdomain}] - Error getting game ${type}: `, err);
+				}
 			}
-			catch (err) {
-				console.error(`[${subdomain}] - Error getting game ${type}: `, err);
-			}
-
+			
 			let exportsForType = {
 				[`DEFAULT_EXPORTS_${type}`]: { subdomain, filter, type }
 			};
-			
 			
 			const wrapExports = (code) => 
 				`exports.upwrapExports = ({
