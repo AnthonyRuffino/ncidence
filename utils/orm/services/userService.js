@@ -291,7 +291,7 @@ class UserService {
     
     login(username, password, callback) {
         if(username === undefined || username === null || username.length < 1){
-            callback('email is required');
+            callback('username is required');
         }else if(password === undefined || password === null || password.length < 1){
             callback('password is required');
         }else{

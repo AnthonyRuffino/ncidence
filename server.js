@@ -94,7 +94,7 @@ entities.push(require('./utils/orm/entities/captcha.js')());
 entities.push(require('./utils/orm/entities/game.js')());
 entities.push(require('./utils/orm/entities/gameModels/character.js')());
 
-const ormHelper = require('./utils/ormHelper.js')({
+const ormHelper = require('storming')({
     ip: SECRETS.dbHost,
     user: SECRETS.dbUser,
     password: SECRETS.dbSecret,
