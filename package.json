@@ -50,6 +50,7 @@
     "uuid": "^3.3.2",
     "your-sql": "^1.1.1",
     "logger-plus-plus": "^1.0.0",
-    "storming": "^1.0.0"
+    "storming": "^1.0.0",
+    "host-cookie": "^1.0.0"
   }
 }

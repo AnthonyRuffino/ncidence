@@ -15,18 +15,12 @@ global.now = () => new Date().toJSON().slice(0, 19).replace('T', ' ');
 require(global.__publicdir + 'asciiArt.js')();
 
 
-// HI-JACK CONSOLE
-require('logger-plus-plus')({
-  enabled: true, 
-  enabledTypes: {
-      log: true,
-      error: true,
-      debug: true,
-      trace: true,
-      warn: true,
-      info: true,
-  }
+this.liteLift = require('./liteLift.js')({
+  appName: 'ncidence',
+  useLoggerPlusPlus: true
 });
+
+
 
 
 
@@ -39,38 +33,12 @@ const SECRETS = {
 };
 
 
-// REQUIRES
-let http = require('http');
-let express = require('express');
-let fs = require('fs');
+const { http, express, fs, formidable, router, server, urlencodedParser } = { ...this.liteLift };
+
 let yourSql = require('your-sql')();
-let formidable = require('formidable');
-
-
-// ROUTER AND SERVER
-console.log('Configure Router');
-let router = express();
-let server = http.createServer(router);
-
-
-// COOKIE PARSER
-let cookieParser = require('cookie-parser');
-router.use(cookieParser());
-
-// BODY PARSER
-let bodyParser = require('body-parser');
-let urlencodedParser = bodyParser.urlencoded({ extended: false });
-router.use(bodyParser.json());
-
-// HOST COOKIE
-router.use(require('./utils/middleware/hostCookie.js')('ncidence', (1000 * 60 * 60 * 24 * 365)));
 
 // SECURE SERVER
 const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
-
-
-
-
 
 
 //////////////////////
