@@ -4,7 +4,7 @@ String.prototype.replaceAll = function(search, replacement) {
 };
 
 exports.defaultGameVersion = 'test';
-exports.schema = process.env.DEFAULT_SCHEMA || 'worldy_io';//ncidence__aruffino_c9users_io
+exports.schema = process.env.DEFAULT_SCHEMA || 'ncidence__aruffino_c9users_io';//ncidence__aruffino_c9users_io
 exports.host = exports.schema.replaceAll('__', '-').replaceAll('_', '.');
 exports.sessionExpiration = process.env.SESSION_EXP_SEC || (60 * 60 * 24 * 7);
 

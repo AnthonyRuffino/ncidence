@@ -28,6 +28,7 @@
     "fast-crc32c": "^1.0.4",
     "formidable": "^1.2.1",
     "fs": "0.0.2",
+    "host-cookie": "^1.0.0",
     "jsonwebtoken": "^8.5.1",
     "jwt-cookie-passer": "^2.0.0",
     "lazy-namer": "^1.0.1",

@@ -15,75 +15,54 @@ global.now = () => new Date().toJSON().slice(0, 19).replace('T', ' ');
 require(global.__publicdir + 'asciiArt.js')();
 
 
-// HI-JACK CONSOLE
-require('logger-plus-plus')({
-  enabled: true, 
-  enabledTypes: {
-      log: true,
-      error: true,
-      debug: true,
-      trace: true,
-      warn: true,
-      info: true,
-  }
-});
-
-
-
-// SECRETS
-const SECRETS = {
-  jwtSecret: process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp',
+let gameService = null;
+const liteLiftingConfig = {
+  appName: constants.schema,
+  host: constants.host,
+  publicdir: global.__publicdir,
+  port: process.env.PORT,
+  ip: process.env.IP,
+  securePort: null,
+  secureIP: null,
   dbUser: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
   dbSecret: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb',
-  dbHost: process.env.MYSQL_PORT_3306_TCP_ADDR || '127.0.0.1'
+  dbHost: process.env.MYSQL_PORT_3306_TCP_ADDR || '127.0.0.1',
+  dbPort: '3306',
+  jwtSecret: process.env.JWT_SECRET || 'jehfiuqwhfuhf23yr8923rijfowijfp',
+  sessionExpiration: constants.sessionExpiration,
+  useHostCookie: true,
+  useJwtCookiePasser: true,
+  useLoggerPlusPlus: true,
+  useNoExtension: true,
+  usePublicPrivateTests: true,
+  userService: undefined,
+  useSocketBuddy: false,
+  useYourSql: true,
+  useStorming: true,
+  loglevels: ['info', 'warn', 'error'],
+  socketBuddyInstance: (ll) => {
+    gameService = require('./utils/orm/services/gameService.js')({ 
+      ormHelper: ll.storming,
+      yourSql: ll.yourSql,
+      secrets: liteLiftingConfig 
+    });
+    
+    let socketIOHelper = require('./utils/socketIOHelper.js')({ 
+      server: ll.secureServer !== null ? ll.secureServer : ll.server,
+      tokenUtil: ll.jwtCookiePasser,
+      gameService,
+    });
+    socketIOHelper.init();
+    gameService.setSocketIOHelper(socketIOHelper);
+    return socketIOHelper;
+  },
+  routerHooks: [
+    ({router})=>{
+      const contentFromDb = new (require('./utils/middleware/contentFromDb.js'))(constants, gameService, {['/driver.js']: 'driver', ['/common.js']: 'common'});
+      router.use('/', (req, res, next) => { contentFromDb.handle(req, res, next); });
+    }]
 };
 
-
-// REQUIRES
-let http = require('http');
-let express = require('express');
-let fs = require('fs');
-let yourSql = require('your-sql')();
-let formidable = require('formidable');
-
-
-// ROUTER AND SERVER
-console.log('Configure Router');
-let router = express();
-let server = http.createServer(router);
-
-
-// COOKIE PARSER
-let cookieParser = require('cookie-parser');
-router.use(cookieParser());
-
-// BODY PARSER
-let bodyParser = require('body-parser');
-let urlencodedParser = bodyParser.urlencoded({ extended: false });
-router.use(bodyParser.json());
-
-// HOST COOKIE
-router.use(require('./utils/middleware/hostCookie.js')('ncidence', (1000 * 60 * 60 * 24 * 365)));
-
-// SECURE SERVER
-const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
-
-
-
-
-
-
-//////////////////////
-// BEGIN MYSQL CONFIG
-//////////////////////
-yourSql.init({
-  host: SECRETS.dbHost,
-  user: SECRETS.dbUser,
-  password: SECRETS.dbSecret,
-  database: 'mysql',
-  connectionLimit: 100,
-  debug: true
-});
 
 const entities = [];
 entities.push(require('./utils/orm/entities/role.js')());
@@ -93,47 +72,34 @@ entities.push(require('./utils/orm/entities/token.js')());
 entities.push(require('./utils/orm/entities/captcha.js')());
 entities.push(require('./utils/orm/entities/game.js')());
 entities.push(require('./utils/orm/entities/gameModels/character.js')());
+liteLiftingConfig.stormingConfig = { entities, loadDefaultData: true };
+    
+const liteLifting = require('./liteLifting.js')(liteLiftingConfig);
 
-const ormHelper = require('storming')({
-    ip: SECRETS.dbHost,
-    user: SECRETS.dbUser,
-    password: SECRETS.dbSecret,
-    database: constants.schema,
-    yourSql,
-    entities,
-    loadDefaultData: process.env.LOAD_DEFAULT_DATA
-  });
-
-console.log('LOADING mysql. ');
+const { 
+  router,
+  formidable,
+  jwtCookiePasser,
+  storming,
+  urlencodedParser
+} = { ...liteLifting };
 
 
-yourSql.createDatabase(constants.schema).then(() => {
-  ormHelper.sync(start);
-}).catch((err) => {
-  console.log(err);
-  ormHelper.sync(start);
-});
-//////////////////////
-// END MYSQL CONFIG
-//////////////////////
 
-const start = (err) => {
-  console.log('ERROR passed to start method: ' + err);
+
+const start = (addresses) => {
+  console.log('Lite lifting addresses', addresses);
   //////////////////////
   // BEGIN SERVICES
   //////////////////////
-  const userService = require('./utils/orm/services/userService.js')(ormHelper);
-  const gameService = require('./utils/orm/services/gameService.js')({ 
-    ormHelper,
-    yourSql,
-    secrets: SECRETS 
-  });
+  const userService = require('./utils/orm/services/userService.js')(storming);
+  liteLifting.userService = userService;
   setTimeout(() => {
     //TODO: FIx ORM helper so this data is here by now on first start-up
     userService.getUserByUsername('admin', adminUser => {
       if(adminUser) {
         console.info("Creating Test Game");
-        gameService.createGameAndSchema({ 
+        gameService.createGameAndSchema({
           name: 'test', 
           userId: adminUser.id,
           ignoreTestExists: true
@@ -153,45 +119,7 @@ const start = (err) => {
   
   // Driver middleware
   const contentFromDb = new (require('./utils/middleware/contentFromDb.js'))(constants, gameService, {['/driver.js']: 'driver', ['/common.js']: 'common'});
-  router.use('/', (req, res, next) => { contentFromDb.handle(req, res, next); });
   
-  // File system middleware
-  router.use(require('no-extension')(global.__publicdir));
-  router.use(express.static(global.__publicdir));
-  
-  
-  
-  
-  ///////////////////////////////////////////
-  // BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
-  ////////////////////////////////////////////
-  console.log('---Socket IO');
-  let jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser({
-    domain: constants.host,
-    secretOrKey: SECRETS.jwtSecret,
-    expiresIn: constants.sessionExpiration,
-    useJsonOnLogin: false,
-    useJsonOnLogout: false
-  });
-  
-  let socketIOHelper = require('./utils/socketIOHelper.js')({ 
-    server: secureServer !== null ? secureServer : server,
-    tokenUtil: jwtCookiePasser,
-    gameService,
-  });
-  socketIOHelper.init();
-  gameService.setSocketIOHelper(socketIOHelper);
-  
-  console.log('---JWT');
-  jwtCookiePasser.init({
-    router,
-    urlencodedParser,
-    userService,
-    loginLogoutHooks: socketIOHelper
-  });
-  /////////////////////////////////////////
-  // END SOCKET IO SETUP & JWT AUTH SETUP///
-  /////////////////////////////////////////
   
   
   router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
@@ -221,7 +149,7 @@ const start = (err) => {
       let port = constants.getPort(req.get('host'));
       port = port === '80' || !port ? '' : `:${port}`;
       res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host + port);
-      socketIOHelper.clearFromSubdomainInfoMap(req.body.game);
+      liteLifting.socketBuddy.clearFromSubdomainInfoMap(req.body.game);
     }).catch(err => {
       res.json(500, { err });
     });
@@ -247,45 +175,7 @@ const start = (err) => {
   router.get("/secret", jwtCookiePasser.authRequired(), function(req, res) {
     res.json({ message: "Secret Success!", user: req.user });
   });
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  //////////////////////////
-  //START UP SERVER(S)//////
-  //////////////////////////
-  
-  //HTTPS
-  if (secureServer != null) {
-    try {
-      secureServer.listen(process.env.SECURE_PORT || 443, process.env.SECURE_IP || "0.0.0.0", function() {
-        let addr = secureServer.address();
-        console.log("Secure server listening at", addr.address + ":" + addr.port);
-      });
-    }
-    catch (err2) {
-      console.log("Err: " + err2);
-      //secureServerErr = "Err: " + err2;
-    }
-  }
-  
-  
-  if (server === undefined || server === null) {
-    server = http.createServer(router);
-  }
-  
-  
-  server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function() {
-    console.log('Starting ncidence server...');
-    console.log('process.env.IP: ' + process.env.IP);
-    console.log('process.env.PORT: ' + process.env.PORT);
-    let addr = server.address();
-    console.log("Ncidence server listening at", addr.address + ":" + addr.port);
-  });
-}
+};
 
+
+liteLifting.start(start);
