@@ -93,7 +93,7 @@ class GameService {
                     this.log(`Schema created: ${userAndSchemaName}`);
                 }
 
-                const ormHelperTemp = require(global.__rootdir + 'utils/ormHelper.js')({
+                const ormHelperTemp = require('storming')({
                     ip: this.secrets.dbHost,
                     user: this.secrets.dbUser,
                     password: this.secrets.dbSecret,
@@ -251,7 +251,7 @@ class GameService {
                     return;
                 }
                 
-                const gameOrmHelper = require(global.__rootdir + 'utils/ormHelper.js')({
+                const gameOrmHelper = require('storming')({
                     ip: this.secrets.dbHost,
                     user: 'game_' + gameName,
                     password: gameAndDatabase.database.password,
