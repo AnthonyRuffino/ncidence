@@ -47,14 +47,11 @@ const {
   yourSql
 } = { ...liteLift };
 
-//const userService = require('./utils/orm/services/userService.js')(storming);
 const gameService = require('./utils/orm/services/gameService.js')({ 
   storming,
   yourSql,
   secrets: liteLiftConfig 
 });
-
-//liteLift.userService = userService;
 
 // SECURE SERVER
 const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
