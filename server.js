@@ -167,7 +167,7 @@ function start(err) {
   //////////////////////////
   
   liteLift.start(() => {
-    console.log('!!!!!!!!!!!!!!!!!DONE');
+    console.log('Server started.');
   })
 };
 
