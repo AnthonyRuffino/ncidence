@@ -4,6 +4,7 @@ class LiteLifting {
     
     const defaultConfig = {
       publicdir: global.__publicdir,
+      schema: config.appName,
       port: process.env.ll_port || 8080,
       ip: process.env.ll_ip || "0.0.0.0",
       securePort: process.env.ll_securePort || 443,
@@ -29,6 +30,7 @@ class LiteLifting {
     defaulter(config, defaultConfig);
     
     this.config = config;
+    this.userService = config.userService;
     
     this.configureLoggerPlusPlus(config);
     
@@ -63,19 +65,19 @@ class LiteLifting {
     this.configureHostCookie(config);
 
 
-    // // SECURE SERVER
-    // this.secureServer = config.freshCertConfig && require('fresh-cert')({
-    //   router: this.router,
-    //   sslKeyFile: config.freshCertConfig.sslKeyFile,
-    //   sslDomainCertFile: config.freshCertConfig.sslDomainCertFile,
-    //   sslCaBundleFile: config.freshCertConfig.sslCaBundleFile
-    // });
+    // SECURE SERVER
+    this.secureServer = config.freshCertConfig && require('fresh-cert')({
+      router: this.router,
+      sslKeyFile: config.freshCertConfig.sslKeyFile,
+      sslDomainCertFile: config.freshCertConfig.sslDomainCertFile,
+      sslCaBundleFile: config.freshCertConfig.sslCaBundleFile
+    });
 
-    // this.configureYourSql(config);
+    this.configureYourSql(config);
     
-    // this.configureStorming(config);
+    this.configureStorming(config);
 
-    // this.socketIOAndJwt(config);
+    this.configureJwCookieParser(config);
     
     // this.plugInMiddleware(config);
     
@@ -87,10 +89,8 @@ class LiteLifting {
     (this.loggers[level] && this.loggers[level].enabled) && this.loggers[level]._(msg);
   }
   
-  
-
-  start(callBack) {
-    if (this.yourSql && this.yourSqlConfig.appSchema) {
+  sync(callBack) {
+    if (this.yourSql && this.yourSqlConfig.appSchema && this.yourSqlConfig.createAppSchema) {
       this.yourSql.createDatabase(this.yourSqlConfig.appSchema).then(() => {
         ormSync();
       }).catch((err) => {
@@ -103,11 +103,46 @@ class LiteLifting {
     }
     const ormSync = () => {
       if(this.storming) {
-        this.storming.sync(startHttpServer);
+        this.storming.sync(callBack);
       } else {
-        startHttpsServer();
+        callBack();
       }
     };
+  }
+
+  start(callBack) {
+    
+    if (this.config.useJwtCookiePasser) {
+      this.log('debug', '---JWT');
+      this.jwtCookiePasser.init(
+        defaulter(this.config.jwtCookiePasserConfig || {}, {
+          router: this.router,
+          urlencodedParser: this.urlencodedParser,
+          userService: this.userService,
+          loginLogoutHooks: {
+            passRawUserInLoginHook: true,
+            loginUserHook: (req, mappedUser, token, user) => {
+              let sio = this.socketBuddy;
+              if (sio && sio.loginUserHook && typeof sio.loginUserHook === 'function') {
+                sio.loginUserHook(req, mappedUser, token, user);
+              }
+              (this.loginHooks || []).forEach((hook) => {
+                hook(req, mappedUser, token, user);
+              });
+            },
+            logoutUserHook: (req) => {
+              let sio = this.socketBuddy;
+              if (sio && sio.logoutUserHook && typeof sio.logoutUserHook === 'function') {
+                sio.logoutUserHook(req);
+              }
+              (this.logoutHooks || []).forEach((hook) => {
+                hook(req);
+              });
+            }
+          }
+        }));
+    }
+    
     const startHttpServer = (secureAddress, secureAddressErr) => {
       this.server.listen(this.config.port, this.config.ip, () => {
         let address = this.server.address();
@@ -133,6 +168,7 @@ class LiteLifting {
         startHttpServer();
       }
     };
+    startHttpsServer();
   }
 
 
@@ -190,9 +226,10 @@ class LiteLifting {
       user: process.env.ll_yourSql_user || this.config.dbUser,
       password: process.env.ll_yourSql_password || this.config.dbSecret,
       database: process.env.ll_yourSql_controlSchema || 'mysql',
-      appSchema: process.env.ll_yourSql_appSchema || this.config.appName,
+      createAppSchema: undef(process.env.ll_yourSql_createAppSchema, true),
+      appSchema: process.env.ll_yourSql_appSchema || this.config.schema,
       connectionLimit: process.env.ll_yourSql_connectionLimit || 100,
-      debug: process.env.ll_yourSql_debug || true
+      debug: process.env.ll_yourSql_debug || false
     });
     this.yourSql.init(this.yourSqlConfig);
   }
@@ -205,7 +242,7 @@ class LiteLifting {
       this.log('error', 'storming requires your-sql');
       return;
     }
-    const entities = [];
+    const entities = LiteLifting.getEntities();
     
     this.storming = require('storming')(defaulter(config.stormingConfig || {},{
         ip: this.yourSqlConfig.host,
@@ -217,32 +254,8 @@ class LiteLifting {
         loadDefaultData: process.env.ll_storming_loadDefaultData
       }));
   }
-
-  plugInMiddleware(config) {
-    (this.routerHooks || []).forEach((hook) => hook(this));
-    if (!config.publicdir) {
-      this.router.use('/', (req, res, next) => {
-        res.writeHead(200, {
-          'Content-Type': 'text/html'
-        });
-        res.write(`<H2>Lite Lifting</H2>`);
-        res.write(`set the 'publicdir' config to serve files from your server>`);
-        res.end();
-      });
-    }
-
-    // File system middleware
-    if (config.useNoExtension) {
-      this.router.use(require('no-extension')(global.__publicdir));
-    }
-
-    if (config.publicdir) {
-      this.router.use(this.express.static(config.publicdir));
-    }
-
-  }
-
-  socketIOAndJwt(config) {
+  
+  configureJwCookieParser(config) {
 
     if (config.useJwtCookiePasser) {
       this.jwtCookiePasser = new(require('jwt-cookie-passer')).JwtCookiePasser(
@@ -254,52 +267,19 @@ class LiteLifting {
           useJsonOnLogout: false
         }));
     }
-
-    this.socketBuddy = null;
-    if (config.useSocketBuddy) {
-      this.log('debug', '---SOCKET BUDDY');
-      this.socketBuddy = require('socket-buddy')({
-        server: this.secureServer !== null ? this.secureServer : this.server,
-        tokenUtil: this.jwtCookiePasser
-      });
-      this.socketBuddy.init();
-    }
-    else if (config.socketBuddyInstance) {
-      this.socketBuddy = config.socketBuddyInstance(this);
-    }
-
-    if (config.useJwtCookiePasser) {
-      this.log('debug', '---JWT');
-      this.jwtCookiePasser.init(
-        defaulter(config.jwtCookiePasserConfig || {}, {
-          router: this.router,
-          urlencodedParser: this.urlencodedParser,
-          userService: this.userService,
-          loginLogoutHooks: {
-            passRawUserInLoginHook: true,
-            loginUserHook: (req, mappedUser, token, user) => {
-              let sio = this.socketBuddy;
-              if (sio && sio.loginUserHook && typeof sio.loginUserHook === 'function') {
-                sio.loginUserHook(req, mappedUser, token, user);
-              }
-              (this.loginHooks || []).forEach((hook) => {
-                hook(req, mappedUser, token, user);
-              });
-            },
-            logoutUserHook: (req) => {
-              let sio = this.socketBuddy;
-              if (sio && sio.logoutUserHook && typeof sio.logoutUserHook === 'function') {
-                sio.logoutUserHook(req);
-              }
-              (this.logoutHooks || []).forEach((hook) => {
-                hook(req);
-              });
-            }
-          }
-        }));
-    }
   }
+
 }
+
+LiteLifting.getEntities = function() {
+  const entities = [];
+  entities.push(require('./utils/orm/entities/role.js')());
+  entities.push(require('./utils/orm/entities/user.js')());
+  entities.push(require('./utils/orm/entities/file.js')());
+  entities.push(require('./utils/orm/entities/token.js')());
+  entities.push(require('./utils/orm/entities/captcha.js')());
+  return entities;
+};
 
 
 var undef = (v, o) => v !== undefined ? v : o;
@@ -322,12 +302,13 @@ var defaultUserService = {
   getUserById: (id, callback) => {
     callback({ id: id, username: id });
   },
+  getUserByUsername: (username, callback) => {
+    callback({ id: username, username: username });
+  },
   mapUserForJwtToken: (user) => {
     return user;
   }
 };
 
 
-module.exports = function(config) {
-  return new LiteLifting(config);
-};
+module.exports = LiteLifting;

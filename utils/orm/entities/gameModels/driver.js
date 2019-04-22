@@ -1,4 +1,5 @@
 "use strict";
+const now = () => new Date().toJSON().slice(0, 19).replace('T', ' ');
 const crc32c = require('fast-crc32c');
 class Driver {
     constructor() {
@@ -29,7 +30,7 @@ class Driver {
         this.helpers = {
             methods: {
                 updateContent: (entity, content) => {
-                    entity.last_modified = global.now();
+                    entity.last_modified = now();
                     entity.content = content;
                     entity.etag = crc32c.calculate(content);
                 }
@@ -71,7 +72,7 @@ class Driver {
                     id: 1,
                     version: 'test',
                     content: driverJavascript,
-                    last_modified: global.now(),
+                    last_modified: now(),
                     etag : require('fast-crc32c').calculate(driverJavascript)
                 },
                 extendsTo: {

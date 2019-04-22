@@ -1,4 +1,5 @@
 "use strict";
+const now = () => new Date().toJSON().slice(0, 19).replace('T', ' ');
 const crc32c = require('fast-crc32c');
 class Common {
     constructor() {
@@ -29,7 +30,7 @@ class Common {
         this.helpers = {
             methods: {
                 updateContent: (entity, content) => {
-                    entity.last_modified = global.now();
+                    entity.last_modified = now();
                     entity.content = content;
                     entity.etag = crc32c.calculate(content);
                 }
@@ -86,7 +87,7 @@ class Common {
                     id: 1,
                     version: 'test',
                     content: commonJavascript,
-                    last_modified: global.now(),
+                    last_modified: now(),
                     etag : require('fast-crc32c').calculate(commonJavascript)
                 },
                 extendsTo: {

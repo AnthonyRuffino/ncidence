@@ -1,5 +1,5 @@
 "use strict";
-
+const now = () => new Date().toJSON().slice(0, 19).replace('T', ' ');
 class User {
     constructor() {
         this.name = 'user';
@@ -136,9 +136,9 @@ class User {
                     is_locked: false,
                     is_confirmed: true,
                     login_attempts_since_last_success: 0,
-                    last_login_time: global.now(),
+                    last_login_time: now(),
                     status: 'Admin',
-                    signup_time: global.now(),
+                    signup_time: now(),
                     lock_date: null
                 },
                 hasMany: {
@@ -168,9 +168,9 @@ class User {
                     is_locked: false,
                     is_confirmed: true,
                     login_attempts_since_last_success: 0,
-                    last_login_time: global.now(),
+                    last_login_time: now(),
                     status: 'Rep',
-                    signup_time: global.now(),
+                    signup_time: now(),
                     lock_date: null
                 },
                 hasMany: {
@@ -193,9 +193,9 @@ class User {
                     is_locked: false,
                     is_confirmed: true,
                     login_attempts_since_last_success: 0,
-                    last_login_time: global.now(),
+                    last_login_time: now(),
                     status: 'User',
-                    signup_time: global.now(),
+                    signup_time: now(),
                     lock_date: null
                 },
                 hasMany: {
@@ -218,9 +218,9 @@ class User {
                     is_locked: false,
                     is_confirmed: true,
                     login_attempts_since_last_success: 0,
-                    last_login_time: global.now(),
+                    last_login_time: now(),
                     status: 'Client',
-                    signup_time: global.now(),
+                    signup_time: now(),
                     lock_date: null
                 },
                 hasMany: {
