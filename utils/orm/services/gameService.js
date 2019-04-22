@@ -2,13 +2,13 @@
 
 class GameService {
     
-    constructor({ ormHelper, yourSql, debug, secrets }) {
-        this.ormHelper = ormHelper;
+    constructor({ storming, yourSql, debug, secrets }) {
+        this.storming = storming;
         this.yourSql = yourSql;
         this.debug = debug;
         this.uuidv4 = require('uuid/v4');
         this.crc32 = require('fast-crc32c');
-        this.gameOrmHelperMap = {'#': ormHelper};
+        this.gameOrmHelperMap = {'#': storming};
         this.secrets = secrets;
         this.socketIOHelper = { refreshBackend: () => { console.error('The socketIOHelper was never set correctly') } };
     }
@@ -42,9 +42,9 @@ class GameService {
     
     createGame(name, userId) {
         return new Promise((resolve, reject) => {
-            const rootGameOrm = this.ormHelper.getMap()['game'];
+            const rootGameOrm = this.storming.getMap()['game'];
             if (!rootGameOrm) {
-                reject({ msg: 'no rootGameOrm', map: this.ormHelper.getMap() });
+                reject({ msg: 'no rootGameOrm', map: this.storming.getMap() });
                 return;
             }
 
@@ -157,7 +157,7 @@ class GameService {
     getGameAndDatabase(name, fetchPassword) {
         return new Promise((resolve, reject) => {
             try{
-                const rootGameOrm = this.ormHelper.getMap()['game'];
+                const rootGameOrm = this.storming.getMap()['game'];
                 if (!rootGameOrm) {
                     resolve(false);
                     this.log(`No rootGameOrm found with name: ${name}`);
@@ -208,7 +208,7 @@ class GameService {
                         return;
                     }
                     
-                    console.log('Getting game entity: ' + entityName + ' - [' + this.ormHelper.database + ']');
+                    console.log('Getting game entity: ' + entityName + ' - [' + this.storming.database + ']');
                         
                     if(!(gameOrmHelper.getMap()[entityName].model)) {
                         console.log(gameName, `Error fetching model '[${entityName}]'`);

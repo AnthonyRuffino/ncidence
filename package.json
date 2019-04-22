@@ -28,14 +28,17 @@
     "fast-crc32c": "^1.0.4",
     "formidable": "^1.2.1",
     "fs": "0.0.2",
+    "host-cookie": "^1.0.0",
     "jsonwebtoken": "^8.5.1",
     "jwt-cookie-passer": "^2.0.0",
     "lazy-namer": "^1.0.1",
+    "lite-lifting": "^1.0.6",
+    "logger-plus-plus": "^1.0.0",
     "mapplied": "^1.0.0",
     "minimist": "^1.2.0",
     "mkpath": "^1.0.0",
-    "moment-timezone": "^0.5.23",
-    "mysql": "^2.16.0",
+    "moment-timezone": "^0.5.25",
+    "mysql": "^2.17.1",
     "no-extension": "^1.0.2",
     "node-gameloop": "^0.1.4",
     "nodemailer": "^2.7.2",
@@ -47,9 +50,8 @@
     "redirect-secure": "^1.0.0",
     "require-from-string": "^2.0.2",
     "socket.io": "^2.2.0",
+    "storming": "^1.0.0",
     "uuid": "^3.3.2",
-    "your-sql": "^1.1.1",
-    "logger-plus-plus": "^1.0.0",
-    "storming": "^1.0.0"
+    "your-sql": "^1.1.2"
   }
 }
