@@ -43,11 +43,11 @@ const liteLift = new LiteLifting(liteLiftConfig);
 
 const { 
   express,
-  fs,
   formidable,
   jwtCookiePasser,
   router,
   server,
+  secureServer,
   storming,
   urlencodedParser,
   userService,
@@ -61,7 +61,7 @@ const gameService = require('./utils/orm/services/gameService.js')({
 });
 
 // SECURE SERVER
-const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
+//const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
 
 liteLift.sync(start);
 
