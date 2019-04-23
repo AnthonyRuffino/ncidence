@@ -110,64 +110,61 @@ function start(err) {
   });
   socketIOHelper.init();
   gameService.setSocketIOHelper(socketIOHelper);
-  
+  liteLift.socketBuddy = socketIOHelper;
   /////////////////////////////////////////
   // END SOCKET IO SETUP & JWT AUTH SETUP///
   /////////////////////////////////////////
   
-  
-  router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
-      let form = new formidable.IncomingForm();
-      contentFromDb.updateGameFile(form, 'driver', req, res);
-  });
-  
-  router.post('/uploadBackend', jwtCookiePasser.authRequired(), (req, res) => {
-      let form = new formidable.IncomingForm();
-      contentFromDb.updateGameFile(form, 'backend', req, res);
-  });
-  
-  router.post('/uploadCommon', jwtCookiePasser.authRequired(), (req, res) => {
-      let form = new formidable.IncomingForm();
-      contentFromDb.updateGameFile(form, 'common', req, res);
-  });
-  
-  router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, function(req, res) {
-    gameService.createGameAndSchema({ 
-      name: req.body.game, 
-      userId: req.user.id,
-    }).then(game => {
-      let port = constants.getPort(req.get('host'));
-      port = port === '80' || !port ? '' : `:${port}`;
-      res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host + port);
-      socketIOHelper.clearFromSubdomainInfoMap(req.body.game);
-    }).catch(err => {
-      res.json(500, { err });
+  liteLift.start(() => {
+    router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
+        let form = new formidable.IncomingForm();
+        contentFromDb.updateGameFile(form, 'driver', req, res);
+    });
+    
+    router.post('/uploadBackend', jwtCookiePasser.authRequired(), (req, res) => {
+        let form = new formidable.IncomingForm();
+        contentFromDb.updateGameFile(form, 'backend', req, res);
+    });
+    
+    router.post('/uploadCommon', jwtCookiePasser.authRequired(), (req, res) => {
+        let form = new formidable.IncomingForm();
+        contentFromDb.updateGameFile(form, 'common', req, res);
+    });
+    
+    router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, function(req, res) {
+      gameService.createGameAndSchema({ 
+        name: req.body.game, 
+        userId: req.user.id,
+      }).then(game => {
+        let port = constants.getPort(req.get('host'));
+        port = port === '80' || !port ? '' : `:${port}`;
+        res.redirect(req.protocol + '://' + req.body.game + '.' + constants.host + port);
+        socketIOHelper.clearFromSubdomainInfoMap(req.body.game);
+      }).catch(err => {
+        res.json(500, { err });
+      });
+    });
+    
+    router.get('/api/login', function(req, res) {
+      userService.login(req, res);
+    });
+    
+    router.get('/api/addUser', function(req, res) {
+      userService.createUser(req, res);
+    });
+    
+    
+    router.get("/public", function(req, res) {
+      res.json({ message: "Public Success!", user: req.user });
+    });
+    
+    router.get("/secret", jwtCookiePasser.authRequired(), function(req, res) {
+      res.json({ message: "Secret Success!", user: req.user });
     });
   });
   
-  router.get('/api/login', function(req, res) {
-    userService.login(req, res);
-  });
-  
-  router.get('/api/addUser', function(req, res) {
-    userService.createUser(req, res);
-  });
   
   
-  router.get("/public", function(req, res) {
-    res.json({ message: "Public Success!", user: req.user });
-  });
   
-  router.get("/secret", jwtCookiePasser.authRequired(), function(req, res) {
-    res.json({ message: "Secret Success!", user: req.user });
-  });
-  
-  //////////////////////////
-  //START UP SERVER(S)//////
-  //////////////////////////
-  
-  liteLift.start(() => {
-    console.log('Server started.');
-  })
-};
+}
 
