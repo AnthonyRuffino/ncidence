@@ -16,6 +16,8 @@ const liteLiftConfig = {
   appName: 'ncidence',
   schema: 'ncidence__aruffino_c9users_io',
   useLoggerPlusPlus: true,
+  port: process.env.PORT,
+  securePort: process.env.SECURE_PORT,
   dbUser: process.env.MYSQL_ENV_MYSQL_DATABASE_USER_NAME || 'root',
   dbSecret: process.env.MYSQL_ENV_MYSQL_ROOT_PASSWORD || 'c9mariadb',
   dbHost: process.env.MYSQL_PORT_3306_TCP_ADDR || '127.0.0.1',
@@ -28,6 +30,11 @@ const liteLiftConfig = {
       entities.push(require('./utils/orm/entities/game.js')());
       return entities;
     })()
+  },
+  freshCertConfig: {
+    sslKeyFile: process.env.sslKeyFile,
+    sslDomainCertFile: process.env.sslDomainCertFile,
+    sslCaBundleFile: process.env.sslCaBundleFile
   }
 };
 
