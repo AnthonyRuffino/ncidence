@@ -31,7 +31,7 @@ const liteLiftConfig = {
       return entities;
     })()
   },
-  freshCertConfig: {
+  freshCertConfig: process.env.SECURE_PORT && {
     sslKeyFile: process.env.sslKeyFile,
     sslDomainCertFile: process.env.sslDomainCertFile,
     sslCaBundleFile: process.env.sslCaBundleFile
