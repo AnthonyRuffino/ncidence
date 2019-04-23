@@ -111,7 +111,7 @@ function start(err) {
   console.log('---Socket IO');
   
   let socketIOHelper = require('./utils/socketIOHelper.js')({ 
-    server: secureServer !== null ? secureServer : server,
+    server: secureServer ? secureServer : server,
     tokenUtil: jwtCookiePasser,
     gameService,
   });
