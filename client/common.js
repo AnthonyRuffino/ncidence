@@ -898,3 +898,13 @@ const common = {
     Controls: Controls,
     CommonMath: CommonMath
 }
+
+try{
+	module.exports = common;
+} catch(err) {
+	if(!window) {
+		console.error('error loading common exports', err);
+	} else {
+		console.log('in browser, no worries.');
+	}
+}

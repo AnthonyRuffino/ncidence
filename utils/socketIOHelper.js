@@ -2,7 +2,7 @@
 "use strict";
 
 class SocketIOHelper {
-	constructor({ server, tokenUtil, gameService }) {
+	constructor({ server, tokenUtil, subdomainContent, storming, anonymousSuffix }) {
 		this.messages = {};
 		this.sockets = [];
 		this.socketNcidenceCookieMap = {};
@@ -16,20 +16,20 @@ class SocketIOHelper {
 		this.async = require('async');
 		this.cookie = require('cookie');
 		this.tokenUtil = tokenUtil;
-		this.gameService = gameService;
+		this.subdomainContent = subdomainContent;
 		
 		this.backendLogs = {};
 		
 		this.constants = require(global.__rootdir + 'constants.js');
 		
-		this.anonymousSuffix = '_?';
+		this.anonymousSuffix = anonymousSuffix || '_?';
 		this.anonymousNamesFromCookie = {};
 		this.anonymousNamesInUse = {};
 		
 		this.backendBuilder = require(global.__rootdir + 'utils/backendBuilder.js')({
 			backendLogs: this.backendLogs,
 			constants: this.constants,
-			gameService: this.gameService,
+			subdomainContent: this.subdomainContent,
 			broadcast: this.broadcast
 		});
 	}
@@ -252,14 +252,7 @@ class SocketIOHelper {
 			subdomain = subdomain === undefined ? '#' : subdomain;
 
 			if (!this.subdomainInfoMap[subdomain]) {
-				let gameAndDatabaseTemp = await this.gameService.getGameAndDatabase(subdomain);
-				const game = gameAndDatabaseTemp && gameAndDatabaseTemp.game ? gameAndDatabaseTemp.game : null;
-
-				this.subdomainInfoMap[subdomain] = {
-					subdomain: subdomain,
-					game,
-					owner: (game ? game.owner.username : 'admin')
-				};
+				this.subdomainInfoMap[subdomain] = await this.subdomainContent.getInfo(subdomain);
 			}
 			if (this.messages[subdomain] === undefined) {
 				this.messages[subdomain] = [];

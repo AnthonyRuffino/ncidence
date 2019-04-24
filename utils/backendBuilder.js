@@ -1,12 +1,13 @@
 class BackendBuilder {
-	constructor({ backendLogs,constants,gameService,broadcast }) {
+	constructor({ backendLogs, subdomainContent, broadcast }) {
 			this.backendLogs = backendLogs;
-			this.constants = constants;
-			this.gameService = gameService;
+			this.subdomainContent = require('lite-lifting').defaulter(subdomainContent || {}, {
+				getStorming: () => {},
+				getAlternateContent: () => {},
+				getInfo: (subdomain) => ({subdomain})
+			});
 			this.broadcast = broadcast;
 			
-			this.ofValue = require("of-value");
-			this.requireFromString = require('require-from-string');
 			this.gameloop = require('node-gameloop');
 			
 			this.cachedBackends = {};
@@ -51,71 +52,22 @@ class BackendBuilder {
 							this.stopGameLoop(subdomain, tag);
 						}
 					},
-					characterHelper: {
-						find: ({name, user}) => {
-							return new Promise(async (resolve, reject) => {
-								let characters = await this.gameService.getGameEntityRecord(
-									subdomain,
-									'character', this.ofValue.stripUndefined({name, user}));
-								if(!characters) {
-									resolve([]);
-								} else {
-									const returnList = [];
-									characters.forEach((character) => {
-										returnList.push({...character,
-										data: () => {
-											let buffer = Buffer.from(JSON.parse(JSON.stringify(character.data)).data).toString();
-											//console.log('Character data loaded: ' + buffer);
-											return JSON.parse(buffer.toString());
-										}});
-									});
-									resolve(returnList);
-								}
-							});
-						}
-					},
+					storming: await this.subdomainContent.getStorming(subdomain),
 					console: { log: (args) => {
 						this.backendLogs[subdomain].splice(0,0, args);
 						this.backendLogs[subdomain] = this.backendLogs[subdomain].slice(0,1000);
-					}},
-					global: {
-						
-					}
-				};
-				
-				
-				const environment = {
-					console: { log: (args) => {
-						this.backendLogs[subdomain].splice(0,0, args);
-						this.backendLogs[subdomain] = this.backendLogs[subdomain].slice(0,1000);
-					}},
-					global: {
-						
-					}
+					}}
 				};
 				
 				
 				// Register common and backend code
-				const commonExports = await this.getGameExports(subdomain, 'common', { version: this.constants.defaultGameVersion }) || {};
-
-				const common = (() => {
-
-                    let commonTemp = {};
-                    try{
-                        commonTemp = commonExports.upwrapExports(dataSourcesAndServices);
-					}catch(err) {
-						console.error('Exception while unwrapping common exports', err);
-					}
-					return commonTemp;
-				})()
-
-                dataSourcesAndServices.common = common;
+                dataSourcesAndServices.common = await this.getExports(subdomain, 'common');
 				
 				if(!this.backendLogs[subdomain]) {
 					this.backendLogs[subdomain] = [];
 				}
-				const backendExports = await this.getGameExports(subdomain, 'backend', { version: this.constants.defaultGameVersion }) || {};
-				backend = new(backendExports.upwrapExports(environment))(dataSourcesAndServices);
+				const Backend = await this.getExports(subdomain, 'backend');
+				backend = new Backend(dataSourcesAndServices);
 				
 				console.log(`[${subdomain}] - Back-end loaded`);
 				
@@ -125,83 +77,32 @@ class BackendBuilder {
 					console.log(`[${subdomain}] - startGameLoopImmediately`);
 					backend.gameloop.start('main');
 				}
+				resolve(backend);
+			} else {
+				resolve(backend);
 			}
 			
-			resolve(backend);
+			
 		});
 	}
 	
-	getGameExports(subdomain, type, filter) {
+	getExports(subdomain, type) {
 		return new Promise(async(resolve, reject) => {
-			let entity;
+			let content = await this.subdomainContent.getAlternateContent(subdomain, type);
 			
-			if(subdomain !== '#') {
-				try {
-					entity = await this.gameService.getGameEntityRecord(subdomain, type, filter);
-				}
-				catch (err) {
-					console.error(`[${subdomain}] - Error getting game ${type}: `, err);
-				}
-			}
-			
-			let exportsForType = {
-				[`DEFAULT_EXPORTS_${type}`]: { subdomain, filter, type }
-			};
-			
-			const wrapExports = (code) => 
-				`exports.upwrapExports = ({
-			    	console, 
-				    global,
-				    window = {},
-				    process = {},
-				    __dirname = '__dirname-not-supported', 
-				    __filename = '__filename-not-supported', 
-				    require = 'require-not-supported'
-				 }) => {
-					${code}
-					${type === 'common' ? 'return common' : ''}
-				 }`;
-			
-
-			if (entity && entity.content !== undefined) {
-				try {
-					console.info(`[${subdomain}] - Loading custom exports for ${type}`);
-					exportsForType = this.requireFromString(wrapExports(entity.content.toString('utf8')));
-                    console.info(`[${subdomain}] - Done Loading custom exports for ${type}`);
-					resolve(exportsForType);
-					return;
-				}
-				catch (err) {
-					console.error(`[${subdomain}] - Error loading custom exports for ${type}`, err);
-                    resolve(exportsForType);
-                    return;
-				}
+			if (content) {
+				resolve(content);
 			}
 			else {
 				const filePath = (type === 'common' ? global.__publicdir : global.__rootdir) + type + '.js';
 				console.info(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
 				
 				try{
-					require('fs').readFile(filePath, "utf8", (err, codeContent) => {
-			          if(err) {
-			            console.error(`error getting default ${type}`);
-			            resolve(exportsForType);
-			            return;
-			          }
-			          try {
-							exportsForType = this.requireFromString(wrapExports(codeContent));
-							resolve(exportsForType);
-							return;
-						}
-						catch (err) {
-							console.error(`[${subdomain}] - Error loading default exports for ${type}`, err);
-							resolve(exportsForType);
-							return;
-						}
-			        });
+					content = require(filePath);
+					resolve(content);
 				} catch(err) {
-					resolve(exportsForType);
-					return;
+					console.error('Failed to load content' + err);
+					reject('Promise Rejected - Failed to load content' + err);
 				}
 			}
 		});
