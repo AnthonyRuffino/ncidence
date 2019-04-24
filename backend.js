@@ -1,7 +1,6 @@
 class Backend {
 
     constructor({ common, cache, subdomain, broadcast, gameloop, storming }) {
-        console.log('---- common', common);
         this._gameStartTime = Date.now();
         console.log(`[${subdomain}] Start game`, this._gameStartTime);
         this.common = common;
