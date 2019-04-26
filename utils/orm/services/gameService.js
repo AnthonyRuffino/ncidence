@@ -113,7 +113,7 @@ class GameService {
                         await this.yourSql.grantAllCrudRightsToUserOnDatabase(userAndSchemaName, '%', userAndSchemaName);
                         this.log(`CRUD rights grated on schema: ${userAndSchemaName}`);
         
-                        await this.fetchCachedGameOrmHelper(name, true);
+                        await this.fetchCachedGameOrmHelper({gameName: name, refreshCache: true});
         
                         resolve(game);
                     }
@@ -198,7 +198,7 @@ class GameService {
     
     getGameEntityRecord(gameName, entityName, filter) {
         return new Promise((resolve, reject) => {
-            this.fetchCachedGameOrmHelper(gameName, false)
+            this.fetchCachedGameOrmHelper({ gameName, refreshCache: false })
             .then((gameOrmHelper) => {
                 try {
                 
@@ -241,7 +241,7 @@ class GameService {
     }
 
 
-    fetchCachedGameOrmHelper(gameName, refreshCache) {
+    fetchCachedGameOrmHelper({gameName, refreshCache}) {
         return new Promise(async (resolve, reject) => {
             if (refreshCache || this.gameOrmHelperMap[gameName] === undefined || this.gameOrmHelperMap[gameName] === null) {
                 const gameAndDatabase = await this.getGameAndDatabase(gameName, true);

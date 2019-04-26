@@ -108,67 +108,25 @@ function start(err) {
   // BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
   ////////////////////////////////////////////
   console.log('---Socket IO');
-  
-  const requireFromString = require('require-from-string');
-  const getAlternateContent = async(subdomain, type) => {
-    let filter = { version: 'test' };
-
-    let entity = null;
-    if (subdomain !== '#') {
-      try {
-        entity = await gameService.getGameEntityRecord(subdomain, type, filter);
-      }
-      catch (err) {
-        console.error(`[${subdomain}] - Error getting game ${type}: `, err);
-      }
-    }
-
-    let exportsForType = {
-      [`DEFAULT_EXPORTS_${type}`]: { subdomain, filter, type }
-    };
-
-
-    const wrapExports = (code) =>
-      `exports.upwrapExports = ({
-                           console, 
-                               global,
-                               module = {},
-                               window = {},
-                               process = {},
-                               __dirname = '__dirname-not-supported', 
-                               __filename = '__filename-not-supported', 
-                               require = 'require-not-supported'
-                            }) => {
-                                   ${code}
-                                   ${type === 'common' ? 'return common' : 'return Backend'}
-                            }`;
-
-
-
-
-    if (entity && entity.content !== undefined) {
-      try {
-        console.info(`[${subdomain}] - Loading custom exports for ${type}`);
-        exportsForType = requireFromString(wrapExports(entity.content.toString('utf8')));
-        console.info(`[${subdomain}] - Done Loading custom exports for ${type}`);
-        return exportsForType;
-      }
-      catch (err) {
-        console.error(`[${subdomain}] - Error loading custom exports for ${type}`, err);
-        return exportsForType;
-      }
-    }
-  }
-  
-  
-  
   let SocketHub = require('socket-hub');
+  
+  var SrcString = require('src-string');
+  const srcString = new SrcString({
+    contentSrc: {
+      getEntity: ({subdomain, type, filter = { version: 'test' }} ) => {
+        gameService.getGameEntityRecord(subdomain, type, filter);
+      }
+    }
+  });
+  
+  
   let socketIOHelper = new SocketHub({
     appName: 'ncidence',
     server: secureServer ? secureServer : server,
     tokenUtil: jwtCookiePasser,
     rootHost: constants.host,
     storming,
+    
     subdomainContent: {
       getInfo: async(subdomain) => {
         let gameAndDatabaseTemp = await gameService.getGameAndDatabase(subdomain);
@@ -179,27 +137,14 @@ function start(err) {
           owner: (game ? game.owner.username : 'admin')
         };
       },
-      getStorming: (...params) => gameService.fetchCachedGameOrmHelper(...params),
-      getExports: (subdomain, type) => {
-      	return new Promise(async(resolve, reject) => {
-      		let content = await getAlternateContent(subdomain, type);
-      		
-      		if (content) {
-      			resolve(content);
-      		}
-      		else {
-      			const filePath = (type === 'common' ? global.__publicdir : global.__rootdir) + type + '.js';
-      			console.info(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
-      			
-      			try{
-      				content = require(filePath);
-      				resolve(content);
-      			} catch(err) {
-      				console.error('Failed to load content' + err);
-      				reject('Promise Rejected - Failed to load content' + err);
-      			}
-      		}
-      	});
+      getStorming: ({subdomain, refreshCache = false}) =>
+        gameService.fetchCachedGameOrmHelper({gameName: subdomain, refreshCache })
+      ,
+      getAlternateContent: (context) => srcString.getContent(context),
+      getContent: ({subdomain, type}) => {
+        const filePath = (type === 'common' ? global.__publicdir : global.__rootdir) + type + '.js';
+		  	console.info(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
+		  	return require(filePath);
       }
     },
   });
