@@ -1,3 +1,4 @@
+const inBrowser = typeof window !== 'undefined';
 class CommonMath {
 	
 	static round(num, sigDigits) {
@@ -606,7 +607,9 @@ class Controls {
 
 	onkeydown(event) {
 		
-		console.log('Key: ' + event.keyCode);
+		if (inBrowser) {
+			console.log('Key: ' + event.keyCode);
+		}
 		
 		if(this.driver.socket) {
 			//this.driver.log(event.keyCode);
@@ -891,10 +894,22 @@ class Hello{
 }
 
 
+
+
 const common = {
     Hello: Hello,
     Entity: Entity,
     Player: Player,
     Controls: Controls,
     CommonMath: CommonMath
+}
+
+try{
+	module.exports = common;
+} catch(err) {
+	if(!inBrowser) {
+		console.error('error loading common exports', err);
+	} else {
+		console.log('in browser, no worries.');
+	}
 }

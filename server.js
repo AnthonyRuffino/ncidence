@@ -41,7 +41,7 @@ const liteLiftConfig = {
 const liteLift = new LiteLifting(liteLiftConfig);
 
 
-const { 
+const {
   express,
   formidable,
   jwtCookiePasser,
@@ -54,14 +54,11 @@ const {
   yourSql
 } = { ...liteLift };
 
-const gameService = require('./utils/orm/services/gameService.js')({ 
+const gameService = require('./utils/orm/services/gameService.js')({
   storming,
   yourSql,
-  secrets: liteLiftConfig 
+  secrets: liteLiftConfig
 });
-
-// SECURE SERVER
-//const secureServer = require('./utils/middleware/secureServer.js')(fs, router);
 
 liteLift.sync(start);
 
@@ -70,50 +67,86 @@ function start(err) {
   //////////////////////
   // BEGIN SERVICES
   //////////////////////
-  
+
   setTimeout(() => {
     //TODO: FIx ORM helper so this data is here by now on first start-up
     userService.getUserByUsername('admin', adminUser => {
-      if(adminUser) {
+      if (adminUser) {
         console.info("Creating Test Game");
-        gameService.createGameAndSchema({ 
-          name: 'test', 
+        gameService.createGameAndSchema({
+          name: 'test',
           userId: adminUser.id,
           ignoreTestExists: true
         });
-      } else {
+      }
+      else {
         console.error("ADMIN USER MISSING!!");
       }
     });
   }, 10000);
-  
-  
+
+
   //////////////////////
   // END SERVICES
   //////////////////////
-  
-  
-  
+
+
+
   // Driver middleware
-  const contentFromDb = new (require('./utils/middleware/contentFromDb.js'))(constants, gameService, {['/driver.js']: 'driver', ['/common.js']: 'common'});
+  const contentFromDb = new(require('./utils/middleware/contentFromDb.js'))(constants, gameService, {
+    ['/driver.js']: 'driver', ['/common.js']: 'common' });
   router.use('/', (req, res, next) => { contentFromDb.handle(req, res, next); });
-  
+
   // File system middleware
   router.use(require('no-extension')(global.__publicdir));
   router.use(express.static(global.__publicdir));
-  
-  
-  
-  
+
+
+
+
   ///////////////////////////////////////////
   // BEGIN SOCKET IO SETUP & JWT AUTH SETUP///
   ////////////////////////////////////////////
   console.log('---Socket IO');
+  let SocketHub = require('socket-hub');
   
-  let socketIOHelper = require('./utils/socketIOHelper.js')({ 
+  var SrcString = require('src-string');
+  const srcString = new SrcString({
+    contentSrc: {
+      getEntity: ({subdomain, type, filter = { version: 'test' }} ) => {
+        subdomain !== '#' && gameService.getGameEntityRecord(subdomain, type, filter);
+      }
+    }
+  });
+  
+  
+  let socketIOHelper = new SocketHub({
+    appName: 'ncidence',
     server: secureServer ? secureServer : server,
     tokenUtil: jwtCookiePasser,
-    gameService,
+    rootHost: constants.host,
+    storming,
+    
+    subdomainContent: {
+      getInfo: async(subdomain) => {
+        let gameAndDatabaseTemp = await gameService.getGameAndDatabase(subdomain);
+        const game = gameAndDatabaseTemp && gameAndDatabaseTemp.game ? gameAndDatabaseTemp.game : null;
+        return {
+          subdomain: subdomain,
+          game,
+          owner: (game ? game.owner.username : 'admin')
+        };
+      },
+      getStorming: ({subdomain, refreshCache = false}) =>
+        gameService.fetchCachedGameOrmHelper({gameName: subdomain, refreshCache })
+      ,
+      getAlternateContent: (context) => srcString.getContent(context),
+      getContent: ({subdomain, type}) => {
+        const filePath = (type === 'common' ? global.__publicdir : global.__rootdir) + type + '.js';
+		  	console.info(`[${subdomain}] - Loading default exports for ${type}. filePath: ${filePath}`);
+		  	return require(filePath);
+      }
+    },
   });
   socketIOHelper.init();
   gameService.setSocketIOHelper(socketIOHelper);
@@ -121,26 +154,26 @@ function start(err) {
   /////////////////////////////////////////
   // END SOCKET IO SETUP & JWT AUTH SETUP///
   /////////////////////////////////////////
-  
+
   liteLift.start(() => {
     router.post('/uploadFrontend', jwtCookiePasser.authRequired(), (req, res) => {
-        let form = new formidable.IncomingForm();
-        contentFromDb.updateGameFile(form, 'driver', req, res);
+      let form = new formidable.IncomingForm();
+      contentFromDb.updateGameFile(form, 'driver', req, res);
     });
-    
+
     router.post('/uploadBackend', jwtCookiePasser.authRequired(), (req, res) => {
-        let form = new formidable.IncomingForm();
-        contentFromDb.updateGameFile(form, 'backend', req, res);
+      let form = new formidable.IncomingForm();
+      contentFromDb.updateGameFile(form, 'backend', req, res);
     });
-    
+
     router.post('/uploadCommon', jwtCookiePasser.authRequired(), (req, res) => {
-        let form = new formidable.IncomingForm();
-        contentFromDb.updateGameFile(form, 'common', req, res);
+      let form = new formidable.IncomingForm();
+      contentFromDb.updateGameFile(form, 'common', req, res);
     });
-    
+
     router.post('/createGame', jwtCookiePasser.authRequired(), urlencodedParser, function(req, res) {
-      gameService.createGameAndSchema({ 
-        name: req.body.game, 
+      gameService.createGameAndSchema({
+        name: req.body.game,
         userId: req.user.id,
       }).then(game => {
         let port = constants.getPort(req.get('host'));
@@ -151,27 +184,26 @@ function start(err) {
         res.json(500, { err });
       });
     });
-    
+
     router.get('/api/login', function(req, res) {
       userService.login(req, res);
     });
-    
+
     router.get('/api/addUser', function(req, res) {
       userService.createUser(req, res);
     });
-    
-    
+
+
     router.get("/public", function(req, res) {
       res.json({ message: "Public Success!", user: req.user });
     });
-    
+
     router.get("/secret", jwtCookiePasser.authRequired(), function(req, res) {
       res.json({ message: "Secret Success!", user: req.user });
     });
   });
-  
-  
-  
-  
-}
 
+
+
+
+}

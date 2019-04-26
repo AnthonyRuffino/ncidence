@@ -20,7 +20,7 @@
   "dependencies": {
     "async": "^0.2.10",
     "bcrypt-nodejs": "0.0.3",
-    "body-parser": "^1.18.3",
+    "body-parser": "^1.19.0",
     "captchapng": "0.0.1",
     "cookie": "^0.3.1",
     "cookie-parser": "^1.4.4",
@@ -32,7 +32,7 @@
     "jsonwebtoken": "^8.5.1",
     "jwt-cookie-passer": "^2.0.0",
     "lazy-namer": "^1.0.1",
-    "lite-lifting": "^1.0.12",
+    "lite-lifting": "^1.0.13",
     "logger-plus-plus": "^1.0.0",
     "mapplied": "^1.0.0",
     "minimist": "^1.2.0",
@@ -49,7 +49,9 @@
     "passport-jwt": "^4.0.0",
     "redirect-secure": "^1.0.0",
     "require-from-string": "^2.0.2",
+    "socket-hub": "^2.1.2",
     "socket.io": "^2.2.0",
+    "src-string": "^1.0.0",
     "storming": "^1.0.0",
     "uuid": "^3.3.2",
     "your-sql": "^1.1.2"
