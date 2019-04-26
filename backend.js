@@ -208,12 +208,14 @@ class Backend {
 
                     const character = {
                         x: 1000,
-                        y: 1000
+                        y: 1000,
+                        angle: 90
                     };
                     if (characters.length > 0) {
                         const characterData = characters[0].data();
                         character.x = characterData.x;
                         character.y = characterData.y;
+                        character.angle = characterData.angle;
                     }
 
                     player = new this.common.Player({
@@ -223,7 +225,7 @@ class Backend {
                         y: character.y,
                         width: 160,
                         height: 80,
-                        angle: 90,
+                        angle: character.angle,
                         startAngle: 90,
                         movementSpeed: 360,
                         img: {}
