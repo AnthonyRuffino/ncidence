@@ -114,7 +114,7 @@ function start(err) {
   const srcString = new SrcString({
     contentSrc: {
       getEntity: ({subdomain, type, filter = { version: 'test' }} ) => {
-        gameService.getGameEntityRecord(subdomain, type, filter);
+        subdomain !== '#' && gameService.getGameEntityRecord(subdomain, type, filter);
       }
     }
   });
