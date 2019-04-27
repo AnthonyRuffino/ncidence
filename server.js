@@ -1,20 +1,13 @@
-/*
-    _   __     _     __                   
-   / | / /____(_)___/ /__  ____  ________ 
-  /  |/ / ___/ / __  / _ \/ __ \/ ___/ _ \
- / /|  / /__/ / /_/ /  __/ / / / /__/  __/
-/_/ |_/\___/_/\__,_/\___/_/ /_/\___/\___/ 
-*/
 const LiteLifting = require('lite-lifting');
 
-const constants = { host: 'ncidence-aruffino.c9users.io' };
+const constants = { host: process.env.host };
 constants.schema = LiteLifting.schema(constants.host);
 
 global.__rootdir = __dirname + '/';
 global.__publicdir = __dirname + '/client/';
 
 const liteLiftConfig = {
-  appName: 'ncidence',
+  appName: process.env.appName,
   publicdir: global.__publicdir,
   schema: constants.schema,
   useLoggerPlusPlus: true,
@@ -29,7 +22,6 @@ const liteLiftConfig = {
     entities: (() => {
       const entities = LiteLifting.getEntities();
       entities.push(require('./utils/orm/entities/gameModels/character.js')());
-      entities.push(require('./utils/orm/entities/game.js')());
       return entities;
     })()
   },
@@ -45,7 +37,8 @@ const liteLift = new LiteLifting(liteLiftConfig);
 
 const {
   storming,
-  yourSql
+  yourSql,
+  router
 } = { ...liteLift };
 
 const gameService = require('./utils/orm/services/gameService.js')({
@@ -82,5 +75,9 @@ function start(err) {
 
   liteLift.start(() => {
     console.log('Start-up complete.');
+    
+    router.get("/public", function(req, res) {
+      res.json({ message: "Public Success!", user: req.user });
+    });
   });
 }

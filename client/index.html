@@ -48,8 +48,8 @@
                 var is_vowel = false;
                 var arr;
                 for (var i = 0; i < len; i++) {
-                  if (is_vowel) arr = vowels
-                  else arr = consts
+                  if (is_vowel) arr = vowels;
+                  else arr = consts;
                   is_vowel = !is_vowel;
                 
                   word += arr[Math.round(Math.random()*(arr.length-1))];
@@ -112,105 +112,15 @@
         <section class="content-wrapper main-content clear-fix">
             <section class="featured">
                 <div class="content-wrapper">
-                    <hgroup class="title"> 
-                        <h1><span class="hand" ng-click="mode = 'create';">Create</span> - <span class="hand" ng-click="mode = 'explore';">Explore</span> - <span class="hand" ng-click="mode = 'play';">Play</span></h1>
+                    <div>
                         <br/>
-                        <h2 ng-bind="ownershipMessage" ></h2>
-                        <div ng-show="playOthersMessage">
-                            <br/>
-                            <h2 ng-bind="playOthersMessage" ></h2>
-                            <a href="/play"><button>Play</button></a>
-                            <br />
-                            <p><b>{{pageName}} was built on the <a href="//worldy.io">worldy.io</a> platform</b></p>
-                        </div>
-                        
-                    </hgroup>
-                    
-                    <div ng-show="!isMySubdomain">
-                        <p>Wordly.io is a platform with an open subdomain model.
-                        <br/>An infinite amount of subdomains have yet to be claimed</p>
-                        
-                        <p>Once you claim one, it is yours.  You can use the frameworks provided
-                        to create HTML5 Canvas + socket.io games (and much more)</p>
-                        
-                        <p>The platform also provides pragrammable hooks into the node.js backend
-                        so that you can truely build multi-user experiences</p>
-                        
-                        <p>Any domain that is not already claimed, simply serves up the default
-                        <a href="//worldy.io/play">worldy.io</a> game.  </p>
-                        
-                        <p>The default game is meant to serve as working example of the platform 
-                        and the frameworks it provides.  It is also a fun game in its own right.
-                        
-                        <p>Navigate to a worldy.io subdomain (e.g. <a ng-click="clickRandomWord()">{{randomWord}}.worldy.io</a>) to see if it can be yours.</p>
-                        <p>If someone else has claimed it, maybe they are building something cool there.  Check it out.</p>
-                        
-                        <div ng-show="!isLoggedIn">
-                            <br />
-                            <h3><a href="#login" ng-click="showSignup=false;">Login</a> or <a href="#signup" ng-click="showSignup=true;" >signup</a> now</h3>
-                            <br />
-                        </div>
-                        
-                        <div ng-show="isLoggedIn">
-                            <p><button ng-click="clickRandomWord()">Randomize</button></p>
-                            <form action="createGame" method="post">
-                                <input type="text" name="game" value="{{testSubdomain}}" required />
-                                <button type="submit">Claim it now</button>
-                            </form>
-                        </div>
+                        <a href="/play"><button>Play</button></a>
+                        <br />
+                        <p><b>{{pageName}} was built on the <a href="//worldy.io">worldy.io</a> platform</b></p>
                     </div>
                         
                 </div>
             </section>
-            
-            <div ng-show="isMySubdomain">
-                <h3>Upload Frontend Code: </h3>
-                <form action="uploadFrontend" method="post" enctype="multipart/form-data">
-                    <input type="file" name="filetoupload"><br>
-                    <input type="submit">
-                </form>
-                <br/>
-                <h3>Upload Common: </h3>
-                <form action="uploadCommon" method="post" enctype="multipart/form-data">
-                    <input type="file" name="filetoupload"><br>
-                    <input type="submit">
-                </form>
-                <h3>Upload Backend Code: </h3>
-                <form action="uploadBackend" method="post" enctype="multipart/form-data">
-                    <input type="file" name="filetoupload"><br>
-                    <input type="submit">
-                </form>
-            </div>
-            <div ng-show="!isMySubdomain">
-                <h3>What can I do with ncidence.org: </h3>
-                <ol class="round">
-                    <li class="one">
-                        <h5>As a user you can: </h5>
-                        <br />
-                        <strong>1.</strong> Create HTML and Javascript powered <a href="/u/aruffino84@gmail.com/mysticsquare">pages</a>
-                        <br />
-                        <strong>2.</strong> Create back-end datatables and RESTful endpoints
-                        <br />
-                        <strong>3.</strong> ???
-                        <br />
-                        <strong>4.</strong> Profit
-                    </li>
-    
-                    <br />
-                    <br />
-    
-                    <li class="two">
-                        <h5>If you have any suggestions for how to improve the site you should: </h5>
-                        <br />
-                        <strong>1.</strong> Checkout the git page: <a href="https://github.com/AnthonyRuffino/ncidence">github.com/AnthonyRuffino/ncidence</a>
-                        <br />
-                        <strong>2.</strong> Send me a pull request.
-                        <br />
-                        <strong>3.</strong> Send me an email (aruffino84@gmail.com).
-                    </li>
-    
-                </ol>
-            </div>
         </section>
     </div>
 
