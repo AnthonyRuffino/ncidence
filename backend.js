@@ -11,72 +11,7 @@ class Backend {
         this.storming = storming;
         this.frimScaler = .5;
         this.targetTickDelta = 0.0666;
-        this.ofValue = require('of-value');
-
-        this.getGameEntityRecord = (gameName, entityName, filter) => {
-            return new Promise((resolve, reject) => {
-                try {
-
-                    if (!storming) {
-                        console.log(gameName, `Error fetching model '[${entityName}]'`);
-                        resolve(false);
-                        return;
-                    }
-
-                    console.log('Getting game entity: ' + entityName + ' - [' + this.storming.database + ']');
-
-                    if (!(storming.getMap()[entityName].model)) {
-                        console.log(gameName, `Error fetching model '[${entityName}]'`);
-                        resolve(false);
-                        return;
-                    }
-                    storming.getMap()[entityName].model.find(filter, (err, entities) => {
-                        if (err) {
-                            console.log(`Game ${gameName}, Error fetching entity '[${entityName}]' with filter:`, filter, err);
-                            resolve(false);
-                            return;
-                        }
-                        if (!entities[0]) {
-                            console.log(`Game: ${gameName}, Entity '[${entityName}]' not found after filter:`, filter);
-                            resolve(false);
-                            return;
-                        }
-                        resolve(entities);
-                    });
-                }
-                catch (err) {
-                    console.log(gameName, `Exception fetching model for '[${entityName}]'`, err);
-                    resolve(false);
-                }
-            });
-        };
-
-
-        this.characterHelper = {
-            find: ({ name, user }) => {
-                return new Promise(async(resolve, reject) => {
-                    let characters = await this.getGameEntityRecord(
-                        subdomain,
-                        'character', this.ofValue.stripUndefined({ name, user }));
-                    if (!characters) {
-                        resolve([]);
-                    }
-                    else {
-                        const returnList = [];
-                        characters.forEach((character) => {
-                            returnList.push({ ...character,
-                                data: () => {
-                                    let buffer = Buffer.from(JSON.parse(JSON.stringify(character.data)).data).toString();
-                                    //console.log('Character data loaded: ' + buffer);
-                                    return JSON.parse(buffer.toString());
-                                }
-                            });
-                        });
-                        resolve(returnList);
-                    }
-                });
-            }
-        };
+        this.characterHelper = new (require("./game/characterHelper.js"))({ storming, subdomain });
 
         this.startGameLoopImmediately = true;
 
@@ -156,7 +91,7 @@ class Backend {
     }
 
     setPlayerControl(player, control, socketDebug) {
-        player.controls[control.name](control.value)
+        player.controls[control.name](control.value);
 
     }
 
@@ -183,13 +118,6 @@ class Backend {
             on: 'hi',
             run: async({ emit, dataIn, user }) => {
                 console.log(`${user.username}: 'hi' - isAnonymous: ${user.isAnonymous} - ncidenceCookie:${user.sessionId}`);
-                // 	console.log('process.title', process.title);
-                // 	console.log('GLOBALS', {
-                // 	    __dirname,
-                // 	    __filename,
-                // 	    require
-                // 	});
-                // 	console.log('dataIn', dataIn);
 
                 let player = null;
                 const connectionOptional = this.connections[this.sessionKey(user)];
@@ -203,8 +131,10 @@ class Backend {
                         speedOfLight: 4479900
 
                     };
+                    
+                    const userName = user.isAnonymous ? `?_${user.sessionId}` : user.username;
 
-                    let characters = await this.characterHelper.find({ user: user.username });
+                    let characters = await this.characterHelper.findCharacters({ user: userName });
 
                     const character = {
                         x: 1000,
@@ -216,6 +146,9 @@ class Backend {
                         character.x = characterData.x;
                         character.y = characterData.y;
                         character.angle = characterData.angle;
+                    } else {
+                        let newCharacter = await this.characterHelper.createCharacter({ name: user.username, user: userName, data: character });
+                        console.log('charater created');
                     }
 
                     player = new this.common.Player({
