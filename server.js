@@ -58,8 +58,10 @@ function start(err) {
       subdomain !== '#' && gameService.getGameEntityRecord(subdomain, type, filter);
     },
     rootHost: constants.host,
-    getStorming: ({ subdomain, refreshCache = false }) =>
-      gameService.fetchCachedGameOrmHelper({ gameName: subdomain, refreshCache }),
+    getStorming: async ({ subdomain, refreshCache = false }) => {
+      const tempStorming = await gameService.fetchCachedGameOrmHelper({ gameName: subdomain, refreshCache });
+      return tempStorming || storming;
+    },
     getInfo: async(subdomain) => {
       let gameAndDatabaseTemp = await gameService.getGameAndDatabase(subdomain);
       const game = gameAndDatabaseTemp && gameAndDatabaseTemp.game ? gameAndDatabaseTemp.game : null;
