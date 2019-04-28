@@ -11,7 +11,21 @@ class Backend {
         this.storming = storming;
         this.frimScaler = .5;
         this.targetTickDelta = 0.0666;
+        
+        
+        
         this.characterHelper = new (require("./game/characterHelper.js"))({ storming, subdomain });
+        this.characterHelper.manageStrategy = () => {
+            Object.entries(this.connections).forEach((connection) => {
+                const manageKey = connection[1].manageKey;
+                const player = connection[1].player;
+                this.characterHelper.manageData(manageKey, {
+                    x: player.x,
+                    y: player.y,
+                    angle: player.angle,
+                });
+            });
+        };
 
         this.startGameLoopImmediately = true;
 
@@ -141,16 +155,19 @@ class Backend {
                         y: 1000,
                         angle: 90
                     };
+                    
+                    let characterEntity;
                     if (characters.length > 0) {
-                        const characterData = characters[0].data();
+                        characterEntity = characters[0].raw;
+                        const characterData = characters[0].deserialized.data();
                         character.x = characterData.x;
                         character.y = characterData.y;
                         character.angle = characterData.angle;
                     } else {
-                        let newCharacter = await this.characterHelper.createCharacter({ name: user.username, user: userName, data: character });
+                        characterEntity = await this.characterHelper.createCharacter({ name: user.username, user: userName, data: character });
                         console.log('charater created');
                     }
-
+                    
                     player = new this.common.Player({
                         driver: driver,
                         id: user.username,
@@ -165,6 +182,16 @@ class Backend {
                     });
                     driver.player = player;
                     const controls = new this.common.Controls(driver);
+                    
+                    
+                    this.characterHelper.manage({
+                        character: characterEntity, 
+                        latest: () => ({
+                            x: player.x,
+                            y: player.y,
+                            angle: player.angle
+                        })
+                    });
 
                     const baseInfo = player.baseInfo();
                     Object.entries(this.connections).forEach((connection) => {

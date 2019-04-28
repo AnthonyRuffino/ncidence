@@ -4,6 +4,19 @@ class CharacterHelper {
         this.storming = storming;
         this.subdomain = subdomain;
         this.ofValue = require('of-value');
+        this.managed = {};
+        
+        setInterval(() => {
+            Object.values(this.managed).forEach(managed => {
+                const latest = managed.latest();
+                managed.character.data = JSON.stringify(latest);
+                const charName = managed.character.name;
+                const charUser = managed.character.user;
+                managed.character.save((err) => {
+                    (err && console.error(`ERR SAVING CHARACTER(${charName})[${charUser}]`, err)) || console.info(`Character Saved(${charName})[${charUser}]`);
+                });
+            });
+        }, 10000);
     }
     
     getGameEntityRecord(gameName, entityName, filter) {
@@ -55,13 +68,13 @@ class CharacterHelper {
             else {
                 const returnList = [];
                 characters.forEach((character) => {
-                    returnList.push({ ...character,
+                    returnList.push({raw: character, deserialized: { ...character,
                         data: () => {
                             let buffer = Buffer.from(JSON.parse(JSON.stringify(character.data)).data).toString();
                             //console.log('Character data loaded: ' + buffer);
                             return JSON.parse(buffer.toString());
                         }
-                    });
+                    }});
                 });
                 resolve(returnList);
             }
@@ -78,6 +91,12 @@ class CharacterHelper {
                 }
             });
         });
+    }
+    
+    manage({character, latest}) {
+        const key = `${character.user}__${character.name}`;
+        this.managed[key] = {character, latest};
+        return key;
     }
 }
 module.exports = CharacterHelper;

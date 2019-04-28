@@ -54,7 +54,7 @@ function start(err) {
   err && console.log('ERROR passed to start method: ' + err);
   
   liteLift.configureSocketHub({
-    getEntity: ({ subdomain, type, filter = { version: 'test' } }) => {
+    getAlternate: ({ subdomain, type, filter = { version: 'test' } }) => {
       subdomain !== '#' && gameService.getGameEntityRecord(subdomain, type, filter);
     },
     rootHost: constants.host,
