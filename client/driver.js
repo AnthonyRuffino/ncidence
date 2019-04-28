@@ -99,35 +99,8 @@ class GameDriver {
 		//END CLICK CONTROLS
 
 
-		//enemies
-		this.enemies = {};
-		for (var i = 1; i <= 100; i++) {
-			var enemyX = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1);
-			var enemyY = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1);
-			var enemyW = (Math.random() * 25) + 5;
-			var enemyH = (Math.random() * 25) + 5;
-			var enemyShape = Math.random() > .5 ? 'circle' : 'rectangle';
-			var lineWidth = 3;
-			this.enemies['enemy' + i] = new Entity({
-				driver: this, 
-				type: 'enemy', 
-				id: 'enemy' + i, 
-				x: enemyX, 
-				y: enemyY, 
-				width: enemyW, 
-				height: enemyShape === 'circle' ? enemyW : enemyH, 
-				angle: 15, 
-				movementSpeed: 10, 
-				shape: enemyShape, 
-				fillStyle: CommonMath.getRandomColor(), 
-				lineWidth, 
-				strokeStyle: CommonMath.getRandomColor(), 
-				image: null
-			});
-		}
-
-
-
+		
+		
 		this.controls = new Controls(this);
 		ControlsBinder.bind(this, document);
 
@@ -150,11 +123,22 @@ class GameDriver {
 			this.othersMap[other.id] = other;
 		})
 		
+		//enemies
+		this.enemies = {};
+		
 		this.socket.on('enemies', (enemies) => {
 			console.log('enemies!', enemies);
 			Object.entries(enemies).forEach(enemy => {
 				this.enemies[enemy[0]] = new Entity({... enemy[1], driver: this,});
 			});
+		})
+		
+		this.socket.on('enemy-motion', (movedEnemies) => {
+			Object.entries(movedEnemies).forEach((entry) => {
+				this.enemies[entry[0]].x = entry[1].x;
+				this.enemies[entry[0]].y = entry[1].y;
+			});
+			
 		})
 		
 		this.socket.on('other-motion', (motion) => {

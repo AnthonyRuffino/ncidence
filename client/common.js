@@ -21,11 +21,12 @@ class CommonMath {
 		return angle / (Math.PI / 180);
 	}
 	
-	static getRandomColor() {
+	static getRandomColor(randomZeroThrough15Function) {
+		randomZeroThrough15Function = randomZeroThrough15Function || ((i) => Math.floor(Math.random() * 16));
 		var letters = '0123456789ABCDEF'.split('');
 		var color = '#';
 		for (var i = 0; i < 6; i++) {
-			color += letters[Math.floor(Math.random() * 16)];
+			color += letters[randomZeroThrough15Function(i)];
 		}
 		return color;
 	}
@@ -33,7 +34,26 @@ class CommonMath {
 
 
 class Entity {
-	constructor({driver, type, id, x, y, width, height, angle, movementSpeed, shape, fillStyle, lineWidth, strokeStyle, image}) {
+	constructor({
+		driver, 
+		type, 
+		id, 
+		x, 
+		y, 
+		width, 
+		height, 
+		angle, 
+		movementSpeed, 
+		shape, 
+		fillStyle, 
+		lineWidth, 
+		strokeStyle, 
+		image,
+		wiggleX,
+		wiggleY
+	}) {
+		
+		
 		this.driver = driver;
 		this.type = type;
 		this.id = id;
@@ -53,6 +73,8 @@ class Entity {
 		this.baseHeight = height;
 		this.baseSpeed = movementSpeed;
 		this.motionDetected = false;
+		this.wiggleX = wiggleX;
+		this.wiggleY = wiggleY;
 
 
 
@@ -131,7 +153,9 @@ class Entity {
 			fillStyle: this.fillStyle, 
 			lineWidth: this.lineWidth, 
 			strokeStyle: this.strokeStyle, 
-			image: this.image
+			image: this.image,
+			wiggleX: this.wiggleX,
+			wiggleY: this.wiggleY
 		}
 	}
 
@@ -175,7 +199,16 @@ class Entity {
 				y = firstPersonOrientation.y;
 				angle = firstPersonOrientation.angle;
 			}
-
+			
+			if(this.wiggleX) {
+				x += Math.random()*this.wiggleX;
+			}
+			
+			if(this.wiggleY) {
+				y += Math.random()*this.wiggleY
+			}
+			 
+			 
 			var fill = this.fillStyle !== undefined && this.fillStyle !== null;
 
 			if ((this.driver.preRender || this.baseImageHeight === undefined) && (this.image !== undefined && this.image !== null)) {

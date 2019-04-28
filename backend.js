@@ -11,8 +11,15 @@ class Backend {
         this.storming = storming;
         this.frimScaler = .5;
         this.targetTickDelta = 0.0666;
+        this.mapplied = require("mapplied");
+        this.sha256 = require('sha256');
+        this.tick = 0;
         
+        this.mapplied.init({
+            hash:(val)=> this.sha256(val)
+        }, subdomain);
         
+        const universe = this.mapplied.getUniverse();
         
         this.characterHelper = new (require("./game/characterHelper.js"))({ storming, subdomain });
         this.characterHelper.manageStrategy = () => {
@@ -33,18 +40,40 @@ class Backend {
         this.userNameSessionMap = {};
         this.setPlayerControl = this.setPlayerControl.bind(this);
         this.update = this.update.bind(this);
+        
+        const hashAnalysis = universe.hashAnalysis;
+        
+        const numVal = (index) => {
+            if(index > hashAnalysis.numberCount) {
+                index = index % hashAnalysis.numberCount;
+            }
+            if(index === 0) {
+                index = 1;
+            }
+            const num = hashAnalysis.numbers[index + ''];
+            return num.val;
+        };
 
+        const enemyCount = 100 - (numVal(1) * 10) - numVal(2);
         this.enemies = {};
-        for (var i = 1; i <= 100; i++) {
-            var enemyX = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1);
-            var enemyY = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1);
-            var enemyW = (Math.random() * 25) + 5;
-            var enemyH = (Math.random() * 25) + 5;
-            var enemyShape = Math.random() > .5 ? 'circle' : 'rectangle';
+        for (var i = 1; i <= enemyCount; i++) {
+            
+            const mapliedFactor1 = numVal(i);
+            const mapliedFactor2 = numVal(i + 1);
+            
+            var enemyX = (1000 - ((i - 1) * mapliedFactor1)) * (mapliedFactor1%2 ? -1 : 1);
+            var enemyY = (1000 - ((i - 1) * mapliedFactor2)) * (mapliedFactor2%2 ? -1 : 1);
+            var enemyW = ((mapliedFactor1/10) * 25) + 15;
+            var enemyH = ((mapliedFactor2/10) * 25) + 15;
+            var enemyShape = i%2 ? 'circle' : 'rectangle';
             var lineWidth = 3;
+            
+            var colorIndexes = mapliedFactor1%3;
+            colorIndexes = colorIndexes === 0 ? {name: 'red', data: [0,1]} : (colorIndexes === 1 ? {name: 'green', data: [2,3]} : {name: 'blue', data: [4,5]})
+            
             this.enemies['enemy' + i] = new this.common.Entity({
                 driver: this,
-                type: 'enemy',
+                type: colorIndexes.name + '-enemy',
                 id: 'enemy' + i,
                 x: enemyX,
                 y: enemyY,
@@ -53,10 +82,12 @@ class Backend {
                 angle: 15,
                 movementSpeed: 10,
                 shape: enemyShape,
-                fillStyle: this.common.CommonMath.getRandomColor(),
+                fillStyle: this.common.CommonMath.getRandomColor((index)=>colorIndexes.data.indexOf(index)>-1 ? ((mapliedFactor1*mapliedFactor2)%15) : 0),
                 lineWidth,
                 strokeStyle: this.common.CommonMath.getRandomColor(),
-                image: null
+                image: null,
+                wiggleX: 1,
+                wiggleY: 1
             });
         }
     }
@@ -68,15 +99,42 @@ class Backend {
     disconnectSocket({ ncidenceCookie, socketId }) {
         console.log('Socket disconnected: ' + socketId + ' - ' + ncidenceCookie);
     }
+    
+    moveEnemies(target){
+        const movedEnemies = {};
+        Object.entries(this.enemies).forEach((enemy) => {
+            if(target && enemy[1].type.indexOf('red')+1) {
+                const speed = (100*(1/enemy[1].width));
+                enemy[1].x += speed*(target.x > enemy[1].x ? 1 : -1);
+                enemy[1].y += speed*(target.y > enemy[1].y ? 1 : -1);
+                movedEnemies[enemy[0]] = {
+                    id: enemy[0],
+                    x: enemy[1].x,
+                    y: enemy[1].y
+                };
+            }
+        });
+        return movedEnemies;
+    }
 
     update(delta, tag) {
+        this.tick++;
         //if(updatePosition)
         //console.log('delta: ' + delta);
         this.frimScaler = delta / this.targetTickDelta;
         const updatedPlayers = [];
         if (this.connections) {
+            let pNum = 0;
+            let movedEnemies = null;
             Object.entries(this.connections).forEach((connection) => {
+                pNum++;
+                
                 const player = connection[1].player;
+                
+                if(pNum === 1) {
+                    movedEnemies = this.moveEnemies(player);
+                }
+                
                 player.updatePosition();
                 if (player.motionDetected) {
                     updatedPlayers.push(player);
@@ -86,7 +144,11 @@ class Backend {
                         angle: player.angle,
                     });
                 }
+                if((this.tick%5 === 0) && Object.keys(movedEnemies).length > 0) {
+                    connection[1].emit('enemy-motion', movedEnemies);
+                }
             });
+            
             if (updatedPlayers && updatedPlayers.length > 0) {
                 updatedPlayers.forEach((other) => {
                     Object.entries(this.connections).forEach((connection) => {
