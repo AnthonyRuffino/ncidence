@@ -1,6 +1,6 @@
 const inBrowser = typeof window !== 'undefined';
 class CommonMath {
-	
+
 	static round(num, sigDigits) {
 		if (sigDigits === undefined || sigDigits === null) {
 			sigDigits = 2;
@@ -13,14 +13,14 @@ class CommonMath {
 	}
 
 	//UTILITIES
-    static degreesToRadians(angle){
+	static degreesToRadians(angle) {
 		return angle * Math.PI / 180;
 	}
 
-	static radiansToDegrees(angle){
+	static radiansToDegrees(angle) {
 		return angle / (Math.PI / 180);
 	}
-	
+
 	static getRandomColor(randomZeroThrough15Function) {
 		randomZeroThrough15Function = randomZeroThrough15Function || ((i) => Math.floor(Math.random() * 16));
 		var letters = '0123456789ABCDEF'.split('');
@@ -35,30 +35,34 @@ class CommonMath {
 
 class Entity {
 	constructor({
-		driver, 
-		type, 
-		id, 
-		x, 
-		y, 
-		width, 
-		height, 
-		angle, 
-		movementSpeed, 
-		shape, 
-		fillStyle, 
-		lineWidth, 
-		strokeStyle, 
+		driver,
+		type,
+		id,
+		x,
+		y,
+		vx,
+		vy,
+		width,
+		height,
+		angle,
+		movementSpeed,
+		shape,
+		fillStyle,
+		lineWidth,
+		strokeStyle,
 		image,
 		wiggleX,
 		wiggleY
 	}) {
 		
-		
+		this.bulletNumber = 0;
 		this.driver = driver;
 		this.type = type;
 		this.id = id;
 		this._x = x;
 		this._y = y;
+		this.vx = vx;
+		this.vy = vy;
 		this.width = width;
 		this.height = height;
 		this._angle = angle;
@@ -75,10 +79,16 @@ class Entity {
 		this.motionDetected = false;
 		this.wiggleX = wiggleX;
 		this.wiggleY = wiggleY;
+		
+		if (this.vx === undefined || this.vx === null) {
+			this.vx = 0;
+		}
 
+		if (this.vy === undefined || this.vy === null) {
+			this.vy = 0;
+		}
 
-
-		if (this.driver.renderer && (this.image === undefined || this.image === null)) {
+		if (inBrowser&& this.driver.renderer && (this.image === undefined || this.image === null)) {
 			var shapeImage = {};
 
 			var shape_canvas = this.driver.renderer.document.createElement('canvas');
@@ -116,7 +126,7 @@ class Entity {
 	get angle() {
 		return this._angle;
 	}
-	
+
 	set angle(angle) {
 		this._angle = angle;
 	}
@@ -136,27 +146,37 @@ class Entity {
 	set y(y) {
 		this._y = y;
 	}
-	
-	
+
+
 	baseInfo() {
 		return {
-			driver: this.driver, 
-			type: this.type, 
-			id: this.id, 
-			x: this._x, 
-			y: this._y, 
-			width: this.baseWidth, 
-			height: this.baseHeight, 
-			angle: this._angle, 
-			movementSpeed: this.movementSpeed, 
-			shape: this.shape, 
-			fillStyle: this.fillStyle, 
-			lineWidth: this.lineWidth, 
-			strokeStyle: this.strokeStyle, 
+			driver: this.driver,
+			type: this.type,
+			id: this.id,
+			x: this._x,
+			y: this._y,
+			vx: this.vx,
+			vy: this.vy,
+			width: this.baseWidth,
+			height: this.baseHeight,
+			angle: this._angle,
+			movementSpeed: this.movementSpeed,
+			shape: this.shape,
+			fillStyle: this.fillStyle,
+			lineWidth: this.lineWidth,
+			strokeStyle: this.strokeStyle,
 			image: this.image,
 			wiggleX: this.wiggleX,
 			wiggleY: this.wiggleY
 		}
+	}
+	
+	
+	projectileMotion() {
+		const speed = this.movementSpeed;
+		this.calculateMovementData(this._angle, speed, false);
+		this._y += (this.vy * this.driver.gameEngine.frimScaler);
+		this._x += (this.vx * this.driver.gameEngine.frimScaler);
 	}
 
 
@@ -169,22 +189,21 @@ class Entity {
 		}
 
 		var scaler = this.driver.renderer.scale * this.driver.renderer.viewPortScaler;
-
-		this.lineWidth = this.baseLineWidth * scaler;
-		this.width = this.baseWidth * scaler;
-		this.height = this.baseHeight * scaler;
-
-		if (this.imageHeight !== undefined) {
-			this.imageHeight = this.baseImageHeight * scaler;
-		}
-		if (this.imageWidth !== undefined) {
-			this.imageWidth = this.baseImageWidth * scaler;
+		if(scaler) {
+			this.lineWidth = this.baseLineWidth * scaler;
+			this.width = this.baseWidth * scaler;
+			this.height = this.baseHeight * scaler;
+	
+			if (this.imageHeight !== undefined) {
+				this.imageHeight = this.baseImageHeight * scaler;
+			}
+			if (this.imageWidth !== undefined) {
+				this.imageWidth = this.baseImageWidth * scaler;
+			}
 		}
 	}
 
 	draw() {
-
-		var renderer = this.driver.renderer;
 
 		var doDraw = this.doDraw === undefined || this.doDraw === null || this.doDraw === true;
 
@@ -199,17 +218,14 @@ class Entity {
 				y = firstPersonOrientation.y;
 				angle = firstPersonOrientation.angle;
 			}
-			
-			if(this.wiggleX) {
-				x += Math.random()*this.wiggleX;
+
+			if (this.wiggleX) {
+				x += Math.random() * this.wiggleX;
 			}
-			
-			if(this.wiggleY) {
-				y += Math.random()*this.wiggleY
+
+			if (this.wiggleY) {
+				y += Math.random() * this.wiggleY;
 			}
-			 
-			 
-			var fill = this.fillStyle !== undefined && this.fillStyle !== null;
 
 			if ((this.driver.preRender || this.baseImageHeight === undefined) && (this.image !== undefined && this.image !== null)) {
 				var imageHeight = this.imageHeight !== undefined ? this.imageHeight : this.height;
@@ -298,9 +314,9 @@ class Entity {
 }
 
 class Player extends Entity {
-	constructor({driver, id, x, y, width, height, angle, startAngle, movementSpeed, img}) {
+	constructor({ driver, id, x, y, width, height, angle, startAngle, movementSpeed, img, tag }) {
 		var playerImage = {};
-
+		
 		if (img === undefined || img === null) {
 			playerImage.orientation = 180;
 			playerImage.img = new Image();
@@ -324,25 +340,19 @@ class Player extends Entity {
 			fillStyle: 'red',
 			lineWidth: 'green',
 			strokeStyle: null,
-			image:playerImage
+			image: playerImage
 		})
-		
+
+		this.tag = tag;
 		this.startAngle = startAngle;
 		this.lastRightTurnTime = null;
 		this.lastLeftTurnTime = null;
 		this._spaceMovement = false;
 		this.vectorSpeed = 0;
 		this.angleChangeSpeed = 6;
+		this.projectiles = [];
 
 		this.heightToWidthRatio = height / width;
-
-		if (this.vx === undefined || this.vx === null) {
-			this.vx = 0;
-		}
-
-		if (this.vy === undefined || this.vy === null) {
-			this.vy = 0;
-		}
 
 		this.firstPerson = true;
 		this.pressingLeftClick = false;
@@ -367,7 +377,49 @@ class Player extends Entity {
 	set spaceMovement(spaceMovement) {
 		this._spaceMovement = spaceMovement;
 	}
+
+	fire() {
+		this.projectiles.push({
+			type: 'bullet',
+			lifeSpan: 100,
+			age: 0,
+			entity: new Entity({
+                driver: this.driver,
+                type: 'player-projectile',
+                id: 'projectile-' + this.id + '-' + this.bulletNumber++,
+                x: this._x,
+                y: this._y,
+                width: 10,
+                height: 10,
+                angle: this._angle,
+                movementSpeed: 100,
+                shape: 'circle',
+                fillStyle: CommonMath.getRandomColor(()=>15),
+                lineWidth: 1,
+                strokeStyle: CommonMath.getRandomColor(),
+                image: null,
+                wiggleX: 1,
+                wiggleY: 1
+            })
+		});
+	}
 	
+	popProjectiles() {
+		const activeProjectiles = [];
+		const poppedProjectiles = [];
+		let projectile = this.projectiles.pop();
+		while(projectile) {
+			projectile.age++;
+			poppedProjectiles.push(projectile);
+			if (projectile.age < projectile.lifeSpan) {
+				activeProjectiles.push(projectile);
+			}
+			projectile = this.projectiles.pop();
+		}
+		this.projectiles.push(...activeProjectiles);
+		return poppedProjectiles;
+	}
+
 	baseInfo() {
 		return {
 			id: this.id,
@@ -378,12 +430,12 @@ class Player extends Entity {
 			angle: this._angle,
 			startAngle: this.startAngle,
 			movementSpeed: this.movementSpeed
-		}
+		};
 	}
 
 	draw(superOnly) {
-		
-		if(superOnly) {
+
+		if (superOnly) {
 			super.draw();
 			return;
 		}
@@ -400,6 +452,9 @@ class Player extends Entity {
 			widthToDraw = 30 * this.driver.renderer.viewPortScaler;
 			heightToDraw = widthToDraw * this.heightToWidthRatio;
 		}
+		
+		//const projectile = this.projectiles.pop();
+		
 
 		this.driver.renderer.drawRealImage(true, this.image, 0, 0, widthToDraw, heightToDraw, playerAngle);
 		this.driver.renderer.drawRealCircle(true, 0, 0, 1, null, 'red');
@@ -409,11 +464,11 @@ class Player extends Entity {
 
 	updatePosition(superOnly) {
 		super.updatePosition();
-		
-		if(superOnly) {
+
+		if (superOnly) {
 			return;
 		}
-		
+
 		var originalAngle = this._angle;
 
 		// this.movementSpeed = this.baseSpeed*(scale/3);
@@ -436,7 +491,7 @@ class Player extends Entity {
 		if ((this.pressingDown && this.pressingUp !== true) || (this.pressingUp && this.pressingDown !== true)) {
 			movingForwardOrBackWard = true;
 		}
-		
+
 		let angleOfMotion = 0;
 		if (this.pressingRightClick && (this.pressingRight || this.pressingLeft)) {
 			strafing = true;
@@ -544,13 +599,13 @@ class Player extends Entity {
 
 		this._y += (this.vy * this.driver.gameEngine.frimScaler);
 		this._x += (this.vx * this.driver.gameEngine.frimScaler);
-		
+
 
 		if (!this._spaceMovement) {
 			this.vectorSpeed = speed > 0 ? CommonMath.round(this.driver.player.movementSpeed) : 0;
 		}
-		
-		if(this._angle !== originalAngle || speed !== 0) {
+
+		if (this._angle !== originalAngle || speed !== 0) {
 			this.motionDetected = true;
 		}
 	}
@@ -640,28 +695,35 @@ class Controls {
 
 	onkeydown(event) {
 		
-		if (inBrowser) {
+		if(inBrowser) {
 			console.log('Key: ' + event.keyCode);
 		}
 		
-		if(this.driver.socket) {
+		if (event.keyCode === 49 || event.keyCode === 32) {
+			this.driver.player.fire();
+		}
+
+		if (this.driver.socket) {
 			//this.driver.log(event.keyCode);
 			this.driver.socket.emit('control', {
 				name: 'onkeydown',
 				value: {
 					keyCode: event.keyCode
-				}});
+				}
+			});
 		}
-		
+
 		if (event.keyCode === 68) { //d
 			this.driver.player.pressingRight = true;
-		} else if (event.keyCode === 83) //s
+		}
+		else if (event.keyCode === 83) //s
 			this.driver.player.pressingDown = true;
 		else if (event.keyCode === 65) //a
 			this.driver.player.pressingLeft = true;
 		else if (event.keyCode === 87) { // w
 			this.driver.player.pressingUp = true;
-		} else if (event.keyCode === 81) // q
+		}
+		else if (event.keyCode === 81) // q
 			this.driver.player.strafingLeft = true;
 		else if (event.keyCode === 69) // e
 			this.driver.player.strafingRight = true;
@@ -763,16 +825,17 @@ class Controls {
 	}
 
 	onkeyup(event) {
-		
-		if(this.driver.socket) {
+
+		if (this.driver.socket) {
 			//this.driver.log(event.keyCode);
 			this.driver.socket.emit('control', {
 				name: 'onkeyup',
 				value: {
 					keyCode: event.keyCode
-				}});
+				}
+			});
 		}
-		
+
 		if (event.keyCode === 68) //d
 			this.driver.player.pressingRight = false;
 		else if (event.keyCode === 83) //s
@@ -915,12 +978,12 @@ class Controls {
 
 
 
-class Hello{
-	constructor(val){
+class Hello {
+	constructor(val) {
 		this.val = 'Hello ' + val;
 		this.id = 999;
-		
-		if(val === 'fail') {
+
+		if (val === 'fail') {
 			throw 'Hello failure';
 		}
 	}
@@ -930,19 +993,21 @@ class Hello{
 
 
 const common = {
-    Hello: Hello,
-    Entity: Entity,
-    Player: Player,
-    Controls: Controls,
-    CommonMath: CommonMath
+	Hello: Hello,
+	Entity: Entity,
+	Player: Player,
+	Controls: Controls,
+	CommonMath: CommonMath
 }
 
-try{
+try {
 	module.exports = common;
-} catch(err) {
-	if(!inBrowser) {
+}
+catch (err) {
+	if (!inBrowser) {
 		console.error('error loading common exports', err);
-	} else {
+	}
+	else {
 		console.log('in browser, no worries.');
 	}
 }

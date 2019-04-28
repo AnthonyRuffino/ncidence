@@ -69,7 +69,7 @@ class Backend {
             var lineWidth = 3;
             
             var colorIndexes = mapliedFactor1%3;
-            colorIndexes = colorIndexes === 0 ? {name: 'red', data: [0,1]} : (colorIndexes === 1 ? {name: 'green', data: [2,3]} : {name: 'blue', data: [4,5]})
+            colorIndexes = colorIndexes === 0 ? {name: 'red', data: [0,1]} : (colorIndexes === 1 ? {name: 'green', data: [2,3]} : {name: 'blue', data: [4,5]});
             
             this.enemies['enemy' + i] = new this.common.Entity({
                 driver: this,
@@ -100,18 +100,47 @@ class Backend {
         console.log('Socket disconnected: ' + socketId + ' - ' + ncidenceCookie);
     }
     
-    moveEnemies(target){
+    considerForTargeting(player){
         const movedEnemies = {};
         Object.entries(this.enemies).forEach((enemy) => {
-            if(target && enemy[1].type.indexOf('red')+1) {
+            if(enemy[1].type.indexOf('red')+1) {
+                if(!enemy[1].target) {
+                    enemy[1].target = player;
+                }
+                var oldTargetXDistance = enemy[1].x - enemy[1].target.x;
+                var oldTargetYDistance = enemy[1].y - enemy[1].target.y;
+                const oldDistance = Math.sqrt( oldTargetXDistance*oldTargetXDistance + oldTargetYDistance*oldTargetYDistance );
+                const aggroRangeMemory = (100/enemy[1].width)*400;
+                if(enemy[1].target.id !== player.id && (oldDistance > aggroRangeMemory)) {
+                    var newTargetXDistance = enemy[1].x - player.x;
+                    var newTargetYDistance = enemy[1].y - player.y;
+                    
+                    const newDistance = Math.sqrt( newTargetXDistance*newTargetXDistance + newTargetYDistance*newTargetYDistance );
+                    if(newDistance < oldDistance) {
+                        enemy[1].target = player;
+                    }
+                }
+            }
+        });
+        return movedEnemies;
+    }
+    
+    
+    moveEnemies(enemies){
+        const movedEnemies = {};
+        Object.entries(enemies).forEach((enemy) => {
+            if(enemy[1].target) {
                 const speed = (100*(1/enemy[1].width));
-                enemy[1].x += speed*(target.x > enemy[1].x ? 1 : -1);
-                enemy[1].y += speed*(target.y > enemy[1].y ? 1 : -1);
+                enemy[1].x += speed*(enemy[1].target.x > enemy[1].x ? 1 : -1);
+                enemy[1].y += speed*(enemy[1].target.y > enemy[1].y ? 1 : -1);
                 movedEnemies[enemy[0]] = {
                     id: enemy[0],
                     x: enemy[1].x,
                     y: enemy[1].y
                 };
+            } else if(enemy[1].type === 'bullet') {
+                enemy[1].entity.projectileMotion();
+                movedEnemies[enemy[1].entity.id] = {...enemy[1].entity.baseInfo(), driver: {}, age: enemy[1].age, lifeSpan: enemy[1].lifeSpan};
             }
         });
         return movedEnemies;
@@ -123,16 +152,20 @@ class Backend {
         //console.log('delta: ' + delta);
         this.frimScaler = delta / this.targetTickDelta;
         const updatedPlayers = [];
+        let movedEnemies = this.moveEnemies(this.enemies);
+        let movedProjectiles = {};
         if (this.connections) {
-            let pNum = 0;
-            let movedEnemies = null;
             Object.entries(this.connections).forEach((connection) => {
-                pNum++;
-                
+                if(this.tick%100 === 0) {
+                    this.considerForTargeting(connection[1].player);
+                }
                 const player = connection[1].player;
                 
-                if(pNum === 1) {
-                    movedEnemies = this.moveEnemies(player);
+                const projectiles = this.moveEnemies(player.popProjectiles());
+                if(Object.keys(projectiles).length > 0) {
+                    Object.entries(projectiles).forEach(entry => {
+                        movedProjectiles[entry[0]] = entry[1];
+                    });
                 }
                 
                 player.updatePosition();
@@ -144,23 +177,31 @@ class Backend {
                         angle: player.angle,
                     });
                 }
-                if((this.tick%5 === 0) && Object.keys(movedEnemies).length > 0) {
+                if((this.tick%2 === 0) && Object.keys(movedEnemies).length > 0) {
                     connection[1].emit('enemy-motion', movedEnemies);
                 }
             });
             
-            if (updatedPlayers && updatedPlayers.length > 0) {
-                updatedPlayers.forEach((other) => {
-                    Object.entries(this.connections).forEach((connection) => {
-                        if (connection[1].player.id !== other.id) {
-                            connection[1].emit('other-motion', {
-                                x: other.x,
-                                y: other.y,
-                                angle: other.angle,
-                                id: other.id
-                            });
-                        }
-                    });
+            
+            const playerMovement = updatedPlayers && updatedPlayers.length;
+            const bulletsFlying = Object.keys(movedProjectiles).length;
+            if (playerMovement || bulletsFlying) {
+                Object.entries(this.connections).forEach((connection) => {
+                    if((this.tick%2 === 0) && bulletsFlying) {
+                        connection[1].emit('projectile-motion', movedProjectiles);
+                    }
+                    if (playerMovement) {
+                        updatedPlayers.forEach((other) => {
+                            if (connection[1].player.id !== other.id) {
+                                connection[1].emit('other-motion', {
+                                    x: other.x,
+                                    y: other.y,
+                                    angle: other.angle,
+                                    id: other.id
+                                });
+                            }
+                        });
+                    }
                 });
             }
         }
@@ -282,7 +323,10 @@ class Backend {
                 emit('enemies', enemies);
 
 
-                emit('hi', { ...player.baseInfo(), driver: null, img: null });
+                emit('hi', {
+                    playerData: { ...player.baseInfo(), driver: null, img: null }, 
+                    gameStartTimeServer: this._gameStartTime 
+                });
 
 
             }
