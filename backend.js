@@ -107,7 +107,9 @@ class Backend {
     disconnectSocket({ appCookie, socketId }) {
         console.log('Socket disconnected: ' + socketId + ' - ' + appCookie);
         const conn = this.connections[this.sessionKey({sessionId:appCookie}, socketId)];
-        conn.disconnected = new Date();
+        if(conn) {
+            conn.disconnected = new Date();
+        }
     }
     
     considerForTargeting(player){
