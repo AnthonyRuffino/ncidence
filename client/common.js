@@ -414,7 +414,7 @@ class Player extends Entity {
 		this._spaceMovement = spaceMovement;
 	}
 
-	fire() {
+	fire(data) {
 		this.projectiles.push({
 			type: 'bullet',
 			lifeSpan: 100,
@@ -426,11 +426,11 @@ class Player extends Entity {
                 id: 'projectile-' + this.id + '-' + this.bulletNumber++,
                 x: this._x,
                 y: this._y,
-                width: 10,
-                height: 10,
+                width: data ? 10 : 50,
+                height: data ? 50 : 10,
                 angle: this._angle,
                 movementSpeed: 100,
-                shape: 'circle',
+                shape: 'rectangle',
                 fillStyle: CommonMath.getRandomColor(()=>15),
                 lineWidth: 1,
                 strokeStyle: CommonMath.getRandomColor(),
@@ -690,10 +690,8 @@ class Controls {
 
 	onclick(mouse) {
 		var msHeld = (Date.now() - this.driver.player.timeWhenLeftMouseWasPressed);
-		if (msHeld < 1000) {
-			var mouseX = mouse.x - this.driver.renderer.horizontalOffset;
+		if (msHeld < 1000) {var mouseX = mouse.x - this.driver.renderer.horizontalOffset;
 			var mouseY = mouse.y - this.driver.renderer.verticalOffset;
-
 			var controlClicked = false;
 
 			if (this.driver.clickControls !== undefined && this.driver.clickControls != null) {
@@ -737,6 +735,8 @@ class Controls {
 		
 		if (event.keyCode === 49 || event.keyCode === 32) {
 			this.driver.player.fire();
+		} if (event.keyCode === 50) {
+			this.driver.player.fire({type:'big'});
 		}
 
 		if (this.driver.socket) {

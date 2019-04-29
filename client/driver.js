@@ -223,11 +223,20 @@ class GameDriver {
 		
 		this._clickControls = [];
 		
-        this.thrusterControl = new ScaledControl(this, 'thrusterControl', ()=>console.log('Thrust!!!'), .95, .80, (1 / 24), .05, image('/img/space/icon-thruster.png'));
-        
-        //WARP CONTROL
-        this.warpControl = new ScaledControl(this, 'warpControl', ()=>console.log('warp!!!'), .90, .80, (1 / 24), .05, image('/img/space/icon-warp.png'));
-        this.homeControl = new ScaledControl(this, 'warpControl', ()=>clickCircle(74, true, 10), .85, .80, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
+		
+		
+		const unclickAll = () => {
+			clickCircle(81, false);
+			clickCircle(87, false);
+			clickCircle(69, false);
+			clickCircle(65, false);
+			clickCircle(68, false);
+			clickCircle(83, false);
+		}
+		
+		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 10), .30, .80, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
+        this.thrusterControl = new ScaledControl(this, 'thrusterControl', () => unclickAll(), .30, .90, (1 / 24), .05, image('/img/space/icon-thruster.png'));
+        this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(74, true, 10), .95, .90, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
 
 
         //CIRCLE CONTROLL
