@@ -55,6 +55,6 @@
     "src-string": "^1.0.0",
     "storming": "^1.0.0",
     "uuid": "^3.3.2",
-    "your-sql": "^1.1.2"
+    "your-sql": "^1.1.3"
   }
 }
