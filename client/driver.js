@@ -172,10 +172,11 @@ class GameDriver {
 		});
 		
 		this.socket.on('my-motion', (motion) => {
-			//console.log('my-motion: ', motion);
-			this.player.x = motion.x;
-			this.player.y = motion.y;
-			this.player.angle = motion.angle;
+			console.log('my-motion: ', motion);
+			this._player.x = motion.x;
+			this._player.y = motion.y;
+			this._player.angle = motion.angle;
+			this._player.baseSpeed = motion.baseSpeed;
 		});
 		
 		

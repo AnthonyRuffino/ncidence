@@ -175,6 +175,7 @@ class Backend {
                         x: player.x,
                         y: player.y,
                         angle: player.angle,
+                        baseSpeed: player.baseSpeed
                     });
                 }
                 if((this.tick%2 === 0) && Object.keys(movedEnemies).length > 0) {
@@ -225,7 +226,7 @@ class Backend {
                         console.log('Who are you?');
                     }
                     else {
-                        //console.log('Setting player control', playerOptional[0].player.id, dataIn);
+                        //console.log('Setting player control', playerOptional.player.id, dataIn);
                         this.setPlayerControl(playerOptional, dataIn, console.log);
                     }
                 }

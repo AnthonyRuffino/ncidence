@@ -654,6 +654,16 @@ class Controls {
 	onclick(mouse) {
 		var msHeld = (Date.now() - this.driver.player.timeWhenLeftMouseWasPressed);
 		if (msHeld < 1000) {
+			
+			if (this.driver.socket) {
+				//this.driver.log(event.keyCode);
+				this.driver.socket.emit('control', {
+					name: 'onkeydown',
+					value: {
+						keyCode: 49
+					}
+				});
+			}
 
 			var mouseX = mouse.x - this.driver.renderer.horizontalOffset;
 			var mouseY = mouse.y - this.driver.renderer.verticalOffset;
@@ -852,83 +862,94 @@ class Controls {
 
 	onwheel(mouse) {
 		//mouse.preventDefault();
-		this.driver.previousScale = null;
-		var zoomingIn = (mouse.shiftKey !== true && mouse.deltaY < 0) || (mouse.shiftKey && mouse.deltaX < 0);
-
-		var sampleValue = mouse.shiftKey !== true ? this.driver.renderer.scale : this.driver.player.baseSpeed;
-		var scaler = .1;
-
-		if (zoomingIn) {
-			if (sampleValue < .0000001) {
-				scaler = .00000001;
-			}
-			else if (sampleValue < .000001) {
-				scaler = .0000001;
-			}
-			else if (sampleValue < .00001) {
-				scaler = .000001;
-			}
-			else if (sampleValue < .0001) {
-				scaler = .00001;
-			}
-			else if (sampleValue < .001) {
-				scaler = .0001;
-			}
-			else if (sampleValue < .01) {
-				scaler = .001;
-			}
-			else if (sampleValue < .1) {
-				scaler = .01;
-			}
+		
+		
+		
+		if (this.driver.socket && mouse.shiftKey) {
+			this.driver.socket.emit('control', {
+				name: 'onwheel',
+				value: {
+					shiftKey: mouse.shiftKey,
+					deltaY: event.deltaY,
+					deltaX: event.deltaX,
+				}
+			});
 		}
-		else {
-			if (sampleValue <= .0000001) {
-				scaler = .00000001;
-			}
-			else if (sampleValue <= .000001) {
-				scaler = .0000001;
-			}
-			else if (sampleValue <= .00001) {
-				scaler = .000001;
-			}
-			else if (sampleValue <= .0001) {
-				scaler = .00001;
-			}
-			else if (sampleValue <= .001) {
-				scaler = .0001;
-			}
-			else if (sampleValue <= .01) {
-				scaler = .001;
-			}
-			else if (sampleValue <= .1) {
-				scaler = .01;
-			}
-		}
-
-
+		
 		if (mouse.shiftKey) {
-			scaler = scaler * 10 * this.driver.gameEngine.frimScaler;
+			if(!inBrowser) {
+				let scaler  = 100 * this.driver.gameEngine.frimScaler;
 
-			const speedScrollScaler = 20;
-
-			if (mouse.deltaY < 0) {
-				this.driver.player.baseSpeed += (scaler * speedScrollScaler);
-				console.log('+++', scaler);
+				if (mouse.deltaY < 0) {
+					this.driver.player.baseSpeed += scaler;
+					//console.log('+++', this.driver.player.baseSpeed);
+				}
+				else if (mouse.deltaY > 0) {
+					this.driver.player.baseSpeed -= scaler;
+					//console.log('---', this.driver.player.baseSpeed);
+				}
+	
+				if (this.driver.player.baseSpeed < 1) {
+					this.driver.player.baseSpeed = 1;
+				}
+	
+				this.driver.player.baseSpeed = CommonMath.round(this.driver.player.baseSpeed, 1);
 			}
-			else if (mouse.deltaY > 0) {
-				this.driver.player.baseSpeed -= (scaler * speedScrollScaler);
-				console.log('---', scaler);
-			}
-
-			if (this.driver.player.baseSpeed < 1) {
-				this.driver.player.baseSpeed = 1;
-			}
-
-			this.driver.player.baseSpeed = CommonMath.round(this.driver.player.baseSpeed, 1);
-
-
 		}
 		else {
+			
+			this.driver.previousScale = null;
+			let zoomingIn = (mouse.shiftKey !== true && mouse.deltaY < 0) || (mouse.shiftKey && mouse.deltaX < 0);
+	
+			let sampleValue = mouse.shiftKey !== true ? this.driver.renderer.scale : this.driver.player.baseSpeed;
+			let scaler = .1;
+			
+			if (zoomingIn) {
+				if (sampleValue < .0000001) {
+					scaler = .00000001;
+				}
+				else if (sampleValue < .000001) {
+					scaler = .0000001;
+				}
+				else if (sampleValue < .00001) {
+					scaler = .000001;
+				}
+				else if (sampleValue < .0001) {
+					scaler = .00001;
+				}
+				else if (sampleValue < .001) {
+					scaler = .0001;
+				}
+				else if (sampleValue < .01) {
+					scaler = .001;
+				}
+				else if (sampleValue < .1) {
+					scaler = .01;
+				}
+			}
+			else {
+				if (sampleValue <= .0000001) {
+					scaler = .00000001;
+				}
+				else if (sampleValue <= .000001) {
+					scaler = .0000001;
+				}
+				else if (sampleValue <= .00001) {
+					scaler = .000001;
+				}
+				else if (sampleValue <= .0001) {
+					scaler = .00001;
+				}
+				else if (sampleValue <= .001) {
+					scaler = .0001;
+				}
+				else if (sampleValue <= .01) {
+					scaler = .001;
+				}
+				else if (sampleValue <= .1) {
+					scaler = .01;
+				}
+			}
 			if (mouse.deltaY < 0) {
 				this.driver.renderer.scale += scaler;
 			}
