@@ -691,17 +691,6 @@ class Controls {
 	onclick(mouse) {
 		var msHeld = (Date.now() - this.driver.player.timeWhenLeftMouseWasPressed);
 		if (msHeld < 1000) {
-			
-			if (this.driver.socket) {
-				//this.driver.log(event.keyCode);
-				this.driver.socket.emit('control', {
-					name: 'onkeydown',
-					value: {
-						keyCode: 49
-					}
-				});
-			}
-
 			var mouseX = mouse.x - this.driver.renderer.horizontalOffset;
 			var mouseY = mouse.y - this.driver.renderer.verticalOffset;
 

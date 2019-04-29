@@ -1,6 +1,80 @@
 /* global CommonMath */
 /* global Controls */
 
+
+
+
+
+class ScaledControl{
+	constructor(driver, id,doClick,x,y,width,height,image,doHighlight,highlightColor){
+		this.driver = driver;
+		this.id=id;
+		this.doClick=doClick;
+		this.x=x;
+		this.y=y;
+		this.width=width;
+		this.height=height===undefined || height===null ? width : height;
+		this.image=image;
+		this.doHighlight=doHighlight;
+		this.isCircle=height===undefined || height===null;
+		this.highlightColor = highlightColor;
+	}
+	
+	draw(){
+		if(this.isCircle){
+			var bounds = this.getBounds();
+			this.driver.renderer.drawImage(true,this.image,bounds.centerX,bounds.centerY,bounds.smallerDimention*this.width,bounds.smallerDimention*this.width,null,true);
+		}else{
+			this.driver.renderer.drawImage(true,this.image,this.driver.renderer.width*this.x,this.driver.renderer.height*this.y,this.driver.renderer.width*this.width,this.driver.renderer.height*this.height,null,false);
+		}
+		
+		if(this.doHighlight !== undefined && this.doHighlight !== null && this.doHighlight() === true){
+			this.highlightColor = this.highlightColor===undefined || this.highlightColor===null ? 'red' : this.highlightColor;
+			
+			if(this.isCircle){
+				var bounds = this.getBounds();
+				this.driver.renderer.drawCircle(true,bounds.centerX,bounds.centerY,bounds.smallerDimention*(this.width/2),null,null,3*this.driver.renderer.viewPortScaler, this.highlightColor);
+			}else{
+				this.driver.renderer.drawRectangle(true,this.driver.renderer.width*this.x,this.driver.renderer.height*this.y,this.driver.renderer.width*this.width,this.driver.renderer.height*this.height,null,null,3*this.driver.renderer.viewPortScaler, this.highlightColor);
+			}
+		}
+	}
+	
+	clicked(mouseX,mouseY){
+		var bounds = this.getBounds();
+		var isClicked = false;
+		if(this.isCircle){
+			var dx = bounds.centerX - mouseX;
+			var dy = bounds.centerY - mouseY;
+			var distance =Math.sqrt(dx*dx+dy*dy);
+			isClicked = distance <= bounds.smallerDimention*(this.width/2);
+		}else{
+			isClicked = mouseX>=bounds.leftBound && mouseX<=bounds.rightBound&&mouseY>=bounds.upperBound&&mouseY<=bounds.lowerBound;
+		}
+		
+		return isClicked;
+	}
+	
+	getBounds(){
+		var bounds = {};
+		bounds.smallerDimention = this.driver.renderer.height < this.driver.renderer.width ? this.driver.renderer.height : this.driver.renderer.width;
+		bounds.leftBound = this.driver.renderer.width*this.x;
+		bounds.rightBound = bounds.leftBound+this.driver.renderer.width*this.width;
+		bounds.upperBound = this.driver.renderer.height*this.y;
+		bounds.lowerBound = bounds.upperBound+this.driver.renderer.height*this.height;
+		bounds.centerX=this.driver.renderer.width*this.x+((this.driver.renderer.width*this.width)/2);
+		if(this.isCircle){
+			bounds.centerY=this.driver.renderer.height*this.y+((bounds.smallerDimention*this.width)/2);
+		}else{
+			bounds.centerY=this.driver.renderer.height*this.y+((this.driver.renderer.height*this.height)/2);
+		}
+		
+		return bounds;
+	}
+}
+
+
+
 class ControlsBinder {
 
 	static bind(driver, target) {
@@ -93,16 +167,87 @@ class GameDriver {
 
 		//constructor(driver,id,x,y,width,height,angle,movementSpeed,img)
 		this._player = new Player({driver: this, tag: 'dummy'});
+		
+		
+		
+		
+		this.controls = new Controls(this);
+		ControlsBinder.bind(this, document);
 
 		//CLICK CONTROLS
+		//driver, id,doClick,x,y,width,height,image,doHighlight,highlightColor
+		
 		this._clickControls = [];
+		var thrusterImage = {};
+        thrusterImage.img = new Image();
+        thrusterImage.img.src = '/img/space/icon-thruster.png';
+        this.thrusterControl = new ScaledControl(this, 'thrusterControl', ()=>console.log('Thrust!!!'), .95, .80, (1 / 24), .05, thrusterImage);
+        
+        //WARP CONTROL
+        var warpImage = {};
+        warpImage.img = new Image();
+        warpImage.img.src = '/img/space/icon-warp.png';
+        this.warpControl = new ScaledControl(this, 'warpControl', ()=>console.log('warp!!!'), .90, .80, (1 / 24), .05, warpImage);
+
+
+        //CIRCLE CONTROLL
+        var circleImage = {};
+        circleImage.img = new Image();
+        circleImage.img.src = '/img/space/circle.png';
+        
+        
+        this._clickControls.push(this.thrusterControl);
+        this._clickControls.push(this.warpControl);
+        
+        
+        
+        
+        this.clickIsDownMemory = {};
+        
+        const clickCircle = (keyCode, isDownOverride) => {
+        	let isDown;
+        	if(isDownOverride === undefined) {
+        		this.clickIsDownMemory['' + keyCode] = !this.clickIsDownMemory['' + keyCode];
+        		isDown = this.clickIsDownMemory['' + keyCode];
+        	} else {
+        		this.clickIsDownMemory['' + keyCode] = isDownOverride;
+        		isDown = isDownOverride;
+        	}
+        	
+        	if(isDown) {
+        		this.controls.onkeydown({
+	        		keyCode
+	        	});
+        	} else {
+        		this.controls.onkeyup({
+	        		keyCode
+	        	});
+        	}
+        };
+        
+        const doMemoryHighlight = (keyCode) => {
+        	return 	this.clickIsDownMemory['' + keyCode];
+        };
+		
+        this._clickControls.push(...[
+        	new ScaledControl(this, 'circleControl1', ()=>clickCircle(81), .02, .70, (2 / 24), null, circleImage, () => doMemoryHighlight(81)),
+        	new ScaledControl(this, 'circleControl2', ()=>clickCircle(87), .10, .70, (2 / 24), null, circleImage, () => doMemoryHighlight(87)),
+        	new ScaledControl(this, 'circleControl3', ()=>clickCircle(69), .18, .70, (2 / 24), null, circleImage, () => doMemoryHighlight(69)),
+        	
+        	new ScaledControl(this, 'circleControl4', ()=>clickCircle(65), .02, .80, (2 / 24), null, circleImage, () => doMemoryHighlight(65)),
+        	new ScaledControl(this, 'circleControl5', ()=>clickCircle(32, true), .10, .80, (2 / 24), null, circleImage),
+        	new ScaledControl(this, 'circleControl6', ()=>clickCircle(68), .18, .80, (2 / 24), null, circleImage, () => doMemoryHighlight(68)),
+        	
+        	//new ScaledControl(this, 'circleControl7', ()=>clickCircle(32), .02, .90, (2 / 24), null, circleImage),
+        	new ScaledControl(this, 'circleControl8', ()=>clickCircle(83), .10, .90, (2 / 24), null, circleImage, () => doMemoryHighlight(83)),
+        	//new ScaledControl(this, 'circleControl9', ()=>clickCircle(32), .18, .90, (2 / 24), null, circleImage)
+        ]);
 		//END CLICK CONTROLS
 
 
 		
 		
-		this.controls = new Controls(this);
-		ControlsBinder.bind(this, document);
+		
 
 		this.socket.on('beep', (msg) => {
 			console.log('beep', msg, this.me);
@@ -274,6 +419,12 @@ class GameDriver {
 		this._renderer.ctx.fillText('elapsedTimeServer: ' + CommonMath.round((Date.now() - this.gameStartTimeServer) / 1000, 2) + ' sec', 0, (textSize * 11) * this._renderer.viewPortScaler);
 		
 		this._renderer.ctx.fillText('email me aruffino84@gmail.com', 0, (textSize * 12) * this._renderer.viewPortScaler);
+		
+		
+		
+		for (var i = 0; i < this._clickControls.length; i++) {
+            this._clickControls[i].draw();
+        }
 		
 		this._renderer.ctx.restore();
 		

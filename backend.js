@@ -90,7 +90,7 @@ class Backend {
                 angle: 15,
                 movementSpeed: 10,
                 shape: enemyShape,
-                fillStyle: this.common.CommonMath.getRandomColor((index)=>colorIndexes.data.indexOf(index)>-1 ? ((mapliedFactor1*mapliedFactor2)%15) : 0),
+                fillStyle: this.common.CommonMath.getRandomColor((index)=>colorIndexes.data.indexOf(index)>-1 ? 15 : 0),
                 lineWidth,
                 strokeStyle: this.common.CommonMath.getRandomColor(),
                 image: null,
