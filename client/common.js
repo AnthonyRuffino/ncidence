@@ -415,6 +415,7 @@ class Player extends Entity {
 	}
 
 	fire(data) {
+		this.hp--;
 		this.projectiles.push({
 			type: 'bullet',
 			lifeSpan: 100,
@@ -749,14 +750,14 @@ class Controls {
 			});
 		}
 
-		if (event.keyCode === 68) { //d
+		if (event.keyCode === 68|| event.keyCode === 39) { //d
 			this.driver.player.pressingRight = true;
 		}
-		else if (event.keyCode === 83) //s
+		else if (event.keyCode === 83 || event.keyCode === 40) //s
 			this.driver.player.pressingDown = true;
-		else if (event.keyCode === 65) //a
+		else if (event.keyCode === 65|| event.keyCode === 37) //a
 			this.driver.player.pressingLeft = true;
-		else if (event.keyCode === 87) { // w
+		else if (event.keyCode === 87|| event.keyCode === 38) { // w
 			this.driver.player.pressingUp = true;
 		}
 		else if (event.keyCode === 81) // q
@@ -820,13 +821,13 @@ class Controls {
 			});
 		}
 
-		if (event.keyCode === 68) //d
+		if (event.keyCode === 68|| event.keyCode === 39) //d
 			this.driver.player.pressingRight = false;
-		else if (event.keyCode === 83) //s
+		else if (event.keyCode === 83 || event.keyCode === 40) //s
 			this.driver.player.pressingDown = false;
-		else if (event.keyCode === 65) //a
+		else if (event.keyCode === 65|| event.keyCode === 37) //a
 			this.driver.player.pressingLeft = false;
-		else if (event.keyCode === 87) // w
+		else if (event.keyCode === 87|| event.keyCode === 38) // w
 			this.driver.player.pressingUp = false;
 		else if (event.keyCode === 81) // q
 			this.driver.player.strafingLeft = false;
