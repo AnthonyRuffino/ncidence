@@ -175,7 +175,7 @@ class Backend {
         if (this.connections) {
             let check = 0;
             Object.entries(this.connections).forEach((connection) => {
-                if(this.tick%100 === 0) {
+                if(this.tick%10 === 0) {
                     check++;
                     const last = check === Object.entries(this.connections).length;
                     this.considerForTargeting(connection[1].player, last);
