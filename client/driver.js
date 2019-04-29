@@ -178,28 +178,16 @@ class GameDriver {
 		//CLICK CONTROLS
 		//driver, id,doClick,x,y,width,height,image,doHighlight,highlightColor
 		
-		this._clickControls = [];
-		var thrusterImage = {};
-        thrusterImage.img = new Image();
-        thrusterImage.img.src = '/img/space/icon-thruster.png';
-        this.thrusterControl = new ScaledControl(this, 'thrusterControl', ()=>console.log('Thrust!!!'), .95, .80, (1 / 24), .05, thrusterImage);
+		this.clickCooldowns = {};
         
-        //WARP CONTROL
-        var warpImage = {};
-        warpImage.img = new Image();
-        warpImage.img.src = '/img/space/icon-warp.png';
-        this.warpControl = new ScaledControl(this, 'warpControl', ()=>console.log('warp!!!'), .90, .80, (1 / 24), .05, warpImage);
-
-
-        //CIRCLE CONTROLL
-        this._clickControls.push(this.thrusterControl);
-        this._clickControls.push(this.warpControl);
-        
-        
-        
-        this.clickIsDownMemory = {};
-        
-        const clickCircle = (keyCode, isDownOverride) => {
+        const canDoCooldown = (keyCode) => {
+        	if(!this.clickCooldowns['' + keyCode]) {
+        		return true;
+        	}
+        	return !this.clickCooldowns['' + keyCode] || (new Date()).getTime() >= this.clickCooldowns['' + keyCode];
+        };
+		
+		const clickCircle = (keyCode, isDownOverride, cooldown) => {
         	let isDown;
         	if(isDownOverride === undefined) {
         		this.clickIsDownMemory['' + keyCode] = !this.clickIsDownMemory['' + keyCode];
@@ -207,6 +195,12 @@ class GameDriver {
         	} else {
         		this.clickIsDownMemory['' + keyCode] = isDownOverride;
         		isDown = isDownOverride;
+        	}
+        	
+        	if(!canDoCooldown(keyCode)) {
+        		return;
+        	} else if(cooldown !== undefined) {
+        		this.clickCooldowns['' + keyCode] = (new Date()).getTime() + (cooldown*1000);
         	}
         	
         	if(isDown) {
@@ -220,16 +214,34 @@ class GameDriver {
         	}
         };
         
-        const doMemoryHighlight = (keyCode) => {
-        	return 	this.clickIsDownMemory['' + keyCode];
-        };
-		
-		var image = (src) => {
-			var img = {};
+		const image = (src) => {
+			const img = {};
 			img.img = new Image();
         	img.img.src = src;
         	return img;
 		}
+		
+		this._clickControls = [];
+		
+        this.thrusterControl = new ScaledControl(this, 'thrusterControl', ()=>console.log('Thrust!!!'), .95, .80, (1 / 24), .05, image('/img/space/icon-thruster.png'));
+        
+        //WARP CONTROL
+        this.warpControl = new ScaledControl(this, 'warpControl', ()=>console.log('warp!!!'), .90, .80, (1 / 24), .05, image('/img/space/icon-warp.png'));
+        this.homeControl = new ScaledControl(this, 'warpControl', ()=>clickCircle(74, true, 10), .85, .80, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
+
+
+        //CIRCLE CONTROLL
+        this._clickControls.push(this.thrusterControl);
+        this._clickControls.push(this.warpControl);
+        this.clickControls.push(this.homeControl);
+        
+        
+        
+        this.clickIsDownMemory = {};
+        
+        const doMemoryHighlight = (keyCode) => {
+        	return 	this.clickIsDownMemory['' + keyCode];
+        };
 		
 		var circleImage = image('/img/space/circle.png');
 		var arrowImage = image('/img/space/arrow.jpg');
