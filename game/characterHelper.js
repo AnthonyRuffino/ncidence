@@ -16,7 +16,7 @@ class CharacterHelper {
                     (err && console.error(`ERR SAVING CHARACTER(${charName})[${charUser}]`, err)) || console.info(`Character Saved(${charName})[${charUser}]`);
                 });
             });
-        }, 10000);
+        }, 40000);
     }
     
     getGameEntityRecord(gameName, entityName, filter) {

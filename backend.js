@@ -19,8 +19,6 @@ class Backend {
             hash:(val)=> this.sha256(val)
         }, subdomain);
         
-        const universe = this.mapplied.getUniverse();
-        
         this.characterHelper = new (require("./game/characterHelper.js"))({ storming, subdomain });
         this.characterHelper.manageStrategy = () => {
             Object.entries(this.connections).forEach((connection) => {
@@ -41,6 +39,17 @@ class Backend {
         this.setPlayerControl = this.setPlayerControl.bind(this);
         this.update = this.update.bind(this);
         
+        this.resetEnemies();
+        
+        setInterval(() => {
+            this.resetEnemies();
+        }, 1000*30);
+        
+    }
+    
+    
+    resetEnemies() {
+        const universe = this.mapplied.getUniverse();
         const hashAnalysis = universe.hashAnalysis;
         
         const numVal = (index) => {
@@ -53,7 +62,6 @@ class Backend {
             const num = hashAnalysis.numbers[index + ''];
             return num.val;
         };
-
         const enemyCount = 100 - (numVal(1) * 10) - numVal(2);
         this.enemies = {};
         for (var i = 1; i <= enemyCount; i++) {
@@ -92,12 +100,14 @@ class Backend {
         }
     }
 
-    sessionKey(user) {
-        return `${user.username}-${user.sessionId}`;
+    sessionKey(user, socketId) {
+        return `${user.sessionId}`;
     }
 
-    disconnectSocket({ ncidenceCookie, socketId }) {
-        console.log('Socket disconnected: ' + socketId + ' - ' + ncidenceCookie);
+    disconnectSocket({ appCookie, socketId }) {
+        console.log('Socket disconnected: ' + socketId + ' - ' + appCookie);
+        const conn = this.connections[this.sessionKey({sessionId:appCookie}, socketId)];
+        conn.disconnected = new Date();
     }
     
     considerForTargeting(player){
@@ -152,6 +162,7 @@ class Backend {
         //console.log('delta: ' + delta);
         this.frimScaler = delta / this.targetTickDelta;
         const updatedPlayers = [];
+        const disconectedPlayers = [];
         let movedEnemies = this.moveEnemies(this.enemies);
         let movedProjectiles = {};
         if (this.connections) {
@@ -170,13 +181,17 @@ class Backend {
                 
                 player.updatePosition();
                 if (player.motionDetected) {
-                    updatedPlayers.push(player);
+                    updatedPlayers.push(connection);
                     connection[1].emit('my-motion', {
                         x: player.x,
                         y: player.y,
                         angle: player.angle,
                         baseSpeed: player.baseSpeed
                     });
+                } else if(connection[1].disconnected && (((new Date()) - connection[1].disconnected) > 1000)){
+                    connection.disconnect = true;
+                    updatedPlayers.push(connection);
+                    disconectedPlayers.push(connection);
                 }
                 if((this.tick%2 === 0) && Object.keys(movedEnemies).length > 0) {
                     connection[1].emit('enemy-motion', movedEnemies);
@@ -187,18 +202,25 @@ class Backend {
             const playerMovement = updatedPlayers && updatedPlayers.length;
             const bulletsFlying = Object.keys(movedProjectiles).length;
             if (playerMovement || bulletsFlying) {
+                
+                
+                disconectedPlayers.forEach((connection) => {
+                    delete this.connections[connection[0]];
+                });
                 Object.entries(this.connections).forEach((connection) => {
                     if((this.tick%2 === 0) && bulletsFlying) {
                         connection[1].emit('projectile-motion', movedProjectiles);
                     }
                     if (playerMovement) {
                         updatedPlayers.forEach((other) => {
-                            if (connection[1].player.id !== other.id) {
+                            const otherPlayer = other[1].player;
+                            if (connection[1].player.id !== otherPlayer.id) {
                                 connection[1].emit('other-motion', {
-                                    x: other.x,
-                                    y: other.y,
-                                    angle: other.angle,
-                                    id: other.id
+                                    x: otherPlayer.x,
+                                    y: otherPlayer.y,
+                                    angle: otherPlayer.angle,
+                                    id: otherPlayer.id,
+                                    disconnect: other[1].disconnect
                                 });
                             }
                         });
@@ -217,10 +239,10 @@ class Backend {
         const socketIOHooks = [];
         socketIOHooks.push({
             on: 'control',
-            run: ({ emit, dataIn, user }) => {
+            run: ({ emit, dataIn, user, socketId }) => {
                 //console.log('Control: ' + JSON.stringify(dataIn));
                 if (this.connections) {
-                    const playerOptional = this.connections[this.sessionKey(user)];
+                    const playerOptional = this.connections[this.sessionKey(user, socketId)];
                     //TODO: what to do for anonymous?
                     if (!playerOptional) {
                         console.log('Who are you?');
@@ -234,11 +256,11 @@ class Backend {
         });
         socketIOHooks.push({
             on: 'hi',
-            run: async({ emit, dataIn, user }) => {
+            run: async({ emit, dataIn, user, socketId }) => {
                 console.log(`${user.username}: 'hi' - isAnonymous: ${user.isAnonymous} - ncidenceCookie:${user.sessionId}`);
 
                 let player = null;
-                const connectionOptional = this.connections[this.sessionKey(user)];
+                const connectionOptional = this.connections[this.sessionKey(user, socketId)];
                 //TODO: what to do for anonymous?
                 if (!connectionOptional) {
                     const driver = {
@@ -302,7 +324,7 @@ class Backend {
                         connection[1].emit('joiner', { ...baseInfo, driver: null, img: null });
                         emit('joiner', { ...connection[1].player.baseInfo(), driver: null, img: null });
                     });
-                    this.connections[this.sessionKey(user)] = { player, emit, controls };
+                    this.connections[this.sessionKey(user, socketId)] = { player, emit, controls };
 
 
                 }
@@ -315,7 +337,10 @@ class Backend {
                             emit('joiner', { ...connection[1].player.baseInfo(), driver: null, img: null });
                         }
                     });
+                    connectionOptional.disconnected = null;
                 }
+                
+                
 
                 const enemies = {}
                 Object.entries(this.enemies).forEach((enemy) => {

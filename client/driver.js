@@ -172,7 +172,7 @@ class GameDriver {
 		});
 		
 		this.socket.on('my-motion', (motion) => {
-			console.log('my-motion: ', motion);
+			//console.log('my-motion: ', motion);
 			this._player.x = motion.x;
 			this._player.y = motion.y;
 			this._player.angle = motion.angle;
