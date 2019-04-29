@@ -112,24 +112,29 @@ class Backend {
         }
     }
     
-    considerForTargeting(player){
+    considerForTargeting(player, last){
         const movedEnemies = {};
         Object.entries(this.enemies).forEach((enemy) => {
             if(enemy[1].type.indexOf('red')+1) {
                 if(!enemy[1].target) {
                     enemy[1].target = player;
+                    enemy[1].initialTarget = true;
                 }
                 var oldTargetXDistance = enemy[1].x - enemy[1].target.x;
                 var oldTargetYDistance = enemy[1].y - enemy[1].target.y;
                 const oldDistance = Math.sqrt( oldTargetXDistance*oldTargetXDistance + oldTargetYDistance*oldTargetYDistance );
                 const aggroRangeMemory = (100/enemy[1].width)*400;
-                if(enemy[1].target.id !== player.id && (oldDistance > aggroRangeMemory)) {
+                if(enemy[1].target.id !== player.id && ((oldDistance > aggroRangeMemory) || enemy[1].initialTarget)) {
                     var newTargetXDistance = enemy[1].x - player.x;
                     var newTargetYDistance = enemy[1].y - player.y;
                     
                     const newDistance = Math.sqrt( newTargetXDistance*newTargetXDistance + newTargetYDistance*newTargetYDistance );
                     if(newDistance < oldDistance) {
                         enemy[1].target = player;
+                    }
+                    
+                    if(last) {
+                        enemy[1].initialTarget = false;
                     }
                 }
             }
@@ -168,9 +173,12 @@ class Backend {
         let movedEnemies = this.moveEnemies(this.enemies);
         let movedProjectiles = {};
         if (this.connections) {
+            let check = 0;
             Object.entries(this.connections).forEach((connection) => {
                 if(this.tick%100 === 0) {
-                    this.considerForTargeting(connection[1].player);
+                    check++;
+                    const last = check === Object.entries(this.connections).length;
+                    this.considerForTargeting(connection[1].player, last);
                 }
                 const player = connection[1].player;
                 
