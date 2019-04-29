@@ -266,12 +266,15 @@ class GameDriver {
 		//this._renderer.ctx.fillText('speedSnapshot: ' + CommonMath.round(speedSnapshot, 0) + ' units/sec', 0, (textSize * 9) * this._renderer.viewPortScaler);
 		
 		
-		//this._renderer.ctx.fillText('tag: ' + this._player.tag, 0, (textSize * 9) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('Invite friends, it is multi-player', 0, (textSize * 9) * this._renderer.viewPortScaler);
 		
 		
 		this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 		
 		this._renderer.ctx.fillText('elapsedTimeServer: ' + CommonMath.round((Date.now() - this.gameStartTimeServer) / 1000, 2) + ' sec', 0, (textSize * 11) * this._renderer.viewPortScaler);
+		
+		this._renderer.ctx.fillText('email me aruffino84@gmail.com', 0, (textSize * 12) * this._renderer.viewPortScaler);
+		
 		this._renderer.ctx.restore();
 		
 		

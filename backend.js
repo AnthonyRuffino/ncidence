@@ -123,7 +123,7 @@ class Backend {
     considerForTargeting(player, last){
         const movedEnemies = {};
         Object.entries(this.enemies).forEach((enemy) => {
-            if(enemy[1].type.indexOf('red')+1) {
+            if(enemy[1].type.indexOf('red')+1 && !enemy[1].kill) {
                 if(!enemy[1].target) {
                     enemy[1].target = player;
                     enemy[1].initialTarget = true;
@@ -202,7 +202,14 @@ class Backend {
                 const attackingEnemiesTemp = player.projectileMotion(this.enemies, true);
                 
                 if(Object.entries(attackingEnemiesTemp).length > 0) {
-                    player.hp--;
+                    Object.values(attackingEnemiesTemp).forEach(enemy => {
+                        if(enemy.type.indexOf('green') === 0) {
+                            player.hp++;
+                        } else {
+                            player.hp -= 2;
+                        }
+                    });
+                    
                     connection[1].emit('damage', {
                         hp: player.hp
                     });
