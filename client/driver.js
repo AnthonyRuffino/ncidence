@@ -6,7 +6,7 @@
 
 
 class ScaledControl{
-	constructor(driver, id,doClick,x,y,width,height,image,doHighlight,highlightColor){
+	constructor(driver, id,doClick,x,y,width,height,image,doHighlight,highlightColor,angle){
 		this.driver = driver;
 		this.id=id;
 		this.doClick=doClick;
@@ -18,14 +18,15 @@ class ScaledControl{
 		this.doHighlight=doHighlight;
 		this.isCircle=height===undefined || height===null;
 		this.highlightColor = highlightColor;
+		this.angle = angle;
 	}
 	
 	draw(){
 		if(this.isCircle){
 			var bounds = this.getBounds();
-			this.driver.renderer.drawImage(true,this.image,bounds.centerX,bounds.centerY,bounds.smallerDimention*this.width,bounds.smallerDimention*this.width,null,true);
+			this.driver.renderer.drawImage(true,this.image,bounds.centerX,bounds.centerY,bounds.smallerDimention*this.width,bounds.smallerDimention*this.width,this.angle,true);
 		}else{
-			this.driver.renderer.drawImage(true,this.image,this.driver.renderer.width*this.x,this.driver.renderer.height*this.y,this.driver.renderer.width*this.width,this.driver.renderer.height*this.height,null,false);
+			this.driver.renderer.drawImage(true,this.image,this.driver.renderer.width*this.x,this.driver.renderer.height*this.y,this.driver.renderer.width*this.width,this.driver.renderer.height*this.height,this.angle,false);
 		}
 		
 		if(this.doHighlight !== undefined && this.doHighlight !== null && this.doHighlight() === true){
@@ -191,14 +192,8 @@ class GameDriver {
 
 
         //CIRCLE CONTROLL
-        var circleImage = {};
-        circleImage.img = new Image();
-        circleImage.img.src = '/img/space/circle.png';
-        
-        
         this._clickControls.push(this.thrusterControl);
         this._clickControls.push(this.warpControl);
-        
         
         
         
@@ -229,18 +224,31 @@ class GameDriver {
         	return 	this.clickIsDownMemory['' + keyCode];
         };
 		
+		var image = (src) => {
+			var img = {};
+			img.img = new Image();
+        	img.img.src = src;
+        	return img;
+		}
+		
+		var circleImage = image('/img/space/circle.png');
+		var arrowImage = image('/img/space/arrow.jpg');
+		var minusImage = image('/img/space/minus.jpg');
+		var plusImage = image('/img/space/plus.jpg');
+        
+        
         this._clickControls.push(...[
-        	new ScaledControl(this, 'circleControl1', ()=>clickCircle(81), .02, .70, (2 / 24), null, circleImage, () => doMemoryHighlight(81)),
-        	new ScaledControl(this, 'circleControl2', ()=>clickCircle(87), .10, .70, (2 / 24), null, circleImage, () => doMemoryHighlight(87)),
-        	new ScaledControl(this, 'circleControl3', ()=>clickCircle(69), .18, .70, (2 / 24), null, circleImage, () => doMemoryHighlight(69)),
+        	new ScaledControl(this, 'circleControl1', ()=>clickCircle(81), .02, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(81), null, -45),
+        	new ScaledControl(this, 'circleControl2', ()=>clickCircle(87), .10, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(87)),
+        	new ScaledControl(this, 'circleControl3', ()=>clickCircle(69), .18, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(69), null, 45),
         	
-        	new ScaledControl(this, 'circleControl4', ()=>clickCircle(65), .02, .80, (2 / 24), null, circleImage, () => doMemoryHighlight(65)),
+        	new ScaledControl(this, 'circleControl4', ()=>clickCircle(65), .02, .80, (2 / 24), null, arrowImage, () => doMemoryHighlight(65), null, -90),
         	new ScaledControl(this, 'circleControl5', ()=>clickCircle(32, true), .10, .80, (2 / 24), null, circleImage),
-        	new ScaledControl(this, 'circleControl6', ()=>clickCircle(68), .18, .80, (2 / 24), null, circleImage, () => doMemoryHighlight(68)),
+        	new ScaledControl(this, 'circleControl6', ()=>clickCircle(68), .18, .80, (2 / 24), null, arrowImage, () => doMemoryHighlight(68), null, 90),
         	
-        	//new ScaledControl(this, 'circleControl7', ()=>clickCircle(32), .02, .90, (2 / 24), null, circleImage),
-        	new ScaledControl(this, 'circleControl8', ()=>clickCircle(83), .10, .90, (2 / 24), null, circleImage, () => doMemoryHighlight(83)),
-        	//new ScaledControl(this, 'circleControl9', ()=>clickCircle(32), .18, .90, (2 / 24), null, circleImage)
+        	new ScaledControl(this, 'circleControl7', ()=>clickCircle(109, true), .02, .90, (2 / 24), null, minusImage),
+        	new ScaledControl(this, 'circleControl8', ()=>clickCircle(83), .10, .90, (2 / 24), null, arrowImage, () => doMemoryHighlight(83), null, -180),
+        	new ScaledControl(this, 'circleControl9', ()=>clickCircle(107, true), .18, .90, (2 / 24), null, plusImage)
         ]);
 		//END CLICK CONTROLS
 
