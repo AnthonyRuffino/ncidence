@@ -244,18 +244,18 @@ class GameDriver {
 		this._renderer.ctx.fillStyle = 'white';
 		this._renderer.ctx.fillText('player(x,y): (' + CommonMath.round(this._player.x) + "," + CommonMath.round(this._player.y) + ")", 0, (textSize * 1) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillText('player angle: ' + CommonMath.round(this._player.angle), 0, (textSize * 2) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('scale: ' + this._renderer.scale, 0, (textSize * 3) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('base accelleration: ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 4) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('current accelleration: ' + CommonMath.round(this._player.movementSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('current speed: ' + this._player.vectorSpeed / this.speedOfLight + 'c', 0, (textSize * 6) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('vx: ' + CommonMath.round((this._player.vx / this.speedOfLight), 4) + 'c - vy:' + CommonMath.round((this._player.vy / this.speedOfLight), 4) + 'c', 0, (textSize * 7) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('scale (Zoom with scroll): ' + this._renderer.scale, 0, (textSize * 3) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('base speed (shift scroll to change): ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 4) * this._renderer.viewPortScaler);
+		//this._renderer.ctx.fillText('' + CommonMath.round(this._player.movementSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('Use WASD to move', 0, (textSize * 6) * this._renderer.viewPortScaler);
+		//this._renderer.ctx.fillText('vx: ' + CommonMath.round((this._player.vx / this.speedOfLight), 4) + 'c - vy:' + CommonMath.round((this._player.vy / this.speedOfLight), 4) + 'c', 0, (textSize * 7) * this._renderer.viewPortScaler);
 		var fps = this._gameEngine !== null ? this._gameEngine.fps : 0;
 		this._renderer.ctx.fillText('fps: ' + CommonMath.round(fps, 0), 0, (textSize * 8) * this._renderer.viewPortScaler);
 		//var speedSnapshot = this._gameEngine !== null ? this._gameEngine.speedSnapshot : 0;
 		//this._renderer.ctx.fillText('speedSnapshot: ' + CommonMath.round(speedSnapshot, 0) + ' units/sec', 0, (textSize * 9) * this._renderer.viewPortScaler);
 		
 		
-		this._renderer.ctx.fillText('tag: ' + this._player.tag, 0, (textSize * 9) * this._renderer.viewPortScaler);
+		//this._renderer.ctx.fillText('tag: ' + this._player.tag, 0, (textSize * 9) * this._renderer.viewPortScaler);
 		
 		
 		this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
