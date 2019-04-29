@@ -797,66 +797,14 @@ class Controls {
 			this.driver.preRender = !this.driver.preRender;
 		}
 		else if (event.keyCode === 107) { //+
-			var scaler = .1;
-			var scale = this.driver.renderer.scale;
-			if (scale < .0000001) {
-				scaler = .00000001;
-			}
-			else if (scale < .000001) {
-				scaler = .0000001;
-			}
-			else if (scale < .00001) {
-				scaler = .000001;
-			}
-			else if (scale < .0001) {
-				scaler = .00001;
-			}
-			else if (scale < .001) {
-				scaler = .0001;
-			}
-			else if (scale < .01) {
-				scaler = .001;
-			}
-			else if (scale < .1) {
-				scaler = .01;
-			}
-			this.driver.renderer.scale = scale + scaler;
-
-			var minimumScale = .00000001;
-			if (this.driver.renderer.scale < minimumScale) {
-				this.driver.renderer.scale = minimumScale;
-			}
+			this.onwheel({
+				deltaY: -1
+			});
 		}
 		else if (event.keyCode === 109) { //-
-			var scaler = .1;
-			var scale = this.driver.renderer.scale;
-			if (scale <= .0000001) {
-				scaler = .00000001;
-			}
-			else if (scale <= .000001) {
-				scaler = .0000001;
-			}
-			else if (scale <= .00001) {
-				scaler = .000001;
-			}
-			else if (scale <= .0001) {
-				scaler = .00001;
-			}
-			else if (scale <= .001) {
-				scaler = .0001;
-			}
-			else if (scale <= .01) {
-				scaler = .001;
-			}
-			else if (scale <= .1) {
-				scaler = .01;
-			}
-			this.driver.renderer.scale = scale - scaler;
-
-			var minimumScale = .00000001;
-			if (this.driver.renderer.scale < minimumScale) {
-				this.driver.renderer.scale = minimumScale;
-			}
+			this.onwheel({
+				deltaY: 1
+			});
 		}
 	}
 
@@ -983,7 +931,7 @@ class Controls {
 				this.driver.renderer.scale -= scaler;
 			}
 
-			var minimumScale = .00000001;
+			var minimumScale = .001;
 			if (this.driver.renderer.scale < minimumScale) {
 				this.driver.renderer.scale = minimumScale;
 			}
