@@ -129,6 +129,7 @@ class GameDriver {
 		
 		this.socket.on('enemies', (enemies) => {
 			console.log('enemies!', enemies);
+			this.enemies = {};
 			Object.entries(enemies).forEach(enemy => {
 				this.enemies[enemy[0]] = new Entity({... enemy[1], driver: this,});
 			});
@@ -144,7 +145,7 @@ class GameDriver {
 				source[entry[0]].x = entry[1].x;
 				source[entry[0]].y = entry[1].y;
 				//FIXME: killing early because server wont send last ticks for some reason
-				if((entry[1].lifeSpan - entry[1].age) < 8) {
+				if(entry[1].kill || ((entry[1].lifeSpan - entry[1].age) < 8)) {
 					killList.push(entry[0]);
 				}
 			});

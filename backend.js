@@ -98,6 +98,14 @@ class Backend {
                 wiggleY: 1
             });
         }
+        
+        Object.entries(this.connections).forEach(conn => {
+            const enemies = {}
+            Object.entries(this.enemies).forEach((enemy) => {
+                enemies[enemy[0]] = { ...enemy[1].baseInfo(), driver: null }
+            });
+            conn[1].emit('enemies', enemies);
+        });
     }
 
     sessionKey(user, socketId) {
@@ -145,6 +153,7 @@ class Backend {
     
     moveEnemies(enemies){
         const movedEnemies = {};
+        const killedEnemies = {};
         Object.entries(enemies).forEach((enemy) => {
             if(enemy[1].target) {
                 const speed = (100*(1/enemy[1].width));
@@ -156,11 +165,19 @@ class Backend {
                     y: enemy[1].y
                 };
             } else if(enemy[1].type === 'bullet') {
-                enemy[1].entity.projectileMotion();
+                const killedEnemiesTemp = enemy[1].entity.projectileMotion(this.enemies);
+                Object.entries(killedEnemiesTemp).forEach(killed => {
+                    killedEnemies[killed[0]] = {
+                        id: killed[0],
+                        x: killed[1].x,
+                        y: killed[1].y,
+                        kill: true
+                    };
+                });
                 movedEnemies[enemy[1].entity.id] = {...enemy[1].entity.baseInfo(), driver: {}, age: enemy[1].age, lifeSpan: enemy[1].lifeSpan};
             }
         });
-        return movedEnemies;
+        return {movedEnemies, killedEnemies};
     }
 
     update(delta, tag) {
@@ -170,7 +187,7 @@ class Backend {
         this.frimScaler = delta / this.targetTickDelta;
         const updatedPlayers = [];
         const disconectedPlayers = [];
-        let movedEnemies = this.moveEnemies(this.enemies);
+        let movedEnemies = this.moveEnemies(this.enemies).movedEnemies;
         let movedProjectiles = {};
         if (this.connections) {
             let check = 0;
@@ -182,7 +199,13 @@ class Backend {
                 }
                 const player = connection[1].player;
                 
-                const projectiles = this.moveEnemies(player.popProjectiles());
+                const projectileData = this.moveEnemies(player.popProjectiles());
+                const projectiles = projectileData.movedEnemies;
+                
+                Object.entries(projectileData.killedEnemies).forEach(killedEnemy => {
+                    movedEnemies[killedEnemy[0]] = killedEnemy[1];
+                });
+                
                 if(Object.keys(projectiles).length > 0) {
                     Object.entries(projectiles).forEach(entry => {
                         movedProjectiles[entry[0]] = entry[1];
@@ -203,40 +226,39 @@ class Backend {
                     updatedPlayers.push(connection);
                     disconectedPlayers.push(connection);
                 }
-                if((this.tick%2 === 0) && Object.keys(movedEnemies).length > 0) {
-                    connection[1].emit('enemy-motion', movedEnemies);
-                }
+                
             });
             
             
             const playerMovement = updatedPlayers && updatedPlayers.length;
             const bulletsFlying = Object.keys(movedProjectiles).length;
-            if (playerMovement || bulletsFlying) {
+            disconectedPlayers.forEach((connection) => {
+                delete this.connections[connection[0]];
+            });
+            Object.entries(this.connections).forEach((connection) => {
                 
+                if((this.tick%2 === 0) && Object.keys(movedEnemies).length > 0) {
+                    connection[1].emit('enemy-motion', movedEnemies);
+                }
                 
-                disconectedPlayers.forEach((connection) => {
-                    delete this.connections[connection[0]];
-                });
-                Object.entries(this.connections).forEach((connection) => {
-                    if((this.tick%2 === 0) && bulletsFlying) {
-                        connection[1].emit('projectile-motion', movedProjectiles);
-                    }
-                    if (playerMovement) {
-                        updatedPlayers.forEach((other) => {
-                            const otherPlayer = other[1].player;
-                            if (connection[1].player.id !== otherPlayer.id) {
-                                connection[1].emit('other-motion', {
-                                    x: otherPlayer.x,
-                                    y: otherPlayer.y,
-                                    angle: otherPlayer.angle,
-                                    id: otherPlayer.id,
-                                    disconnect: other[1].disconnect
-                                });
-                            }
-                        });
-                    }
-                });
-            }
+                if((this.tick%2 === 0) && bulletsFlying) {
+                    connection[1].emit('projectile-motion', movedProjectiles);
+                }
+                if (playerMovement) {
+                    updatedPlayers.forEach((other) => {
+                        const otherPlayer = other[1].player;
+                        if (connection[1].player.id !== otherPlayer.id) {
+                            connection[1].emit('other-motion', {
+                                x: otherPlayer.x,
+                                y: otherPlayer.y,
+                                angle: otherPlayer.angle,
+                                id: otherPlayer.id,
+                                disconnect: other[1].disconnect
+                            });
+                        }
+                    });
+                }
+            });
         }
     }
 

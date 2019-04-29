@@ -172,11 +172,37 @@ class Entity {
 	}
 	
 	
-	projectileMotion() {
+	collision(p1x, p1y, r1, p2x, p2y, r2) {
+	  var a;
+	  var x;
+	  var y;
+	
+	  a = r1 + r2;
+	  x = p1x - p2x;
+	  y = p1y - p2y;
+	
+	  if (a > Math.sqrt((x * x) + (y * y))) {
+	    return true;
+	  } else {
+	    return false;
+	  }
+	}
+	
+	
+	projectileMotion(enemies) {
 		const speed = this.movementSpeed;
 		this.calculateMovementData(this._angle, speed, false);
 		this._y += (this.vy * this.driver.gameEngine.frimScaler);
 		this._x += (this.vx * this.driver.gameEngine.frimScaler);
+		
+		const toKill = {};
+		Object.entries(enemies).forEach((enemy) => {
+			const collision = this.collision(enemy[1].x, enemy[1].y, enemy[1].width, this._x, this._y, this.width);
+			if(collision) {
+				toKill[enemy[0]] = enemy[1];
+			}
+		});
+		return toKill;
 	}
 
 
@@ -383,6 +409,7 @@ class Player extends Entity {
 			type: 'bullet',
 			lifeSpan: 100,
 			age: 0,
+			player: this,
 			entity: new Entity({
                 driver: this.driver,
                 type: 'player-projectile',
