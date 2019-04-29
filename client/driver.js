@@ -158,6 +158,11 @@ class GameDriver {
 			mapMovingEntities(movedEnemies, this.enemies);
 		});
 		
+		this.score = 0;
+		this.socket.on('score', (data) => {
+			this.score = data.score;
+		});
+		
 		this.projectiles = {};
 		this.socket.on('projectile-motion', (movedProjectiles) => {
 			//console.log('projectile-motion', movedProjectiles);
@@ -246,8 +251,8 @@ class GameDriver {
 		this._renderer.ctx.fillText('player(x,y): (' + CommonMath.round(this._player.x) + "," + CommonMath.round(this._player.y) + ")", 0, (textSize * 1) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillText('player angle: ' + CommonMath.round(this._player.angle), 0, (textSize * 2) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillText('scale (Zoom with scroll): ' + this._renderer.scale, 0, (textSize * 3) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('base speed (shift scroll to change): ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 4) * this._renderer.viewPortScaler);
-		//this._renderer.ctx.fillText('' + CommonMath.round(this._player.movementSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('base speed (kill to go faster): ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 4) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('score ' + this.score, 0, (textSize * 5) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillText('Use WASD to move', 0, (textSize * 6) * this._renderer.viewPortScaler);
 		//this._renderer.ctx.fillText('vx: ' + CommonMath.round((this._player.vx / this.speedOfLight), 4) + 'c - vy:' + CommonMath.round((this._player.vy / this.speedOfLight), 4) + 'c', 0, (textSize * 7) * this._renderer.viewPortScaler);
 		var fps = this._gameEngine !== null ? this._gameEngine.fps : 0;

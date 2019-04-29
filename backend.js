@@ -100,9 +100,9 @@ class Backend {
         }
         
         Object.entries(this.connections).forEach(conn => {
-            const enemies = {}
+            const enemies = {};
             Object.entries(this.enemies).forEach((enemy) => {
-                enemies[enemy[0]] = { ...enemy[1].baseInfo(), driver: null }
+                enemies[enemy[0]] = { ...enemy[1].baseInfo(), driver: null };
             });
             conn[1].emit('enemies', enemies);
         });
@@ -203,7 +203,12 @@ class Backend {
                 const projectiles = projectileData.movedEnemies;
                 
                 Object.entries(projectileData.killedEnemies).forEach(killedEnemy => {
+                    player.score++;
+                    player.baseSpeed++;
                     movedEnemies[killedEnemy[0]] = killedEnemy[1];
+                    connection[1].emit('score', {
+                        score: player.score
+                    });
                 });
                 
                 if(Object.keys(projectiles).length > 0) {

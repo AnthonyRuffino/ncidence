@@ -368,7 +368,8 @@ class Player extends Entity {
 			strokeStyle: null,
 			image: playerImage
 		})
-
+		
+		this.score = 0;
 		this.tag = tag;
 		this.startAngle = startAngle;
 		this.lastRightTurnTime = null;
@@ -904,7 +905,7 @@ class Controls {
 		}
 		
 		if (mouse.shiftKey) {
-			if(!inBrowser) {
+			if(!inBrowser && this.driver.player.id === 'admin') {
 				let scaler  = 100 * this.driver.gameEngine.frimScaler;
 
 				if (mouse.deltaY < 0) {
