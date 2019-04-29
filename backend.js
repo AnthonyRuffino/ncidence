@@ -199,6 +199,15 @@ class Backend {
                 }
                 const player = connection[1].player;
                 
+                const attackingEnemiesTemp = player.projectileMotion(this.enemies, true);
+                
+                if(Object.entries(attackingEnemiesTemp).length > 0) {
+                    player.hp--;
+                    connection[1].emit('damage', {
+                        hp: player.hp
+                    });
+                }
+                
                 const projectileData = this.moveEnemies(player.popProjectiles());
                 const projectiles = projectileData.movedEnemies;
                 

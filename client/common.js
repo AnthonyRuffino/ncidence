@@ -189,12 +189,13 @@ class Entity {
 	}
 	
 	
-	projectileMotion(enemies) {
-		const speed = this.movementSpeed;
-		this.calculateMovementData(this._angle, speed, false);
-		this._y += (this.vy * this.driver.gameEngine.frimScaler);
-		this._x += (this.vx * this.driver.gameEngine.frimScaler);
-		
+	projectileMotion(enemies, justCollissions) {
+		if(!justCollissions) {
+			const speed = this.movementSpeed;
+			this.calculateMovementData(this._angle, speed, false);
+			this._y += (this.vy * this.driver.gameEngine.frimScaler);
+			this._x += (this.vx * this.driver.gameEngine.frimScaler);
+		}
 		const toKill = {};
 		Object.entries(enemies).forEach((enemy) => {
 			const collision = this.collision(enemy[1].x, enemy[1].y, enemy[1].width, this._x, this._y, this.width);
@@ -370,6 +371,7 @@ class Player extends Entity {
 		})
 		
 		this.score = 0;
+		this.hp = 1000;
 		this.tag = tag;
 		this.startAngle = startAngle;
 		this.lastRightTurnTime = null;

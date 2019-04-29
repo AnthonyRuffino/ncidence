@@ -163,6 +163,11 @@ class GameDriver {
 			this.score = data.score;
 		});
 		
+		this.hp = 0;
+		this.socket.on('damage', (data) => {
+			this.hp = data.hp;
+		});
+		
 		this.projectiles = {};
 		this.socket.on('projectile-motion', (movedProjectiles) => {
 			//console.log('projectile-motion', movedProjectiles);
@@ -254,7 +259,7 @@ class GameDriver {
 		this._renderer.ctx.fillText('base speed (kill to go faster): ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 4) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillText('score ' + this.score, 0, (textSize * 5) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillText('Use WASD to move', 0, (textSize * 6) * this._renderer.viewPortScaler);
-		//this._renderer.ctx.fillText('vx: ' + CommonMath.round((this._player.vx / this.speedOfLight), 4) + 'c - vy:' + CommonMath.round((this._player.vy / this.speedOfLight), 4) + 'c', 0, (textSize * 7) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('HP: ' + this.hp, 0, (textSize * 7) * this._renderer.viewPortScaler);
 		var fps = this._gameEngine !== null ? this._gameEngine.fps : 0;
 		this._renderer.ctx.fillText('fps: ' + CommonMath.round(fps, 0), 0, (textSize * 8) * this._renderer.viewPortScaler);
 		//var speedSnapshot = this._gameEngine !== null ? this._gameEngine.speedSnapshot : 0;
