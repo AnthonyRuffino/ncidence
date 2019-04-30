@@ -246,8 +246,11 @@ class GameDriver {
 		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 10), .30, .80, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
         this.thrusterControl = new ScaledControl(this, 'thrusterControl', () => unclickAll(), .30, .90, (1 / 24), .05, image('/img/space/icon-thruster.png'));
         this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(74, true, 10), .95, .05, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
-
-
+		
+		this.chatOn = false;
+		this.chatToggle = new ScaledControl(this, 'chatToggle', ()=>{this.chatOn=!this.chatOn}, .15, .005, (1 / 30), .05, image('/img/space/chatBubble.png'), () => !this.chatOn);
+		this._clickControls.push(this.chatToggle);
+		
         //CIRCLE CONTROLL
         this._clickControls.push(this.thrusterControl);
         this._clickControls.push(this.warpControl);
@@ -473,20 +476,24 @@ class GameDriver {
 			this._renderer.ctx.fillText('  Elapsed Time: ' + CommonMath.round((Date.now() - this.gameStartTimeServer) / 1000, 2) + ' sec', 0, (textSize * 11) * this._renderer.viewPortScaler);
 		
 			this._renderer.ctx.fillText('  aruffino84@gmail.com', 0, (textSize * 12) * this._renderer.viewPortScaler);
+			
+			if(this.chatOn && this.messages.length > 0) {
+				this._renderer.ctx.fillStyle = 'yellow';
+				for(var mn = 0; mn < this.messages.length; mn++) {
+					let chatMessage = `${this.messages[4-mn].name}: ${this.messages[4-mn].text}`;
+					chatMessage = chatMessage && chatMessage.substr(0,50);
+					this._renderer.ctx.fillText(chatMessage, 10, (textSize * (13+(mn + 1))) * this._renderer.viewPortScaler);
+					if(mn === 4) {
+						break;
+					}
+				}
+				
+			}
+			this._renderer.ctx.fillStyle = 'white';
 			this._renderer.ctx.fillText('  WASD ↑ ← ↓ →', 0, (textSize * 20) * this._renderer.viewPortScaler);
 		}
 		
-		if(this.messages.length > 0) {
-			this._renderer.ctx.fillStyle = 'yellow';
-			for(var mn = 0; mn < this.messages.length; mn++) {
-				this._renderer.ctx.fillText(`[${mn}] ${this.messages[4-mn].name}: ${this.messages[4-mn].text}`, 30, (textSize * (22+(mn + 1))) * this._renderer.viewPortScaler);
-				if(mn === 4) {
-					break;
-				}
-			}
-			
-			
-		}
+		
 		
 		//this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 		

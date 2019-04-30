@@ -6,17 +6,17 @@ class CharacterHelper {
         this.ofValue = require('of-value');
         this.managed = {};
         
-        setInterval(() => {
-            Object.values(this.managed).forEach(managed => {
-                const latest = managed.latest();
-                managed.character.data = JSON.stringify(latest);
-                const charName = managed.character.name;
-                const charUser = managed.character.user;
-                managed.character.save((err) => {
-                    (err && console.error(`ERR SAVING CHARACTER(${charName})[${charUser}]`, err)) || console.info(`Character Saved(${charName})[${charUser}]`);
-                });
-            });
-        }, 40000);
+        // setInterval(() => {
+        //     Object.values(this.managed).forEach(managed => {
+        //         const latest = managed.latest();
+        //         managed.character.data = JSON.stringify(latest);
+        //         const charName = managed.character.name;
+        //         const charUser = managed.character.user;
+        //         managed.character.save((err) => {
+        //             (err && console.error(`ERR SAVING CHARACTER(${charName})[${charUser}]`, err)) || console.info(`Character Saved(${charName})[${charUser}]`);
+        //         });
+        //     });
+        // }, 40000);
     }
     
     getGameEntityRecord(gameName, entityName, filter) {
