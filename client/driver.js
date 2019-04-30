@@ -139,6 +139,8 @@ class GameDriver {
 		this.log = log;
 		this.alert = alert;
 		this.me = 'Anonymouz';
+		this.showTips = true;
+		this.showStats = true;
 
 		//socketio overrides
 		const chatFormat = (name, text) => `${name}: ${text}`;
@@ -236,7 +238,7 @@ class GameDriver {
 		
 		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 10), .30, .80, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
         this.thrusterControl = new ScaledControl(this, 'thrusterControl', () => unclickAll(), .30, .90, (1 / 24), .05, image('/img/space/icon-thruster.png'));
-        this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(74, true, 10), .95, .90, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
+        this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(74, true, 10), .95, .05, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
 
 
         //CIRCLE CONTROLL
@@ -252,11 +254,15 @@ class GameDriver {
         	return 	this.clickIsDownMemory['' + keyCode];
         };
 		
-		var circleImage = image('/img/space/circle.png');
+		var circleImage = image('/img/space/shoot.png');
 		var arrowImage = image('/img/space/arrow.jpg');
 		var minusImage = image('/img/space/minus.jpg');
 		var plusImage = image('/img/space/plus.jpg');
-        
+		
+		
+		this._clickControls.push(new ScaledControl(this, 'statControl', ()=>this.showStats = !this.showStats, .01, .3, (1 / 64), null, plusImage, () => this.showStats, null, 45),);
+		this._clickControls.push(new ScaledControl(this, 'tipControl', ()=>this.showTips = !this.showTips, .70, .02, (1 / 64), null, plusImage, () => this.showTips, null, 45),);
+		this._clickControls.push(new ScaledControl(this, 'bigTrigger', ()=>clickCircle(32, true), .80, .80, (4 / 24), null, circleImage)),
         
         this._clickControls.push(...[
         	new ScaledControl(this, 'circleControl1', ()=>clickCircle(81), .02, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(81), null, -45),
@@ -424,34 +430,51 @@ class GameDriver {
 
 		this._renderer.ctx.save();
 		var textSize = 25;
-		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
-		this._renderer.ctx.fillStyle = 'white';
-		this._renderer.ctx.fillText('Life: ' + this._player.hp, 0, (textSize * 1) * this._renderer.viewPortScaler);
 		
+		this._renderer.ctx.fillStyle = 'orange';
 		this._renderer.ctx.font = (textSize*2 * this._renderer.viewPortScaler) + 'pt Calibri';
-		this._renderer.ctx.fillText('Ludum Dare 44: Shooter.io', 200, (textSize * 2) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('Ludum Dare 44: Shooter.io', 300, (textSize * 2) * this._renderer.viewPortScaler);
+		
 		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
 		
-		this._renderer.ctx.fillText('Score ' + this.score, 0, (textSize * 2) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText(`  (${CommonMath.round(this._player.x)}, ${CommonMath.round(this._player.y)}) - [${CommonMath.round(this._player.angle)}°]`, 0, (textSize * 4) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('  Speed: ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('  Scale (scroll[+/-]): ' + this._renderer.scale, 0, (textSize * 7) * this._renderer.viewPortScaler);
 		
-		var fps = this._gameEngine !== null ? this._gameEngine.fps : 0;
-		//this._renderer.ctx.fillText('fps: ' + CommonMath.round(fps, 0), 0, (textSize * 8) * this._renderer.viewPortScaler);
-		//var speedSnapshot = this._gameEngine !== null ? this._gameEngine.speedSnapshot : 0;
-		//this._renderer.ctx.fillText('speedSnapshot: ' + CommonMath.round(speedSnapshot, 0) + ' units/sec', 0, (textSize * 9) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillStyle = 'white';
+		this._renderer.ctx.fillText('Life: ', 0, (textSize * 1) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillStyle = 'red';
+		this._renderer.ctx.fillText(this._player.hp, 100 * this._renderer.viewPortScaler, (textSize * 1) * this._renderer.viewPortScaler);
+		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
 		
+		this._renderer.ctx.fillStyle = 'white';
+		this._renderer.ctx.fillText('Score ', 0, (textSize * 2) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillStyle = 'green';
+		this._renderer.ctx.fillText(this.score, 100 * this._renderer.viewPortScaler, (textSize * 2) * this._renderer.viewPortScaler);
+
+		if(this.showStats) {
+			//this._renderer.ctx.fillStyle = 'white';
+			this._renderer.ctx.fillText(`  (${CommonMath.round(this._player.x)}, ${CommonMath.round(this._player.y)}) - [${CommonMath.round(this._player.angle)}°]`, 0, (textSize * 4) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('  Speed: ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('  Scale (scroll[+/-]): ' + this._renderer.scale, 0, (textSize * 7) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('  Online Multi-player', 0, (textSize * 10) * this._renderer.viewPortScaler);
+			
+			this._renderer.ctx.fillText('  Elapsed Time: ' + CommonMath.round((Date.now() - this.gameStartTimeServer) / 1000, 2) + ' sec', 0, (textSize * 11) * this._renderer.viewPortScaler);
 		
-		this._renderer.ctx.fillText('  Online Multi-player', 0, (textSize * 10) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('  aruffino84@gmail.com', 0, (textSize * 12) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('  WASD ↑ ← ↓ →', 0, (textSize * 20) * this._renderer.viewPortScaler);
+		}
 		
 		
 		//this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 		
-		this._renderer.ctx.fillText('  Elapsed Time: ' + CommonMath.round((Date.now() - this.gameStartTimeServer) / 1000, 2) + ' sec', 0, (textSize * 11) * this._renderer.viewPortScaler);
 		
-		this._renderer.ctx.fillText('  aruffino84@gmail.com', 0, (textSize * 12) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillText('  WASD ↑ ← ↓ →', 0, (textSize * 20) * this._renderer.viewPortScaler);
+		
+		
+		if(this.showTips) {
+			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
+			this._renderer.ctx.fillText('Kill red guys or they will get you.  Blue guys will hurt you too.', 600, (textSize * 4) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Green will heal.  Watch out at respawn time.' + this._player.hp, 600, (textSize * 5) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Click home to go to the center.' + this._player.hp, 600, (textSize * 6) * this._renderer.viewPortScaler);
+		}
+		
 		
 		
 		for (var i = 0; i < this._clickControls.length; i++) {

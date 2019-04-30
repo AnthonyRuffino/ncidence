@@ -415,7 +415,7 @@ class Player extends Entity {
 	}
 
 	fire(data) {
-		this.hp--;
+		this.hp-=data?10:1;
 		this.projectiles.push({
 			type: 'bullet',
 			lifeSpan: 100,
