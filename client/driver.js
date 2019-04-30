@@ -449,8 +449,9 @@ class GameDriver {
 		this._renderer.ctx.fillStyle = 'green';
 		this._renderer.ctx.fillText(this.score, 100 * this._renderer.viewPortScaler, (textSize * 2) * this._renderer.viewPortScaler);
 
+		this._renderer.ctx.fillStyle = 'white';
 		if(this.showStats) {
-			//this._renderer.ctx.fillStyle = 'white';
+			
 			this._renderer.ctx.fillText(`  (${CommonMath.round(this._player.x)}, ${CommonMath.round(this._player.y)}) - [${CommonMath.round(this._player.angle)}°]`, 0, (textSize * 4) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('  Speed: ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('  Scale (scroll[+/-]): ' + this._renderer.scale, 0, (textSize * 7) * this._renderer.viewPortScaler);
@@ -471,7 +472,7 @@ class GameDriver {
 		if(this.showTips) {
 			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
 			this._renderer.ctx.fillText('Kill red guys or they will get you.  Blue guys will hurt you too.', 600, (textSize * 4) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('Green will heal.  Watch out at respawn time.' + this._player.hp, 600, (textSize * 5) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Green will heal.  Watch out at respawn time.', 600, (textSize * 5) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('Click home to go to the center.' + this._player.hp, 600, (textSize * 6) * this._renderer.viewPortScaler);
 		}
 		

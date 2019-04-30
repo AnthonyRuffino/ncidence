@@ -210,6 +210,12 @@ class Backend {
                         }
                     });
                     
+                    if(player.hp < 1) {
+                        player.hp = 1000;
+                        player.score = 0;
+                        player.baseSpeed = 360;
+                    }
+                    
                     connection[1].emit('damage', {
                         hp: player.hp
                     });
