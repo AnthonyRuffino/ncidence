@@ -155,7 +155,13 @@ class GameDriver {
 			emit('hi');
 		};
 		
-		this.messages = ['hi, this is the admin','you can chat from dev tools','just press F12 or cntrl-shift-I in chrom','chat with the "chat" function', 'Example: chat("hi")'];
+		this.messages = [
+			{name:'admin', text:'hi, this is the admin'},
+			{name:'admin', text: 'you can chat from dev tools'},
+			{name:'admin', text: 'just press F12 or cntrl-shift-I in chrom'},
+			{name:'admin', text: 'chat with the "chat" function'},
+			{name:'admin', text: 'Example: chat("hi")'}
+		];
 		this.socket.hooks.message = (msg) => {
 			if(msg) {
 				console.log(chatFormat(msg.name, msg.text));
