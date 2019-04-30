@@ -446,7 +446,7 @@ class GameDriver {
 		
 		this._renderer.ctx.fillStyle = 'orange';
 		this._renderer.ctx.font = (textSize*2 * this._renderer.viewPortScaler) + 'pt Calibri';
-		this._renderer.ctx.fillText('Ludum Dare 44: Shooter.io', 300, (textSize * 2) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText('Ludum Dare 44: Evention', 300, (textSize * 2) * this._renderer.viewPortScaler);
 		
 		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
 		
