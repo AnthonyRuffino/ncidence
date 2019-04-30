@@ -348,7 +348,7 @@ class Entity {
 }
 
 class Player extends Entity {
-	constructor({ driver, id, x, y, width, height, angle, startAngle, movementSpeed, img, tag }) {
+	constructor({ driver, id, x, y, width, height, angle, startAngle, movementSpeed, img, tag, hp, score }) {
 		var playerImage = {};
 		
 		if (img === undefined || img === null) {
@@ -377,8 +377,8 @@ class Player extends Entity {
 			image: playerImage
 		})
 		
-		this.score = 0;
-		this.hp = 1000;
+		this.score = score || 0;
+		this.hp = hp || 1000;
 		this.tag = tag;
 		this.startAngle = startAngle;
 		this.lastRightTurnTime = null;
@@ -470,7 +470,9 @@ class Player extends Entity {
 			height: this.baseHeight,
 			angle: this._angle,
 			startAngle: this.startAngle,
-			movementSpeed: this.movementSpeed
+			movementSpeed: this.movementSpeed,
+			score: this.score,
+			hp: this.hp
 		};
 	}
 

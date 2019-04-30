@@ -338,9 +338,8 @@ class GameDriver {
 			mapMovingEntities(movedEnemies, this.enemies);
 		});
 		
-		this.score = 0;
 		this.socket.on('score', (data) => {
-			this.score = data.score;
+			this._player.score = data.score;
 		});
 		
 		this.socket.on('damage', (data) => {
@@ -447,7 +446,7 @@ class GameDriver {
 		this._renderer.ctx.fillStyle = 'white';
 		this._renderer.ctx.fillText('Score ', 0, (textSize * 2) * this._renderer.viewPortScaler);
 		this._renderer.ctx.fillStyle = 'green';
-		this._renderer.ctx.fillText(this.score, 100 * this._renderer.viewPortScaler, (textSize * 2) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText(this._player.score, 100 * this._renderer.viewPortScaler, (textSize * 2) * this._renderer.viewPortScaler);
 
 		this._renderer.ctx.fillStyle = 'white';
 		if(this.showStats) {

@@ -363,7 +363,9 @@ class Backend {
                         angle: character.angle,
                         startAngle: 90,
                         movementSpeed: 360,
-                        img: {}
+                        img: {},
+                        hp: 1000,
+                        score: 0
                     });
                     driver.player = player;
                     const controls = new this.common.Controls(driver);
