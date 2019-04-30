@@ -154,12 +154,13 @@ class GameDriver {
 			console.log("Client: saying 'hi'");
 			emit('hi');
 		};
-
+		
+		this.messages = [];
 		this.socket.hooks.message = (msg) => {
-			if (msg.name === 'Anonymous' || msg.name !== this.me) {
+			if(msg) {
 				console.log(chatFormat(msg.name, msg.text));
+				this.messages.unshift(msg);
 			}
-
 		};
 		
 
@@ -462,13 +463,23 @@ class GameDriver {
 			this._renderer.ctx.fillText('  WASD ↑ ← ↓ →', 0, (textSize * 20) * this._renderer.viewPortScaler);
 		}
 		
+		if(this.messages.length > 0) {
+			this._renderer.ctx.fillStyle = 'yellow';
+			for(var mn = 0; mn < this.messages.length; mn++) {
+				this._renderer.ctx.fillText(`[${mn}] ${this.messages[4-mn].name}: ${this.messages[4-mn].text}`, 30, (textSize * (22+(mn + 1))) * this._renderer.viewPortScaler);
+				if(mn === 4) {
+					break;
+				}
+			}
+			
+			
+		}
 		
 		//this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 		
 		
-		
-		
 		if(this.showTips) {
+			this._renderer.ctx.fillStyle = 'white';
 			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
 			this._renderer.ctx.fillText('Kill red guys or they will get you.  Blue guys will hurt you too.', 600, (textSize * 4) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('Green will heal.  Watch out at respawn time.', 600, (textSize * 5) * this._renderer.viewPortScaler);
