@@ -690,6 +690,7 @@ class Controls {
 	}
 
 	onclick(mouse) {
+		mouse.preventDefault();
 		var msHeld = (Date.now() - this.driver.player.timeWhenLeftMouseWasPressed);
 		if (msHeld < 1000) {var mouseX = mouse.x - this.driver.renderer.horizontalOffset;
 			var mouseY = mouse.y - this.driver.renderer.verticalOffset;
