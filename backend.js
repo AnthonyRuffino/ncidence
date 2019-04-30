@@ -124,25 +124,29 @@ class Backend {
         const movedEnemies = {};
         Object.entries(this.enemies).forEach((enemy) => {
             if(enemy[1].type.indexOf('red')+1 && !enemy[1].kill) {
-                if(!enemy[1].target) {
-                    enemy[1].target = player;
-                    enemy[1].initialTarget = true;
-                }
-                var oldTargetXDistance = enemy[1].x - enemy[1].target.x;
-                var oldTargetYDistance = enemy[1].y - enemy[1].target.y;
-                const oldDistance = Math.sqrt( oldTargetXDistance*oldTargetXDistance + oldTargetYDistance*oldTargetYDistance );
-                const aggroRangeMemory = (100/enemy[1].width)*400;
-                if(enemy[1].target.id !== player.id && ((oldDistance > aggroRangeMemory) || enemy[1].initialTarget)) {
-                    var newTargetXDistance = enemy[1].x - player.x;
-                    var newTargetYDistance = enemy[1].y - player.y;
-                    
-                    const newDistance = Math.sqrt( newTargetXDistance*newTargetXDistance + newTargetYDistance*newTargetYDistance );
-                    if(newDistance < oldDistance) {
+                
+                var newTargetXDistance = enemy[1].x - player.x;
+                var newTargetYDistance = enemy[1].y - player.y;
+                const newDistance = Math.sqrt( newTargetXDistance*newTargetXDistance + newTargetYDistance*newTargetYDistance );
+                
+                if(newDistance < 5000) {
+                    if(!enemy[1].target) {
                         enemy[1].target = player;
+                        enemy[1].initialTarget = true;
                     }
-                    
-                    if(last) {
-                        enemy[1].initialTarget = false;
+                    var oldTargetXDistance = enemy[1].x - enemy[1].target.x;
+                    var oldTargetYDistance = enemy[1].y - enemy[1].target.y;
+                    const oldDistance = Math.sqrt( oldTargetXDistance*oldTargetXDistance + oldTargetYDistance*oldTargetYDistance );
+                    const aggroRangeMemory = (100/enemy[1].width)*400;
+                    if(enemy[1].target.id !== player.id && ((oldDistance > aggroRangeMemory) || enemy[1].initialTarget)) {
+                        
+                        if(newDistance < oldDistance) {
+                            enemy[1].target = player;
+                        }
+                        
+                        if(last) {
+                            enemy[1].initialTarget = false;
+                        }
                     }
                 }
             }

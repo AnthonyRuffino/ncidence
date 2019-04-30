@@ -418,10 +418,10 @@ class Player extends Entity {
 		if(this.hp < 1) {
 			return;
 		}
-		this.hp-=data?10:1;
+		this.hp-=data?4:1;
 		this.projectiles.push({
 			type: 'bullet',
-			lifeSpan: 100,
+			lifeSpan: data?300:75,
 			age: 0,
 			player: this,
 			entity: new Entity({
