@@ -157,10 +157,10 @@ class GameDriver {
 		
 		this.messages = [
 			{name:'admin', text: 'Example: chat("hi")'},
-			{name:'admin', text:'hi, this is the admin'},
+			{name:'admin', text: 'then send messages with the "chat" function'},
+			{name:'admin', text: 'just press F12 or cntrl-shift-I in chrome'},
 			{name:'admin', text: 'you can chat from dev tools'},
-			{name:'admin', text: 'just press F12 or cntrl-shift-I in chrom'},
-			{name:'admin', text: 'chat with the "chat" function'},
+			{name:'admin', text:'hi, this is the admin'},
 		];
 		this.socket.hooks.message = (msg) => {
 			if(msg) {
