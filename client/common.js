@@ -404,6 +404,7 @@ class Player extends Entity {
 		this.paued = false;
 		this.mouseX = null;
 		this.mouseY = null;
+		this.distanceScaler = 1;
 	}
 
 	get spaceMovement() {
@@ -412,6 +413,11 @@ class Player extends Entity {
 
 	set spaceMovement(spaceMovement) {
 		this._spaceMovement = spaceMovement;
+	}
+	
+	updateDistanceScaler() {
+		const distance = this.getDistance({x:0,y:0});
+		this.distanceScaler = 1 + (distance/(1000));
 	}
 
 	fire(data) {
@@ -525,7 +531,7 @@ class Player extends Entity {
 			this.movementSpeed = this.movementSpeed > 0 ? this.movementSpeed : .01;
 		}
 		else {
-			this.movementSpeed = this.baseSpeed / 10;
+			this.movementSpeed = (this.baseSpeed / 10) * (this.distanceScaler);
 		}
 
 		var strafing = false;

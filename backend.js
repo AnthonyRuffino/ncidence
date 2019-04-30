@@ -203,6 +203,10 @@ class Backend {
                 }
                 const player = connection[1].player;
                 
+                if(this.tick%100===0) {
+                    player.updateDistanceScaler();
+                }
+                
                 const attackingEnemiesTemp = player.projectileMotion(this.enemies, true);
                 
                 if(Object.entries(attackingEnemiesTemp).length > 0) {
