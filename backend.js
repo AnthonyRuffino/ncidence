@@ -317,6 +317,11 @@ class Backend {
                 }
             }
         });
+        
+        const renderer = {
+            scale: .50,
+            startScale: .50
+        };
         socketIOHooks.push({
             on: 'hi',
             run: async({ emit, dataIn, user, socketId }) => {
@@ -327,12 +332,12 @@ class Backend {
                 //TODO: what to do for anonymous?
                 if (!connectionOptional) {
                     const driver = {
-                        renderer: {
-                            scale: .50,
-                            startScale: .50
-                        },
+                        renderer,
                         gameEngine: this,
-                        speedOfLight: 4479900
+                        speedOfLight: 4479900,
+                        socket: {
+                            emit
+                        }
 
                     };
                     
@@ -397,6 +402,7 @@ class Backend {
                 else {
                     player = connectionOptional.player;
                     connectionOptional.emit = emit;
+                    player.driver.renderer = renderer;
 
                     Object.entries(this.connections).forEach((connection) => {
                         if (connection[1].player.id !== player.id) {
@@ -416,8 +422,9 @@ class Backend {
 
 
                 emit('hi', {
-                    playerData: { ...player.baseInfo(), driver: null, img: null }, 
-                    gameStartTimeServer: this._gameStartTime 
+                    playerData: { ...player.baseInfo(), img: null },
+                    gameStartTimeServer: this._gameStartTime,
+                    renderer: renderer
                 });
 
 

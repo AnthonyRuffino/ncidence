@@ -315,9 +315,11 @@ class GameDriver {
 			//alert('Beep! ' + this.me);
 		});
 
-		this.socket.on('hi', ({playerData, gameStartTimeServer}) => {
-			console.log("Server: 'hi'", playerData);
+		this.socket.on('hi', ({playerData, gameStartTimeServer, renderer}) => {
+			console.log("Server: 'hi'", playerData, renderer);
 			this._player = new Player({...playerData, driver: this, tag: 'real' });
+			this.scale = renderer.scale;
+			this.startScale = renderer.startScale
 			this.gameStartTimeServer = gameStartTimeServer;
 		})
 		

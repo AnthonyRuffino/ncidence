@@ -882,7 +882,7 @@ class Controls {
 		
 		
 		
-		if (this.driver.socket) {
+		if (inBrowser) {
 			this.driver.socket.emit('control', {
 				name: 'onwheel',
 				value: {
