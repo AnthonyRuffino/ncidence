@@ -209,6 +209,8 @@ class Backend {
                 
                 const attackingEnemiesTemp = player.projectileMotion(this.enemies, true);
                 
+                
+                
                 if(Object.entries(attackingEnemiesTemp).length > 0) {
                     Object.values(attackingEnemiesTemp).forEach(enemy => {
                         if(enemy.type.indexOf('green') === 0) {
@@ -217,16 +219,11 @@ class Backend {
                             player.hp -= 2;
                         }
                     });
-                    
-                    if(player.hp < 1) {
-                        player.hp = 1000;
-                        player.score = 0;
-                        player.baseSpeed = 360;
-                    }
-                    
                     connection[1].emit('damage', {
-                        hp: player.hp
+                        hp: player.hp,
+                        damageSource:'enemies'
                     });
+                    player.checkHp({damageSource:'enemies'});
                 }
                 
                 const projectileData = this.moveEnemies(player.popProjectiles());
@@ -234,7 +231,6 @@ class Backend {
                 
                 Object.entries(projectileData.killedEnemies).forEach(killedEnemy => {
                     player.score++;
-                    player.baseSpeed++;
                     movedEnemies[killedEnemy[0]] = killedEnemy[1];
                     connection[1].emit('score', {
                         score: player.score
@@ -332,7 +328,8 @@ class Backend {
                 if (!connectionOptional) {
                     const driver = {
                         renderer: {
-
+                            scale: .50,
+                            startScale: .50
                         },
                         gameEngine: this,
                         speedOfLight: 4479900

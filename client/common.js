@@ -236,8 +236,15 @@ class Entity {
 			}
 		}
 	}
+	
+	pointify(dimention) {
+		if(dimention < 1) {
+			return 1;
+		}
+		return dimention;
+	}
 
-	draw() {
+	draw(config) {
 
 		var doDraw = this.doDraw === undefined || this.doDraw === null || this.doDraw === true;
 
@@ -261,16 +268,16 @@ class Entity {
 				y += Math.random() * this.wiggleY;
 			}
 
-			if ((this.driver.preRender || this.baseImageHeight === undefined) && (this.image !== undefined && this.image !== null)) {
-				var imageHeight = this.imageHeight !== undefined ? this.imageHeight : this.height;
-				var imageWidth = this.imageWidth !== undefined ? this.imageWidth : this.width;
-				this.driver.renderer.drawRealImage(true, this.image, x, y, imageWidth, imageHeight, angle, true);
+			if ((this.driver.preRender || (this.baseImageHeight === undefined) && (this.image !== undefined && this.image !== null))) {
+				let imageHeight = (config && config.imageHeight) ? config.imageHeight : (this.imageHeight !== undefined ? this.imageHeight : this.height);
+				let imageWidth = (config && config.imageWidth) ? config.imageWidth : (this.imageWidth !== undefined ? this.imageWidth : this.width);
+				this.driver.renderer.drawRealImage(true, this.image, x, y, this.pointify(imageWidth), this.pointify(imageHeight), angle, true);
 			}
 			else if (this.shape === 'circle') {
-				this.driver.renderer.drawRealCircle(true, x, y, this.width, null, this.fillStyle, this.lineWidth, this.strokeStyle);
+				this.driver.renderer.drawRealCircle(true, x, y, this.pointify(this.width), null, this.fillStyle, this.pointify(this.lineWidth), this.strokeStyle);
 			}
 			else if (this.shape === 'rectangle') {
-				this.driver.renderer.drawRealRectangle(true, x, y, this.width, this.height, angle, this.fillStyle, this.lineWidth, this.strokeStyle, true);
+				this.driver.renderer.drawRealRectangle(true, x, y, this.pointify(this.width), this.pointify(this.height), angle, this.fillStyle, this.pointify(this.lineWidth), this.strokeStyle, true);
 			}
 		}
 
@@ -424,10 +431,11 @@ class Player extends Entity {
 		if(this.hp < 1) {
 			return;
 		}
-		this.hp-=data?4:1;
+		this.hp-=data.hpLoss;
+		this.checkHp({damageSource:'self'});
 		this.projectiles.push({
 			type: 'bullet',
-			lifeSpan: data?300:75,
+			lifeSpan: data.lifeSpan,
 			age: 0,
 			player: this,
 			entity: new Entity({
@@ -436,10 +444,10 @@ class Player extends Entity {
                 id: 'projectile-' + this.id + '-' + this.bulletNumber++,
                 x: this._x,
                 y: this._y,
-                width: data ? 10 : 50,
-                height: data ? 50 : 10,
+                width: data.width,
+                height: data.height,
                 angle: this._angle,
-                movementSpeed: 100,
+                movementSpeed: data.movementSpeed,
                 shape: 'rectangle',
                 fillStyle: CommonMath.getRandomColor(()=>15),
                 lineWidth: 1,
@@ -451,6 +459,18 @@ class Player extends Entity {
 		});
 	}
 	
+	checkHp(data) {
+		if(this.hp < 1) {
+			const now = Date.now();
+			this.lastDeath = now;
+			if(inBrowser && data.damageSource === 'self') {
+				window.alert('You shot yourself dead!');
+			}
+            this.hp = 1000;
+            this.score = 0;
+            this.baseSpeed = 360;
+        }
+	}
 	popProjectiles() {
 		const activeProjectiles = [];
 		const poppedProjectiles = [];
@@ -483,23 +503,24 @@ class Player extends Entity {
 	}
 
 	draw(superOnly) {
+		
+		
+		var widthToDraw = this.width;
+		var heightToDraw = this.height;
+
+		if (widthToDraw < 40 * this.driver.renderer.viewPortScaler) {
+			widthToDraw = 40 * this.driver.renderer.viewPortScaler;
+			heightToDraw = widthToDraw * this.heightToWidthRatio;
+		}
 
 		if (superOnly) {
-			super.draw();
+			super.draw({imageHeight:heightToDraw, imageWidth: widthToDraw});
 			return;
 		}
 
 		var playerAngle = this._angle;
 		if (this.firstPerson) {
 			playerAngle = this.startAngle;
-		}
-
-		var widthToDraw = this.width;
-		var heightToDraw = this.height;
-
-		if (widthToDraw < 30 * this.driver.renderer.viewPortScaler) {
-			widthToDraw = 30 * this.driver.renderer.viewPortScaler;
-			heightToDraw = widthToDraw * this.heightToWidthRatio;
 		}
 		
 		//const projectile = this.projectiles.pop();
@@ -531,7 +552,7 @@ class Player extends Entity {
 			this.movementSpeed = this.movementSpeed > 0 ? this.movementSpeed : .01;
 		}
 		else {
-			this.movementSpeed = (this.baseSpeed / 10) * (this.distanceScaler);
+			this.movementSpeed = ((this.baseSpeed / 10) * (1/this.driver.renderer.scale)) || 1;
 		}
 
 		var strafing = false;
@@ -746,10 +767,19 @@ class Controls {
 			console.log('Key: ' + event.keyCode);
 		}
 		
+		const player = this.driver.player;
+		
+		const mainScaler = (player.distanceScaler*10);
 		if (event.keyCode === 49 || event.keyCode === 32) {
-			this.driver.player.fire();
+			player.fire({movementSpeed:(mainScaler) + player.movementSpeed, lifeSpan: 75, width:(mainScaler)+50,height:10, hpLoss:1});
 		} if (event.keyCode === 50) {
-			this.driver.player.fire({type:'big'});
+			player.fire({movementSpeed:(mainScaler) + player.movementSpeed, lifeSpan: 150, width:(mainScaler)+10,height:50, hpLoss:4});
+		}
+		
+		if(event.keyCode === 13 && inBrowser) {
+			this.driver.chatOn = true;
+			const msg = prompt("Type your chat message here", "...");
+			this.driver.chat(msg);
 		}
 
 		if (this.driver.socket) {
@@ -852,7 +882,7 @@ class Controls {
 		
 		
 		
-		if (this.driver.socket && mouse.shiftKey) {
+		if (this.driver.socket) {
 			this.driver.socket.emit('control', {
 				name: 'onwheel',
 				value: {
@@ -884,7 +914,6 @@ class Controls {
 			}
 		}
 		else {
-			
 			this.driver.previousScale = null;
 			let zoomingIn = (mouse.shiftKey !== true && mouse.deltaY < 0) || (mouse.shiftKey && mouse.deltaX < 0);
 	
@@ -944,7 +973,7 @@ class Controls {
 				this.driver.renderer.scale -= scaler;
 			}
 
-			var minimumScale = .001;
+			var minimumScale = .00000001;
 			if (this.driver.renderer.scale < minimumScale) {
 				this.driver.renderer.scale = minimumScale;
 			}

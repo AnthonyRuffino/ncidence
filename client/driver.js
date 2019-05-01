@@ -147,6 +147,8 @@ class GameDriver {
 		this.socket = socket;
 		chat = (msg) => { socket.emit('message', msg); return chatFormat('me', msg) };
 		emit = (key, data) => socket.emit(key, data);
+		this.emit = emit;
+		this.chat = chat;
 
 
 		this.socket.hooks.whoami = (me) => {
@@ -156,10 +158,14 @@ class GameDriver {
 		};
 		
 		this.messages = [
-			{name:'admin', text: 'Example: chat("hi")'},
-			{name:'admin', text: 'then send messages with the "chat" function'},
-			{name:'admin', text: 'just press F12 or cntrl-shift-I in chrome'},
-			{name:'admin', text: 'you can chat from dev tools'},
+			{name:':)', text: '...'},
+			{name:':)', text: '...'},
+			{name:':)', text: '...'},
+			{name:':)', text: '...'},
+			{name:'admin', text: 'Have fun hacking'},
+			{name:'admin', text: 'not all of the data is controlled on the server'},
+			{name:'admin', text: 'this client is very hackable btw'},
+			{name:'admin', text: 'you can chat by pressing enter'},
 			{name:'admin', text:'hi, this is the admin'},
 		];
 		this.socket.hooks.message = (msg) => {
@@ -234,7 +240,15 @@ class GameDriver {
 		
 		
 		
-		const unclickAll = () => {
+		const unclickAll = (code, cooldown) => {
+			
+			if(!canDoCooldown(code)) {
+        		return;
+        	} else if(cooldown !== undefined) {
+        		this.clickCooldowns['' + code] = (new Date()).getTime() + (cooldown*1000);
+        	}
+			
+			
 			clickCircle(81, false);
 			clickCircle(87, false);
 			clickCircle(69, false);
@@ -243,9 +257,10 @@ class GameDriver {
 			clickCircle(83, false);
 		}
 		
+		this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(74, true, 10), .38, .80, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
 		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 10), .30, .80, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
-        this.thrusterControl = new ScaledControl(this, 'thrusterControl', () => unclickAll(), .30, .90, (1 / 24), .05, image('/img/space/icon-thruster.png'));
-        this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(74, true, 10), .95, .05, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
+        this.thrusterControl = new ScaledControl(this, 'thrusterControl', () => unclickAll(-1,5), .30, .90, (1 / 24), .05, image('/img/space/icon-thruster.png'), () => canDoCooldown(-1));
+        this.viewControl = new ScaledControl(this, 'view', ()=>clickCircle(70), .38, .90, (1 / 30), .05, image('/img/space/view.png'), () => this._player.firstPerson);
 		
 		this.chatOn = false;
 		this.chatToggle = new ScaledControl(this, 'chatToggle', ()=>{this.chatOn=!this.chatOn}, .15, .005, (1 / 30), .05, image('/img/space/chatBubble.png'), () => !this.chatOn);
@@ -255,6 +270,7 @@ class GameDriver {
         this._clickControls.push(this.thrusterControl);
         this._clickControls.push(this.warpControl);
         this.clickControls.push(this.homeControl);
+        this.clickControls.push(this.viewControl);
         
         
         
@@ -268,9 +284,9 @@ class GameDriver {
 		var arrowImage = image('/img/space/arrow.jpg');
 		var minusImage = image('/img/space/minus.jpg');
 		var plusImage = image('/img/space/plus.jpg');
+		var earthImage = image('/img/space/earth.png');
 		
-		
-		this._clickControls.push(new ScaledControl(this, 'statControl', ()=>this.showStats = !this.showStats, .01, .3, (1 / 64), null, plusImage, () => this.showStats, null, 45),);
+		this._clickControls.push(new ScaledControl(this, 'statControl', ()=>this.showStats = !this.showStats, .08, .007, (1 / 64), null, plusImage, () => this.showStats, null, 45),);
 		this._clickControls.push(new ScaledControl(this, 'tipControl', ()=>this.showTips = !this.showTips, .70, .02, (1 / 64), null, plusImage, () => this.showTips, null, 45),);
 		this._clickControls.push(new ScaledControl(this, 'bigTrigger', ()=>clickCircle(32, true), .80, .80, (4 / 24), null, circleImage)),
         
@@ -332,6 +348,63 @@ class GameDriver {
 			});
 		})
 		
+		
+		
+		const ringInstance = (id, width, color, x, y, image) => {
+			return {
+				driver: this,
+				type: 'ring',
+				id: 'ring' + id,
+				x: x || 0,
+				y: y || 0,
+				vx: 0,
+				vy: 0,
+				width: width,
+				height: width,
+				angle: 0,
+				movementSpeed: 0,
+				shape: 'circle',
+				fillStyle: null,
+				lineWidth: id * 2,
+				strokeStyle: color,
+				image: image
+			};
+		};
+		
+		this.rings1 = {};
+		this.rings2 = {};
+		this.rings3 = {};
+		for(let ringNumber = 0; ringNumber < 40; ringNumber++) {
+			this.rings1['ring-a-' + ringNumber] = new Entity(ringInstance(ringNumber+'-a', (ringNumber*ringNumber*ringNumber*ringNumber) + 1500, 'blue'));
+		}
+		for(let ringNumber = 0; ringNumber < 100; ringNumber++) {
+			this.rings2['ring-b-' + ringNumber] = new Entity(ringInstance(ringNumber+'b', (ringNumber * ringNumber*ringNumber*ringNumber*ringNumber) + 10000, '#00008b'));
+		}
+		
+		for(let ringNumber = 0; ringNumber < 100; ringNumber++) {
+			this.rings3['ring-c-' + ringNumber] = new Entity(ringInstance(ringNumber+'b', (ringNumber * ringNumber*ringNumber*ringNumber*ringNumber*ringNumber) + 1000000000, '#00006f'));
+		}
+		
+		this.suns = {};
+		var sunImage = image('/img/space/sun2.png');
+		for(let sunNumber = 2; sunNumber < 100; sunNumber++) {
+			const flip2 = sunNumber%2 === 0 ? -1 : 1;
+			const flip3 = sunNumber%3 === 0 ? -1 : 1;
+			const flip4 = sunNumber%4 === 0 ? -1 : 1;
+			const sunXy = (sunNumber*sunNumber * 1000);
+			const square = sunNumber*sunNumber;
+			const cube = square*sunNumber;
+			const width = (sunNumber-1)*(16*cube + 14*square * sunNumber*100);
+			const xScale = (sunXy*sunNumber*sunNumber);
+			const yScale = (sunXy*sunNumber*sunNumber*sunNumber);
+			const shift = 2 * (flip2*xScale*flip3*(sunNumber%4));
+			this.suns['sun-' + sunNumber + 1] = new Entity(ringInstance('sun-' + sunNumber + 1, width, 'orange', flip2*xScale - shift, yScale - shift, sunNumber === 2 ? earthImage : sunImage));
+		}
+		
+		
+		this.earth = new Entity(ringInstance('earth', 1000, 'orange', 10000, 10000, earthImage));
+		 
+		
 		const mapMovingEntities = (movers, source) => {
 			const killList = [];
 			Object.entries(movers).forEach((entry) => {
@@ -342,7 +415,7 @@ class GameDriver {
 				source[entry[0]].x = entry[1].x;
 				source[entry[0]].y = entry[1].y;
 				//FIXME: killing early because server wont send last ticks for some reason
-				if(entry[1].kill || ((entry[1].lifeSpan - entry[1].age) < 8)) {
+				if(entry[1].kill || ((entry[1].lifeSpan - entry[1].age) < 12)) {
 					killList.push(entry[0]);
 				}
 			});
@@ -361,6 +434,7 @@ class GameDriver {
 		
 		this.socket.on('damage', (data) => {
 			this._player.hp = data.hp;
+			this._player.checkHp(data);
 		});
 		
 		this.projectiles = {};
@@ -428,6 +502,30 @@ class GameDriver {
 
 
 	render() {
+		
+		if(this._renderer.scale >= .01) {
+			Object.values(this.rings1).forEach(ring => {
+				ring.draw();
+			});
+		}
+		
+		if(this._renderer.scale <= .01 && this._renderer.scale >= .000001) {
+			Object.values(this.rings2).forEach(ring => {
+				ring.draw();
+			});
+		}
+		
+		
+		if(this._renderer.scale <= .000001) {
+			Object.values(this.rings3).forEach(ring => {
+				ring.draw();
+			});
+		}
+		
+		Object.values(this.suns).forEach(sun => {
+			sun.draw();
+		});
+		
 		this._player.draw();
 		
 		Object.values(this.enemies).forEach(enemy => {
@@ -475,25 +573,27 @@ class GameDriver {
 			
 			this._renderer.ctx.fillText('  Elapsed Time: ' + CommonMath.round((Date.now() - this.gameStartTimeServer) / 1000, 2) + ' sec', 0, (textSize * 11) * this._renderer.viewPortScaler);
 		
-			this._renderer.ctx.fillText('  aruffino84@gmail.com', 0, (textSize * 12) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('  Press Enter to chat', 0, (textSize * 13) * this._renderer.viewPortScaler);
 			
-			if(this.chatOn && this.messages.length > 0) {
-				this._renderer.ctx.fillStyle = 'yellow';
-				for(var mn = 0; mn < this.messages.length; mn++) {
-					let chatMessage = `${this.messages[4-mn].name}: ${this.messages[4-mn].text}`;
-					chatMessage = chatMessage && chatMessage.substr(0,50);
-					this._renderer.ctx.fillText(chatMessage, 10, (textSize * (13+(mn + 1))) * this._renderer.viewPortScaler);
-					if(mn === 4) {
-						break;
-					}
-				}
-				
-			}
-			this._renderer.ctx.fillStyle = 'white';
-			this._renderer.ctx.fillText('  WASD ↑ ← ↓ →', 0, (textSize * 20) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('  WASD ↑ ← ↓ →', 0, (textSize * 14) * this._renderer.viewPortScaler);
 		}
 		
-		
+		if(this.chatOn && this.messages.length > 0) {
+			let lim = 8;
+			this._renderer.ctx.fillStyle = 'yellow';
+			for(var mn = 0; mn < this.messages.length; mn++) {
+				let chatMessage = `${this.messages[lim-mn].name}: ${this.messages[lim-mn].text}`;
+				chatMessage = chatMessage && chatMessage.substr(0,50);
+				this._renderer.ctx.fillText(chatMessage, 10, (textSize * (16+(mn + 1))) * this._renderer.viewPortScaler);
+				if(mn === lim) {
+					break;
+				}
+			}
+			
+		} else if(!this.chatOn) {
+			this._renderer.ctx.fillStyle = 'yellow';
+			this._renderer.ctx.fillText('  Press [Enter] to chat.', 0, (textSize * 17) * this._renderer.viewPortScaler);
+		}
 		
 		//this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 		
@@ -501,9 +601,10 @@ class GameDriver {
 		if(this.showTips) {
 			this._renderer.ctx.fillStyle = 'white';
 			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
-			this._renderer.ctx.fillText('Kill red guys or they will get you.  Blue guys will hurt you too.', 600, (textSize * 4) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('Green will heal.  Watch out at respawn time.', 600, (textSize * 5) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('Click home to go to the center.' + this._player.hp, 600, (textSize * 6) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Red and Green Guys Hurt. Green guys heal.', 600, (textSize * 6) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Waves respawn.', 600, (textSize * 7) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('The farther out you scroll, the faster you go.', 600, (textSize * 8) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('The farther out you scroll, the longer the lazers.', 600, (textSize * 9) * this._renderer.viewPortScaler);
 		}
 		
 		
@@ -528,6 +629,37 @@ class GameDriver {
 			enemy.updatePosition();
 			enemy.doDraw = true;
 		});
+		
+		Object.values(this.suns).forEach(sun => {
+			sun.updatePosition();
+			sun.doDraw = true;
+		});
+		
+		this.earth.updatePosition();
+		this.earth.doDraw = true;
+		
+		if(this._renderer.scale >= .01) {
+			Object.values(this.rings1).forEach(ring => {
+				ring.updatePosition();
+				ring.doDraw = true;
+			});
+		}
+		
+		if(this._renderer.scale <= .01 && this._renderer.scale > .000001) {
+			Object.values(this.rings2).forEach(ring => {
+				ring.updatePosition();
+				ring.doDraw = true;
+			});
+		}
+		
+		
+		if(this._renderer.scale <= .000001) {
+			Object.values(this.rings3).forEach(ring => {
+				ring.updatePosition();
+				ring.doDraw = true;
+			});
+		}
+		
 		
 		Object.values(this.projectiles).forEach(projectile => {
 			projectile.updatePosition();
