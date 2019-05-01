@@ -391,6 +391,7 @@ class GameDriver {
 		
 		this.suns = {};
 		var sunImage = image('/img/space/sun2.png');
+		let earthDrawn = false;
 		for(let sunNumber = 2; sunNumber < 100; sunNumber++) {
 			if(sunNumber % 3 === 0) {
 				const flip2 = sunNumber%2 === 0 ? -1 : 1;
@@ -403,14 +404,11 @@ class GameDriver {
 				const xScale = (sunXy*sunNumber*sunNumber);
 				const yScale = (sunXy*sunNumber*sunNumber*sunNumber);
 				const shift = 2 * (flip2*xScale*flip3*(sunNumber%4));
-				this.suns['sun-' + sunNumber + 1] = new Entity(ringInstance('sun-' + sunNumber + 1, width, 'orange', flip2*xScale - shift, yScale - shift, sunNumber === 2 ? earthImage : sunImage));
+				this.suns['sun-' + sunNumber + 1] = new Entity(ringInstance('sun-' + sunNumber + 1, width, 'orange', flip2*xScale - shift, yScale - shift, !earthDrawn ? earthImage : sunImage));
+				earthDrawn = true;
 			}
 		}
-		
-		
-		this.earth = new Entity(ringInstance('earth', 1000, 'orange', 10000, 10000, earthImage));
 		 
-		
 		const mapMovingEntities = (movers, source) => {
 			const killList = [];
 			Object.entries(movers).forEach((entry) => {
@@ -654,9 +652,6 @@ class GameDriver {
 			sun.updatePosition();
 			sun.doDraw = true;
 		});
-		
-		this.earth.updatePosition();
-		this.earth.doDraw = true;
 		
 		if(this._renderer.scale >= .01) {
 			Object.values(this.rings1).forEach(ring => {
