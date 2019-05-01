@@ -139,7 +139,8 @@ class GameDriver {
 		this.log = log;
 		this.alert = alert;
 		this.me = 'Anonymouz';
-		this.showTips = true;
+		this.showMobile = false;
+		this.showTips = false;
 		this.showStats = true;
 
 		//socketio overrides
@@ -237,6 +238,7 @@ class GameDriver {
 		}
 		
 		this._clickControls = [];
+		this._mobileClickControls = [];
 		
 		
 		
@@ -269,8 +271,8 @@ class GameDriver {
         //CIRCLE CONTROLL
         this._clickControls.push(this.thrusterControl);
         this._clickControls.push(this.warpControl);
-        this.clickControls.push(this.homeControl);
-        this.clickControls.push(this.viewControl);
+        this._clickControls.push(this.homeControl);
+        this._clickControls.push(this.viewControl);
         
         
         
@@ -286,11 +288,13 @@ class GameDriver {
 		var plusImage = image('/img/space/plus.jpg');
 		var earthImage = image('/img/space/earth.png');
 		
-		this._clickControls.push(new ScaledControl(this, 'statControl', ()=>this.showStats = !this.showStats, .08, .007, (1 / 64), null, plusImage, () => this.showStats, null, 45),);
-		this._clickControls.push(new ScaledControl(this, 'tipControl', ()=>this.showTips = !this.showTips, .70, .02, (1 / 64), null, plusImage, () => this.showTips, null, 45),);
+		this._clickControls.push(new ScaledControl(this, 'statControl', ()=>this.showStats = !this.showStats, .08, .007, (1 / 64), null, plusImage, () => this.showStats, null, 45));
+		this._clickControls.push(new ScaledControl(this, 'tipControl', ()=>this.showTips = !this.showTips, .70, .02, (1 / 64), null, plusImage, () => this.showTips, null, 45));
 		this._clickControls.push(new ScaledControl(this, 'bigTrigger', ()=>clickCircle(32, true), .80, .80, (4 / 24), null, circleImage)),
+		this._clickControls.push(new ScaledControl(this, 'mobileControl', ()=>this.showMobile = !this.showMobile, .01, .98, (1 / 64), null, plusImage, () => this.showMobile, null, 45));
         
-        this._clickControls.push(...[
+        
+        this._mobileClickControls.push(...[
         	new ScaledControl(this, 'circleControl1', ()=>clickCircle(81), .02, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(81), null, -45),
         	new ScaledControl(this, 'circleControl2', ()=>clickCircle(87), .10, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(87)),
         	new ScaledControl(this, 'circleControl3', ()=>clickCircle(69), .18, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(69), null, 45),
@@ -390,17 +394,19 @@ class GameDriver {
 		this.suns = {};
 		var sunImage = image('/img/space/sun2.png');
 		for(let sunNumber = 2; sunNumber < 100; sunNumber++) {
-			const flip2 = sunNumber%2 === 0 ? -1 : 1;
-			const flip3 = sunNumber%3 === 0 ? -1 : 1;
-			const flip4 = sunNumber%4 === 0 ? -1 : 1;
-			const sunXy = (sunNumber*sunNumber * 1000);
-			const square = sunNumber*sunNumber;
-			const cube = square*sunNumber;
-			const width = (sunNumber-1)*(16*cube + 14*square * sunNumber*100);
-			const xScale = (sunXy*sunNumber*sunNumber);
-			const yScale = (sunXy*sunNumber*sunNumber*sunNumber);
-			const shift = 2 * (flip2*xScale*flip3*(sunNumber%4));
-			this.suns['sun-' + sunNumber + 1] = new Entity(ringInstance('sun-' + sunNumber + 1, width, 'orange', flip2*xScale - shift, yScale - shift, sunNumber === 2 ? earthImage : sunImage));
+			if(sunNumber % 3 === 0) {
+				const flip2 = sunNumber%2 === 0 ? -1 : 1;
+				const flip3 = sunNumber%3 === 0 ? -1 : 1;
+				const flip4 = sunNumber%4 === 0 ? -1 : 1;
+				const sunXy = (sunNumber*sunNumber * 1000);
+				const square = sunNumber*sunNumber;
+				const cube = square*sunNumber;
+				const width = (sunNumber-1)*(16*cube + 14*square * sunNumber*100);
+				const xScale = (sunXy*sunNumber*sunNumber);
+				const yScale = (sunXy*sunNumber*sunNumber*sunNumber);
+				const shift = 2 * (flip2*xScale*flip3*(sunNumber%4));
+				this.suns['sun-' + sunNumber + 1] = new Entity(ringInstance('sun-' + sunNumber + 1, width, 'orange', flip2*xScale - shift, yScale - shift, sunNumber === 2 ? earthImage : sunImage));
+			}
 		}
 		
 		
@@ -468,7 +474,7 @@ class GameDriver {
 
 	//GETTERS AND SETTERS
 	get clickControls() {
-		return this._clickControls;
+		return [...this._clickControls,...this._mobileClickControls];
 	}
 	get angleChangeSpeed() {
 		return this._angleChangeSpeed;
@@ -569,7 +575,6 @@ class GameDriver {
 
 		this._renderer.ctx.fillStyle = 'white';
 		if(this.showStats) {
-			
 			this._renderer.ctx.fillText(`  (${CommonMath.round(this._player.x)}, ${CommonMath.round(this._player.y)}) - [${CommonMath.round(this._player.angle)}°]`, 0, (textSize * 4) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('  Speed: ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('  Scale (scroll[+/-]): ' + this._renderer.scale, 0, (textSize * 7) * this._renderer.viewPortScaler);
@@ -601,20 +606,33 @@ class GameDriver {
 		
 		//this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 		
-		
+		const rightAlignment = 1450 * this._renderer.viewPortScaler;
 		if(this.showTips) {
 			this._renderer.ctx.fillStyle = 'white';
 			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
-			this._renderer.ctx.fillText('Red and Green Guys Hurt. Green guys heal.', 600, (textSize * 6) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('Waves respawn.', 600, (textSize * 4) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('The farther out you scroll, the faster you go.', 600, (textSize * 8) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('The farther out you scroll, the longer the lazers.', 600, (textSize * 9) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Red and Green Guys Hurt. Green guys heal.', rightAlignment, (textSize * 1) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Green guys can slow you.', rightAlignment, (textSize * 2) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Waves respawn.', rightAlignment, (textSize * 3) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('The farther out you scroll,', rightAlignment, (textSize * 4) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('the faster you go.', rightAlignment, (textSize * 5) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('The farther out you go,', rightAlignment, (textSize * 6) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('the longer the lazers.', rightAlignment, (textSize * 7) * this._renderer.viewPortScaler);
+		} else {
+			this._renderer.ctx.fillStyle = 'white';
+			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
+			this._renderer.ctx.fillText('Tips.', rightAlignment, (textSize * 1) * this._renderer.viewPortScaler);
 		}
 		
 		
 		
 		for (var i = 0; i < this._clickControls.length; i++) {
             this._clickControls[i].draw();
+        }
+        
+        if(this.showMobile) {
+        	for (var i = 0; i < this._mobileClickControls.length; i++) {
+	            this._mobileClickControls[i].draw();
+	        }
         }
 		
 		this._renderer.ctx.restore();
