@@ -432,6 +432,8 @@ class GameDriver {
 		
 		this.socket.on('score', (data) => {
 			this._player.score = data.score;
+			this._player.hp = data.hp;
+			this._player.baseSpeed = data.baseSpeed;
 		});
 		
 		this.socket.on('damage', (data) => {
@@ -604,7 +606,7 @@ class GameDriver {
 			this._renderer.ctx.fillStyle = 'white';
 			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
 			this._renderer.ctx.fillText('Red and Green Guys Hurt. Green guys heal.', 600, (textSize * 6) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('Waves respawn.', 600, (textSize * 7) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Waves respawn.', 600, (textSize * 4) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('The farther out you scroll, the faster you go.', 600, (textSize * 8) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('The farther out you scroll, the longer the lazers.', 600, (textSize * 9) * this._renderer.viewPortScaler);
 		}

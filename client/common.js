@@ -551,11 +551,11 @@ class Player extends Entity {
 		var speed = 0;
 
 		if (false && !this.driver.player.spaceMovement) {
-			this.movementSpeed = this.baseSpeed / (this.driver.renderer.scale * 10);
+			this.movementSpeed = (this.baseSpeed / (this.driver.renderer.scale * 100)*this.driver.player.distanceScaler);
 			this.movementSpeed = this.movementSpeed > 0 ? this.movementSpeed : .01;
 		}
 		else {
-			this.movementSpeed = ((this.baseSpeed / 10) * (1/this.driver.renderer.scale)) || 1;
+			this.movementSpeed = ((((this.baseSpeed / 50) * (1/this.driver.renderer.scale))) + this.driver.player.distanceScaler) || 10;
 		}
 
 		var strafing = false;
@@ -774,9 +774,9 @@ class Controls {
 		
 		const mainScaler = (player.distanceScaler*10);
 		if (event.keyCode === 49 || event.keyCode === 32) {
-			player.fire({movementSpeed:(mainScaler) + player.movementSpeed, lifeSpan: 75, width:(mainScaler)+50,height:10, hpLoss:1});
+			player.fire({movementSpeed:(8*mainScaler), lifeSpan: 75, width:(mainScaler)+50,height:10, hpLoss:1});
 		} if (event.keyCode === 50) {
-			player.fire({movementSpeed:(mainScaler) + player.movementSpeed, lifeSpan: 150, width:(mainScaler)+10,height:50, hpLoss:4});
+			player.fire({movementSpeed:(8*mainScaler), lifeSpan: 150, width:(mainScaler)+10,height:50, hpLoss:4});
 		}
 		
 		if(event.keyCode === 13 && inBrowser) {

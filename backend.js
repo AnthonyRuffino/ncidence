@@ -175,6 +175,7 @@ class Backend {
                         id: killed[0],
                         x: killed[1].x,
                         y: killed[1].y,
+                        type: killed[1].type,
                         kill: true
                     };
                 });
@@ -232,9 +233,21 @@ class Backend {
                 Object.entries(projectileData.killedEnemies).forEach(killedEnemy => {
                     player.score++;
                     movedEnemies[killedEnemy[0]] = killedEnemy[1];
-                    connection[1].emit('score', {
-                        score: player.score
-                    });
+                    
+                    if(killedEnemy[1].type.indexOf('green') === 0) {
+                        player.hp += 3;
+                        player.baseSpeed += 1;
+                    } else if(killedEnemy[1].type.indexOf('blue') === 0) {
+                        player.baseSpeed -= 1;
+                        player.baseSpeed = player.baseSpeed > 0 ? player.baseSpeed : 10;
+                    }
+                    
+                });
+                
+                connection[1].emit('score', {
+                    score: player.score,
+                    baseSpeed: player.baseSpeed,
+                    hp: player.hp
                 });
                 
                 if(Object.keys(projectiles).length > 0) {
@@ -319,8 +332,8 @@ class Backend {
         });
         
         const renderer = {
-            scale: .50,
-            startScale: .50
+            scale: .2,
+            startScale: .2
         };
         socketIOHooks.push({
             on: 'hi',
