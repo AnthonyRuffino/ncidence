@@ -347,11 +347,9 @@ class Backend {
                     const driver = {
                         renderer,
                         gameEngine: this,
-                        speedOfLight: 4479900,
                         socket: {
                             emit
                         }
-
                     };
                     
                     const userName = user.isAnonymous ? `?_${user.sessionId}` : user.username;

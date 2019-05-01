@@ -179,8 +179,6 @@ class GameDriver {
 
 		this._gameEngine = null;
 
-		this.speedOfLight = 4479900;
-
 
 		//constructor(driver,id,x,y,width,height,angle,movementSpeed,img)
 		this._player = new Player({driver: this, tag: 'dummy'});

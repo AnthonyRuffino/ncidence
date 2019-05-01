@@ -217,9 +217,8 @@ class Entity {
 	updatePosition() {
 
 		this.motionDetected = false;
-		var minimumScale = .00000001;
-		if (this.driver.renderer.scale < minimumScale) {
-			this.driver.renderer.scale = minimumScale;
+		if (this.driver.renderer.scale < common.Constants.minimumScale) {
+			this.driver.renderer.scale = common.Constants.minimumScale;
 		}
 
 		var scaler = this.driver.renderer.scale * this.driver.renderer.viewPortScaler;
@@ -923,52 +922,33 @@ class Controls {
 			let sampleValue = mouse.shiftKey !== true ? this.driver.renderer.scale : this.driver.player.baseSpeed;
 			let scaler = .1;
 			
-			if (zoomingIn) {
-				if (sampleValue < .0000001) {
-					scaler = .00000001;
+			const scaleLeveler = (sample, toThe, isIn) => {
+				if(toThe === 0) {
+					return {zoomLevel: toThe, scaler: 1};
 				}
-				else if (sampleValue < .000001) {
-					scaler = .0000001;
+				const direction = toThe < 0 ? 1 : - 1;
+				const factor = toThe < 0 ? (1/10) : 10;
+				const toTheShift = Math.abs(toThe + direction);
+				const test = CommonMath.round(Math.pow(factor, toTheShift), toTheShift);
+				if(isIn) {
+					if (sample < test) {
+						return {zoomLevel: toThe, scaler: test * factor};
+					}
+				} else {
+					if (sampleValue <= test) {
+						return {zoomLevel: toThe, scaler: test * factor};
+					}
 				}
-				else if (sampleValue < .00001) {
-					scaler = .000001;
-				}
-				else if (sampleValue < .0001) {
-					scaler = .00001;
-				}
-				else if (sampleValue < .001) {
-					scaler = .0001;
-				}
-				else if (sampleValue < .01) {
-					scaler = .001;
-				}
-				else if (sampleValue < .1) {
-					scaler = .01;
-				}
-			}
-			else {
-				if (sampleValue <= .0000001) {
-					scaler = .00000001;
-				}
-				else if (sampleValue <= .000001) {
-					scaler = .0000001;
-				}
-				else if (sampleValue <= .00001) {
-					scaler = .000001;
-				}
-				else if (sampleValue <= .0001) {
-					scaler = .00001;
-				}
-				else if (sampleValue <= .001) {
-					scaler = .0001;
-				}
-				else if (sampleValue <= .01) {
-					scaler = .001;
-				}
-				else if (sampleValue <= .1) {
-					scaler = .01;
-				}
-			}
+				
+				toThe += direction;
+				return scaleLeveler(sample, toThe--, isIn);
+			};
+			
+			const scalerDescription = scaleLeveler(sampleValue, common.Constants.minimumScale, zoomingIn);
+			scaler = scalerDescription.scaler;
+			this.driver.player.zoomLevel = scalerDescription.zoomLevel;
+			
+			
 			if (mouse.deltaY < 0) {
 				this.driver.renderer.scale += scaler;
 			}
@@ -976,12 +956,12 @@ class Controls {
 				this.driver.renderer.scale -= scaler;
 			}
 
-			var minimumScale = .00000001;
+			var minimumScale = Math.pow(10, common.Constants.minimumScale);
 			if (this.driver.renderer.scale < minimumScale) {
 				this.driver.renderer.scale = minimumScale;
 			}
-
-			this.driver.renderer.scale = CommonMath.round(this.driver.renderer.scale, 8);
+			const roundedScale = CommonMath.round(this.driver.renderer.scale, Math.abs(scalerDescription.zoomLevel));
+			this.driver.renderer.scale = roundedScale;
 		}
 	}
 
@@ -1037,7 +1017,11 @@ const common = {
 	Entity: Entity,
 	Player: Player,
 	Controls: Controls,
-	CommonMath: CommonMath
+	CommonMath: CommonMath,
+	Constants: {
+		minimumScale: -10,
+		speedOfLight: 4479900
+	}
 }
 
 try {
