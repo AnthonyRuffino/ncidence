@@ -469,6 +469,9 @@ class Player extends Entity {
             this.hp = 1000;
             this.score = 0;
             this.baseSpeed = 360;
+            this._x = 0;
+            this._y = 0;
+            this.driver.renderer.scale = this.driver.renderer.startScale;
         }
 	}
 	popProjectiles() {
