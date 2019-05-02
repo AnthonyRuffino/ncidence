@@ -143,6 +143,7 @@ class GameDriver {
 		this.showMobile = false;
 		this.showTips = false;
 		this.showStats = true;
+		this.gameNumber = -1;
 
 		//socketio overrides
 		const chatFormat = (name, text) => `${name}: ${text}`;
@@ -351,10 +352,11 @@ class GameDriver {
 		//enemies
 		this.enemies = {};
 		
-		this.socket.on('enemies', (enemies) => {
-			console.log('enemies!', enemies);
+		this.socket.on('enemies', (enemyData) => {
+			console.log('enemyData', enemyData);
+			this.gameNumber = enemyData.gameNumber;
 			this.enemies = {};
-			Object.entries(enemies).forEach(enemy => {
+			Object.entries(enemyData.enemies).forEach(enemy => {
 				this.enemies[enemy[0]] = new Entity({... enemy[1], driver: this,});
 			});
 		})
@@ -629,6 +631,9 @@ class GameDriver {
 		//this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 		
 		const rightAlignment = 1450 * this._renderer.viewPortScaler;
+		
+		this._renderer.ctx.fillText('Game:' + this.gameNumber, this._renderer.width - ((textSize * 4) * this._renderer.viewPortScaler) - 5, this._renderer.height - 5);
+		
 		if(this.showTips) {
 			this._renderer.ctx.fillStyle = 'white';
 			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';

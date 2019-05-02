@@ -52,7 +52,8 @@ class Entity {
 		strokeStyle,
 		image,
 		wiggleX,
-		wiggleY
+		wiggleY,
+		activationTime
 	}) {
 		
 		this.bulletNumber = 0;
@@ -79,6 +80,7 @@ class Entity {
 		this.motionDetected = false;
 		this.wiggleX = wiggleX;
 		this.wiggleY = wiggleY;
+		this.activationTime = activationTime;
 		
 		if (this.vx === undefined || this.vx === null) {
 			this.vx = 0;
@@ -1028,7 +1030,8 @@ const common = {
 	CommonMath: CommonMath,
 	Constants: {
 		minimumScale: -10,
-		speedOfLight: 4479900
+		speedOfLight: 4479900,
+		waveTimeSec: 30
 	}
 }
 

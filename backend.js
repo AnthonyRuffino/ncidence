@@ -15,6 +15,7 @@ class Backend {
         this.sha256 = require('sha256');
         this.tick = 0;
         
+        
         this.mapplied.init({
             hash:(val)=> this.sha256(val)
         }, subdomain);
@@ -39,16 +40,29 @@ class Backend {
         this.setPlayerControl = this.setPlayerControl.bind(this);
         this.update = this.update.bind(this);
         
+        this.gameNumber = 0;
         this.resetEnemies();
         
         setInterval(() => {
             this.resetEnemies();
-        }, 1000*30);
+        }, 1000*this.common.Constants.waveTimeSec);
         
     }
     
     
     resetEnemies() {
+        
+        if(this.gameNumber > 15) {
+            this.gameNumber = 0;
+        }
+        
+        this.mapplied.init({
+            hash:(val)=> this.sha256(val)
+        }, this.subdomain + (this.gameNumber ? this.gameNumber : ''));
+        this.gameNumber++;
+        
+        const activationTime = Date.now() + (2.5 * 1000);
+        
         const universe = this.mapplied.getUniverse();
         const hashAnalysis = universe.hashAnalysis;
         
@@ -88,14 +102,15 @@ class Backend {
                 width: enemyW,
                 height: enemyShape === 'circle' ? enemyW : enemyH,
                 angle: 15,
-                movementSpeed: 10,
+                movementSpeed: 20,
                 shape: enemyShape,
                 fillStyle: this.common.CommonMath.getRandomColor((index)=>colorIndexes.data.indexOf(index)>-1 ? 15 : 0),
                 lineWidth,
                 strokeStyle: this.common.CommonMath.getRandomColor(),
                 image: null,
                 wiggleX: 1,
-                wiggleY: 1
+                wiggleY: 1,
+                activationTime
             });
         }
         
@@ -104,7 +119,7 @@ class Backend {
             Object.entries(this.enemies).forEach((enemy) => {
                 enemies[enemy[0]] = { ...enemy[1].baseInfo(), driver: null };
             });
-            conn[1].emit('enemies', enemies);
+            conn[1].emit('enemies', {enemies, gameNumber: this.gameNumber});
         });
     }
 
@@ -120,10 +135,10 @@ class Backend {
         }
     }
     
-    considerForTargeting(player, last){
+    considerForTargeting(player, last, now){
         const movedEnemies = {};
         Object.entries(this.enemies).forEach((enemy) => {
-            if(enemy[1].type.indexOf('red')+1 && !enemy[1].kill) {
+            if(now >= enemy[1].activationTime && enemy[1].type.indexOf('red')+1 && !enemy[1].kill) {
                 
                 var newTargetXDistance = enemy[1].x - player.x;
                 var newTargetYDistance = enemy[1].y - player.y;
@@ -187,6 +202,7 @@ class Backend {
 
     update(delta, tag) {
         this.tick++;
+        const now = Date.now();
         //if(updatePosition)
         //console.log('delta: ' + delta);
         this.frimScaler = delta / this.targetTickDelta;
@@ -200,7 +216,7 @@ class Backend {
                 if(this.tick%10 === 0) {
                     check++;
                     const last = check === Object.entries(this.connections).length;
-                    this.considerForTargeting(connection[1].player, last);
+                    this.considerForTargeting(connection[1].player, last, now);
                 }
                 const player = connection[1].player;
                 
@@ -210,14 +226,14 @@ class Backend {
                 
                 const attackingEnemiesTemp = player.projectileMotion(this.enemies, true);
                 
-                
-                
                 if(Object.entries(attackingEnemiesTemp).length > 0) {
                     Object.values(attackingEnemiesTemp).forEach(enemy => {
-                        if(enemy.type.indexOf('green') === 0) {
-                            player.hp++;
-                        } else {
-                            player.hp -= 2;
+                        if(now > enemy.activationTime) {
+                            if(enemy.type.indexOf('green') === 0) {
+                                player.hp++;
+                            } else {
+                                player.hp -= 2;
+                            }
                         }
                     });
                     connection[1].emit('damage', {
@@ -429,7 +445,7 @@ class Backend {
                 Object.entries(this.enemies).forEach((enemy) => {
                     enemies[enemy[0]] = { ...enemy[1].baseInfo(), driver: null }
                 });
-                emit('enemies', enemies);
+                emit('enemies', {enemies, gameNumber: this.gameNumber});
 
 
                 emit('hi', {
