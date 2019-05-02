@@ -6,7 +6,7 @@
 
 
 class ScaledControl{
-	constructor(driver, id,doClick,x,y,width,height,image,doHighlight,highlightColor,angle){
+	constructor(driver, id,doClick,x,y,width,height,image,doHighlight,highlightColor,angle,isXyReal){
 		this.driver = driver;
 		this.id=id;
 		this.doClick=doClick;
@@ -19,6 +19,7 @@ class ScaledControl{
 		this.isCircle=height===undefined || height===null;
 		this.highlightColor = highlightColor;
 		this.angle = angle;
+		this.isXyReal = isXyReal;
 	}
 	
 	draw(){
@@ -235,6 +236,12 @@ class GameDriver {
         	return img;
 		}
 		
+		var circleImage = image('/img/space/shoot.png');
+		var arrowImage = image('/img/space/arrow.jpg');
+		var minusImage = image('/img/space/minus.jpg');
+		var plusImage = image('/img/space/plus.jpg');
+		var earthImage = image('/img/space/earth.png');
+		
 		this._clickControls = [];
 		this._mobileClickControls = [];
 		
@@ -257,16 +264,20 @@ class GameDriver {
 			clickCircle(83, false);
 		}
 		
-		this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(74, true, 10), .38, .80, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(74));
-		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 10), .30, .80, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
-        this.thrusterControl = new ScaledControl(this, 'thrusterControl', () => unclickAll(-1,5), .30, .90, (1 / 24), .05, image('/img/space/icon-thruster.png'), () => canDoCooldown(-1));
-        this.viewControl = new ScaledControl(this, 'view', ()=>clickCircle(70), .38, .90, (1 / 30), .05, image('/img/space/view.png'), () => this._player.firstPerson);
+		
+		this.triggerControl = new ScaledControl(this, 'triggerControl', ()=>clickCircle(32, true), .30, .90, (1 / 24), null, circleImage);
+		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 10), .35, .90, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
+		this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(51, true, 10), .40, .90, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(51));
+		
+        this.thrusterControl = new ScaledControl(this, 'thrusterControl', () => unclickAll(-1,5), .45, .90, (1 / 24), .05, image('/img/space/icon-thruster.png'), () => canDoCooldown(-1));
+        this.viewControl = new ScaledControl(this, 'view', ()=>clickCircle(53), .50, .90, (1 / 30), .05, image('/img/space/view.png'), () => this._player.firstPerson);
 		
 		this.chatOn = false;
-		this.chatToggle = new ScaledControl(this, 'chatToggle', ()=>{this.chatOn=!this.chatOn}, .15, .005, (1 / 30), .05, image('/img/space/chatBubble.png'), () => !this.chatOn);
+		this.chatToggle = new ScaledControl(this, 'chatToggle', ()=>{this.chatOn=!this.chatOn}, .005, .005, (1 / 30), .05, image('/img/space/chatBubble.png'), () => !this.chatOn, 'yellow');
 		this._clickControls.push(this.chatToggle);
 		
         //CIRCLE CONTROLL
+        this._clickControls.push(this.triggerControl);
         this._clickControls.push(this.thrusterControl);
         this._clickControls.push(this.warpControl);
         this._clickControls.push(this.homeControl);
@@ -280,19 +291,15 @@ class GameDriver {
         	return 	this.clickIsDownMemory['' + keyCode];
         };
 		
-		var circleImage = image('/img/space/shoot.png');
-		var arrowImage = image('/img/space/arrow.jpg');
-		var minusImage = image('/img/space/minus.jpg');
-		var plusImage = image('/img/space/plus.jpg');
-		var earthImage = image('/img/space/earth.png');
 		
-		this._clickControls.push(new ScaledControl(this, 'statControl', ()=>this.showStats = !this.showStats, .08, .007, (1 / 64), null, plusImage, () => this.showStats, null, 45));
+		
+		//this._clickControls.push(new ScaledControl(this, 'statControl', ()=>this.showStats = !this.showStats, .08, .007, (1 / 64), null, plusImage, () => this.showStats, null, 45));
 		this._clickControls.push(new ScaledControl(this, 'tipControl', ()=>this.showTips = !this.showTips, .70, .02, (1 / 64), null, plusImage, () => this.showTips, null, 45));
-		this._clickControls.push(new ScaledControl(this, 'bigTrigger', ()=>clickCircle(32, true), .80, .80, (4 / 24), null, circleImage)),
 		this._clickControls.push(new ScaledControl(this, 'mobileControl', ()=>this.showMobile = !this.showMobile, .01, .98, (1 / 64), null, plusImage, () => this.showMobile, null, 45));
         
         
         this._mobileClickControls.push(...[
+        	new ScaledControl(this, 'bigTrigger', ()=>clickCircle(32, true), .80, .80, (4 / 24), null, circleImage),
         	new ScaledControl(this, 'circleControl1', ()=>clickCircle(81), .02, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(81), null, -45),
         	new ScaledControl(this, 'circleControl2', ()=>clickCircle(87), .10, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(87)),
         	new ScaledControl(this, 'circleControl3', ()=>clickCircle(69), .18, .70, (2 / 24), null, arrowImage, () => doMemoryHighlight(69), null, 45),
@@ -551,54 +558,73 @@ class GameDriver {
 		this._renderer.ctx.save();
 		var textSize = 25;
 		
-		this._renderer.ctx.fillStyle = 'orange';
-		this._renderer.ctx.font = (textSize*2 * this._renderer.viewPortScaler) + 'pt Calibri';
-		this._renderer.ctx.fillText('Ludum Dare 44: Evention', 300, (textSize * 2) * this._renderer.viewPortScaler);
 		
-		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
-		
-		
-		this._renderer.ctx.fillStyle = 'white';
-		this._renderer.ctx.fillText('Life: ', 0, (textSize * 1) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillStyle = 'red';
-		this._renderer.ctx.fillText(this._player.hp, 100 * this._renderer.viewPortScaler, (textSize * 1) * this._renderer.viewPortScaler);
-		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
-		
-		this._renderer.ctx.fillStyle = 'white';
-		this._renderer.ctx.fillText('Score ', 0, (textSize * 2) * this._renderer.viewPortScaler);
-		this._renderer.ctx.fillStyle = 'green';
-		this._renderer.ctx.fillText(this._player.score, 100 * this._renderer.viewPortScaler, (textSize * 2) * this._renderer.viewPortScaler);
-
-		this._renderer.ctx.fillStyle = 'white';
-		if(this.showStats) {
-			this._renderer.ctx.fillText(`  (${CommonMath.round(this._player.x)}, ${CommonMath.round(this._player.y)}) - [${CommonMath.round(this._player.angle)}°]`, 0, (textSize * 4) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('  Speed: ' + CommonMath.round(this._player.baseSpeed), 0, (textSize * 5) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('  Scale (scroll[+/-]): ' + this._renderer.scale, 0, (textSize * 7) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('  Online Multi-player', 0, (textSize * 10) * this._renderer.viewPortScaler);
-			
-			this._renderer.ctx.fillText('  Elapsed Time: ' + CommonMath.round((Date.now() - this.gameStartTimeServer) / 1000, 2) + ' sec', 0, (textSize * 11) * this._renderer.viewPortScaler);
-		
-			this._renderer.ctx.fillText('  Press Enter to chat', 0, (textSize * 13) * this._renderer.viewPortScaler);
-			
-			this._renderer.ctx.fillText('  WASD ↑ ← ↓ →', 0, (textSize * 14) * this._renderer.viewPortScaler);
-		}
-		
+		let lineNumer = 0;
+		let chatLineLimit = 8;
 		if(this.chatOn && this.messages.length > 0) {
-			let lim = 8;
 			this._renderer.ctx.fillStyle = 'yellow';
-			for(var mn = 0; mn < this.messages.length; mn++) {
-				let chatMessage = `${this.messages[lim-mn].name}: ${this.messages[lim-mn].text}`;
+			for(lineNumer = 0; lineNumer < this.messages.length; lineNumer++) {
+				let chatMessage = `${this.messages[chatLineLimit-lineNumer].name}: ${this.messages[chatLineLimit-lineNumer].text}`;
 				chatMessage = chatMessage && chatMessage.substr(0,50);
-				this._renderer.ctx.fillText(chatMessage, 10, (textSize * (16+(mn + 1))) * this._renderer.viewPortScaler);
-				if(mn === lim) {
+				this._renderer.ctx.fillText(chatMessage, 50, (textSize * (lineNumer + 1)) * this._renderer.viewPortScaler);
+				if(lineNumer === chatLineLimit) {
 					break;
 				}
 			}
 			
 		} else if(!this.chatOn) {
 			this._renderer.ctx.fillStyle = 'yellow';
-			this._renderer.ctx.fillText('  Press [Enter] to chat.', 0, (textSize * 17) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('  Press [Enter] to chat.', 50, (textSize * (lineNumer + 1)) * this._renderer.viewPortScaler);
 		}
+		lineNumer = chatLineLimit + 10;
+		
+		
+		
+		this._renderer.ctx.fillStyle = 'orange';
+		this._renderer.ctx.font = (textSize*2 * this._renderer.viewPortScaler) + 'pt Calibri';
+		
+		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
+		
+		
+		this._renderer.ctx.fillStyle = 'white';
+		this._renderer.ctx.fillText('Life', 0, (textSize * ++lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillStyle = 'red';
+		this._renderer.ctx.fillText(this._player.hp, 100 * this._renderer.viewPortScaler, (textSize * lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.font = (textSize * this._renderer.viewPortScaler) + 'pt Calibri';
+		
+		this._renderer.ctx.fillStyle = 'white';
+		this._renderer.ctx.fillText('Score', 0, (textSize * ++lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillStyle = 'green';
+		this._renderer.ctx.fillText(this._player.score, 100 * this._renderer.viewPortScaler, (textSize * lineNumer) * this._renderer.viewPortScaler);
+		
+		this._renderer.ctx.font = (textSize *.75 * this._renderer.viewPortScaler) + 'pt Calibri';
+		this._renderer.ctx.fillStyle = 'white';
+		this._renderer.ctx.fillText('x', 0, (textSize * ++lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText(CommonMath.round(this._player.x), 100 * this._renderer.viewPortScaler, (textSize * lineNumer) * this._renderer.viewPortScaler);
+		
+		this._renderer.ctx.fillText('y', 0, (textSize * ++lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText(CommonMath.round(this._player.y), 100 * this._renderer.viewPortScaler, (textSize * lineNumer) * this._renderer.viewPortScaler);
+		
+		this._renderer.ctx.fillText('angle', 0, (textSize * ++lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText(`${CommonMath.round(this._player.angle)}°`, 100 * this._renderer.viewPortScaler, (textSize * lineNumer) * this._renderer.viewPortScaler);
+		
+		this._renderer.ctx.fillText('Speed', 0, (textSize * ++lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText(CommonMath.round(this._player.baseSpeed), 100 * this._renderer.viewPortScaler, (textSize * lineNumer++) * this._renderer.viewPortScaler);
+		
+		this._renderer.ctx.fillText('Scale', 0, (textSize * ++lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText(this._renderer.scale, 100 * this._renderer.viewPortScaler, (textSize * lineNumer) * this._renderer.viewPortScaler);
+		
+		this._renderer.ctx.fillText('Clock', 0, (textSize * ++lineNumer) * this._renderer.viewPortScaler);
+		this._renderer.ctx.fillText(CommonMath.round((Date.now() - this.gameStartTimeServer) / 1000, 2) + ' sec', 100 * this._renderer.viewPortScaler, (textSize * lineNumer) * this._renderer.viewPortScaler);
+		
+		
+//[${CommonMath.round(this._player.angle)}°]
+		this._renderer.ctx.fillStyle = 'white';
+		if(this.showStats) {
+			
+		}
+		
+		
 		
 		//this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);
 		
@@ -606,26 +632,35 @@ class GameDriver {
 		if(this.showTips) {
 			this._renderer.ctx.fillStyle = 'white';
 			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
-			this._renderer.ctx.fillText('Red and Green Guys Hurt. Green guys heal.', rightAlignment, (textSize * 1) * this._renderer.viewPortScaler);
-			this._renderer.ctx.fillText('Green guys can slow you.', rightAlignment, (textSize * 2) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Red and Blue Guys Hurt. Green guys heal.', rightAlignment, (textSize * 1) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Blue guys can slow you.', rightAlignment, (textSize * 2) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('Waves respawn.', rightAlignment, (textSize * 3) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('The farther out you scroll,', rightAlignment, (textSize * 4) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('the faster you go.', rightAlignment, (textSize * 5) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('The farther out you go,', rightAlignment, (textSize * 6) * this._renderer.viewPortScaler);
 			this._renderer.ctx.fillText('the longer the lazers.', rightAlignment, (textSize * 7) * this._renderer.viewPortScaler);
+			
+			this._renderer.ctx.fillText('Online Multi-player', rightAlignment, (textSize * 8) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('Press Enter to chat', rightAlignment, (textSize * 9) * this._renderer.viewPortScaler);
+			this._renderer.ctx.fillText('WASD ↑ ← ↓ →', rightAlignment, (textSize * 10) * this._renderer.viewPortScaler);
+			
 		} else {
 			this._renderer.ctx.fillStyle = 'white';
 			this._renderer.ctx.font = ((textSize/1.5) * this._renderer.viewPortScaler) + 'pt Calibri';
 			this._renderer.ctx.fillText('Tips.', rightAlignment, (textSize * 1) * this._renderer.viewPortScaler);
+			
+			this._renderer.ctx.fillStyle = 'orange';
+			this._renderer.ctx.fillText('Ludum Dare 44: Evention', rightAlignment + (50*this._renderer.viewPortScaler), (textSize * 1) * this._renderer.viewPortScaler);
 		}
 		
-		
-		
-		for (var i = 0; i < this._clickControls.length; i++) {
+        
+        for (var i = 0; i < this._clickControls.length; i++) {
             this._clickControls[i].draw();
         }
-        
+	        
+	        
         if(this.showMobile) {
+        	
         	for (var i = 0; i < this._mobileClickControls.length; i++) {
 	            this._mobileClickControls[i].draw();
 	        }

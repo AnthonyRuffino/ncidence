@@ -810,7 +810,7 @@ class Controls {
 			this.driver.player.strafingRight = true;
 		else if (event.keyCode === 80) //p
 			this.driver.player.paused = !this.driver.player.paused;
-		else if (event.keyCode === 70) { //f
+		else if (event.keyCode === 70 || event.keyCode === 53) { //f or 5
 			this.driver.player.firstPerson = !this.driver.player.firstPerson;
 		}
 		else if (event.keyCode === 88) { //x
@@ -824,7 +824,7 @@ class Controls {
 			}
 
 		}
-		else if (event.keyCode === 74) { //j
+		else if (event.keyCode === 74 || event.keyCode === 51) { //j or 3
 			this.driver.player.x = 0;
 			this.driver.player.y = 0;
 		}
