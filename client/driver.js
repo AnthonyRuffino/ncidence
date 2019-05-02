@@ -269,7 +269,7 @@ class GameDriver {
 		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 10), .35, .90, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
 		this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(51, true, 10), .40, .90, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(51));
 		
-        this.thrusterControl = new ScaledControl(this, 'thrusterControl', () => unclickAll(-1,5), .45, .90, (1 / 24), .05, image('/img/space/icon-thruster.png'), () => canDoCooldown(-1));
+        this.thrusterControl = new ScaledControl(this, 'stopControl', () => unclickAll(-1,5), .45, .90, (1 / 24), .05, image('/img/space/stop.png'), () => canDoCooldown(-1));
         this.viewControl = new ScaledControl(this, 'view', ()=>clickCircle(53), .50, .90, (1 / 30), .05, image('/img/space/view.png'), () => this._player.firstPerson);
 		
 		this.chatOn = false;

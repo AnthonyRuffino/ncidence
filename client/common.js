@@ -468,8 +468,8 @@ class Player extends Entity {
             this.hp = 1000;
             this.score = 0;
             this.baseSpeed = 360;
-            this._x = 0;
-            this._y = 0;
+            this._x = (Math.random() >  .5 == 0 ? 1 : -1)*(Math.random()*700);
+            this._y = (Math.random() <= .5 == 0 ? 1 : -1)*(Math.random()*700);
             this.driver.renderer.scale = this.driver.renderer.startScale;
         }
 	}
@@ -709,6 +709,14 @@ class Controls {
 		}
 		else if (mouse.which === 3) {
 			this.driver.player.pressingRightClick = true;
+		}
+		else if (mouse.which === 2) {
+			if(this.driver.player.pressingUp) {
+				this.onkeyup({keyCode:87});//w
+			} else {
+				this.onkeydown({keyCode:87});//w
+			}
+			
 		}
 		this.setPlayerMouse(mouseX, mouseY);
 	}
