@@ -191,7 +191,7 @@ class Entity {
 	}
 	
 	
-	projectileMotion(enemies, justCollissions) {
+	projectileMotion(enemies, justCollissions, durationEntity = {duration: -1}) {
 		if(!justCollissions) {
 			const speed = this.movementSpeed;
 			this.calculateMovementData(this._angle, speed, false);
@@ -200,8 +200,11 @@ class Entity {
 		}
 		const toKill = {};
 		Object.entries(enemies).forEach((enemy) => {
-			const collision = this.collision(enemy[1].x, enemy[1].y, enemy[1].width, this._x, this._y, this.width);
-			if(collision) {
+			if(durationEntity.duration && this.collision(enemy[1].x, enemy[1].y, enemy[1].width, this._x, this._y, this.width)) {
+				durationEntity.duration--;
+				if(durationEntity.duration === 0) {
+					durationEntity.lifeSpan = durationEntity.age;
+				}
 				toKill[enemy[0]] = enemy[1];
 				if(!justCollissions) {
 					delete enemies[enemy[0]];
@@ -433,6 +436,7 @@ class Player extends Entity {
 		this.projectiles.push({
 			type: 'bullet',
 			lifeSpan: data.lifeSpan,
+			duration: data.duration,
 			age: 0,
 			player: this,
 			entity: new Entity({
@@ -779,9 +783,9 @@ class Controls {
 		
 		const mainScaler = (player.distanceScaler*10);
 		if (event.keyCode === 49 || event.keyCode === 32) {
-			player.fire({movementSpeed:(8*mainScaler), lifeSpan: 75, width:(mainScaler)+50,height:10, hpLoss:1});
+			player.fire({movementSpeed:(8*mainScaler), lifeSpan: 75, duration: 4, width:(mainScaler)+50,height:10, hpLoss:1});
 		} if (event.keyCode === 50) {
-			player.fire({movementSpeed:(8*mainScaler), lifeSpan: 150, width:(mainScaler)+10,height:50, hpLoss:4});
+			player.fire({movementSpeed:(8*mainScaler), lifeSpan: 150, duration: 16, width:(mainScaler)+10,height:50, hpLoss:4});
 		}
 		
 		if(event.keyCode === 13 && inBrowser) {

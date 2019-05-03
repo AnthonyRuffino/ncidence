@@ -267,7 +267,7 @@ class GameDriver {
 		
 		
 		this.triggerControl = new ScaledControl(this, 'triggerControl', ()=>clickCircle(32, true), .30, .90, (1 / 24), null, circleImage);
-		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 10), .35, .90, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
+		this.warpControl = new ScaledControl(this, 'sideShotControl', ()=>clickCircle(50, true, 4), .35, .90, (1 / 24), .05, image('/img/space/icon-warp.png'), () => canDoCooldown(50));
 		this.homeControl = new ScaledControl(this, 'homeControl', ()=>clickCircle(51, true, 10), .40, .90, (1 / 30), .05, image('/img/space/home.png'), () => canDoCooldown(51));
 		
         this.thrusterControl = new ScaledControl(this, 'stopControl', () => unclickAll(-1,5), .45, .90, (1 / 24), .05, image('/img/space/stop.png'), () => canDoCooldown(-1));

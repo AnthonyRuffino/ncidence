@@ -94,9 +94,10 @@ class Backend {
             const num = hashAnalysis.numbers[index + ''];
             return num.val;
         };
-        const enemyCount = 100 - (numVal(1) * 10) - numVal(2);
+        let enemyCount = 100 - (numVal(1) * 10) - numVal(2);
+        let additionalReds = Math.round(enemyCount < 30 ? enemyCount * 1.25 : enemyCount * .25);
         this.enemies = {};
-        for (var i = 1; i <= enemyCount; i++) {
+        for (var i = 1; i <= (enemyCount + additionalReds); i++) {
             
             const mapliedFactor1 = numVal(i);
             const mapliedFactor2 = numVal(i + 1);
@@ -108,7 +109,7 @@ class Backend {
             var enemyShape = i%2 ? 'circle' : 'rectangle';
             var lineWidth = 1;
             
-            var colorIndexes = mapliedFactor1%3;
+            var colorIndexes = i > enemyCount ? 0 : mapliedFactor1%3;
             colorIndexes = colorIndexes === 0 ? {name: 'red', data: [0,1]} : (colorIndexes === 1 ? {name: 'green', data: [2,3]} : {name: 'blue', data: [4,5]});
             
             const currentColor = this.common.CommonMath.getRandomColor((index)=>colorIndexes.data.indexOf(index)>-1 ? 15 : 0);
@@ -197,7 +198,12 @@ class Backend {
                     y: enemy[1].y
                 };
             } else if(enemy[1].type === 'bullet') {
-                const killedEnemiesTemp = enemy[1].entity.projectileMotion(this.enemies);
+                
+                const killedEnemiesTemp = enemy[1].entity.projectileMotion(this.enemies, false, enemy[1]);
+                if(Object.entries(killedEnemiesTemp).length && enemy[1].duration === 0) {
+                    enemy[1].duration
+                   enemy[1].lifeSpan = 0;
+                }
                 Object.entries(killedEnemiesTemp).forEach(killed => {
                     killedEnemies[killed[0]] = {
                         id: killed[0],
