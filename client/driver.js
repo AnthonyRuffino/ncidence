@@ -354,6 +354,12 @@ class GameDriver {
 		
 		this.socket.on('enemies', (enemyData) => {
 			console.log('enemyData', enemyData);
+			
+			if(!enemyData.isSync) {
+				this.showWaveAlert = true;
+				setTimeout(()=>this.showWaveAlert=false,2500);
+			}
+			
 			this.gameNumber = enemyData.gameNumber;
 			this.enemies = {};
 			Object.entries(enemyData.enemies).forEach(enemy => {
@@ -405,7 +411,6 @@ class GameDriver {
 			if(sunNumber % 3 === 0) {
 				const flip2 = sunNumber%2 === 0 ? -1 : 1;
 				const flip3 = sunNumber%3 === 0 ? -1 : 1;
-				const flip4 = sunNumber%4 === 0 ? -1 : 1;
 				const sunXy = (sunNumber*sunNumber * 1000);
 				const square = sunNumber*sunNumber;
 				const cube = square*sunNumber;
@@ -621,11 +626,11 @@ class GameDriver {
 		
 		
 //[${CommonMath.round(this._player.angle)}°]
-		this._renderer.ctx.fillStyle = 'white';
-		if(this.showStats) {
-			
+		this._renderer.ctx.fillStyle = 'red';
+		if(this.showWaveAlert) {
+			this._renderer.ctx.fillText('Enemies arrived', (this._renderer.width/2)-50, (this._renderer.height/2)+30);
 		}
-		
+		this._renderer.ctx.fillStyle = 'white';
 		
 		
 		//this._renderer.ctx.fillText('elapsedTime: ' + CommonMath.round((Date.now() - this.gameStartTime) / 1000, 2) + ' sec', 0, (textSize * 10) * this._renderer.viewPortScaler);

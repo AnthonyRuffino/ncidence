@@ -203,13 +203,9 @@ class Entity {
 			const collision = this.collision(enemy[1].x, enemy[1].y, enemy[1].width, this._x, this._y, this.width);
 			if(collision) {
 				toKill[enemy[0]] = enemy[1];
-				
 				if(!justCollissions) {
-					setInterval(() => {
-						delete enemies[enemy[0]];
-					}, 1000);
+					delete enemies[enemy[0]];
 				}
-				
 			}
 		});
 		return toKill;

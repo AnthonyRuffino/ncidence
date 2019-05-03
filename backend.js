@@ -47,6 +47,24 @@ class Backend {
             this.resetEnemies();
         }, 1000*this.common.Constants.waveTimeSec);
         
+        
+        
+        setInterval(() => {
+            this.emitEnemies(true);
+        }, 6000);
+        
+        
+        
+    }
+    
+    emitEnemies(isSync) {
+        Object.entries(this.connections).forEach(conn => {
+            const enemies = {};
+            Object.entries(this.enemies).forEach((enemy) => {
+                enemies[enemy[0]] = { ...enemy[1].baseInfo(), driver: null };
+            });
+            conn[1].emit('enemies', {enemies, gameNumber: this.gameNumber, isSync});
+        });
     }
     
     
@@ -88,11 +106,12 @@ class Backend {
             var enemyW = ((mapliedFactor1/10) * 25) + 15;
             var enemyH = ((mapliedFactor2/10) * 25) + 15;
             var enemyShape = i%2 ? 'circle' : 'rectangle';
-            var lineWidth = 3;
+            var lineWidth = 1;
             
             var colorIndexes = mapliedFactor1%3;
             colorIndexes = colorIndexes === 0 ? {name: 'red', data: [0,1]} : (colorIndexes === 1 ? {name: 'green', data: [2,3]} : {name: 'blue', data: [4,5]});
             
+            const currentColor = this.common.CommonMath.getRandomColor((index)=>colorIndexes.data.indexOf(index)>-1 ? 15 : 0);
             this.enemies['enemy' + i] = new this.common.Entity({
                 driver: this,
                 type: colorIndexes.name + '-enemy',
@@ -104,9 +123,9 @@ class Backend {
                 angle: 15,
                 movementSpeed: 20,
                 shape: enemyShape,
-                fillStyle: this.common.CommonMath.getRandomColor((index)=>colorIndexes.data.indexOf(index)>-1 ? 15 : 0),
+                fillStyle: currentColor,
                 lineWidth,
-                strokeStyle: this.common.CommonMath.getRandomColor(),
+                strokeStyle: 'dark-' + colorIndexes.name,
                 image: null,
                 wiggleX: 1,
                 wiggleY: 1,
@@ -114,13 +133,7 @@ class Backend {
             });
         }
         
-        Object.entries(this.connections).forEach(conn => {
-            const enemies = {};
-            Object.entries(this.enemies).forEach((enemy) => {
-                enemies[enemy[0]] = { ...enemy[1].baseInfo(), driver: null };
-            });
-            conn[1].emit('enemies', {enemies, gameNumber: this.gameNumber});
-        });
+        this.emitEnemies(false);
     }
 
     sessionKey(user, socketId) {
@@ -209,6 +222,7 @@ class Backend {
         const updatedPlayers = [];
         const disconectedPlayers = [];
         let movedEnemies = this.moveEnemies(this.enemies).movedEnemies;
+        let killedEnemies = {};
         let movedProjectiles = {};
         if (this.connections) {
             let check = 0;
@@ -245,6 +259,7 @@ class Backend {
                 
                 const projectileData = this.moveEnemies(player.popProjectiles());
                 const projectiles = projectileData.movedEnemies;
+                killedEnemies = projectileData.killedEnemies;
                 
                 Object.entries(projectileData.killedEnemies).forEach(killedEnemy => {
                     player.score++;
@@ -256,6 +271,7 @@ class Backend {
                     } else if(killedEnemy[1].type.indexOf('blue') === 0) {
                         player.baseSpeed -= 1;
                         player.baseSpeed = player.baseSpeed > 0 ? player.baseSpeed : 10;
+                        player.score++;
                     }
                     
                 });
@@ -299,6 +315,10 @@ class Backend {
                 
                 if((this.tick%2 === 0) && Object.keys(movedEnemies).length > 0) {
                     connection[1].emit('enemy-motion', movedEnemies);
+                }
+                
+                if(Object.keys(killedEnemies).length > 0) {
+                    connection[1].emit('enemy-motion', killedEnemies);
                 }
                 
                 if((this.tick%2 === 0) && bulletsFlying) {
